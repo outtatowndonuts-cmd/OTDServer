@@ -26,7 +26,8 @@
     "pretest:e2e:live": "npx playwright install chromium",
     "pretest:e2e:replay": "npx playwright install chromium",
     "pretest:e2e:custom": "npx playwright install chromium",
-    "test:image-link": "mocha --timeout 300000 \"test/*links.test.js\""
+    "test:image-link": "mocha --timeout 300000 \"test/*links.test.js\"",
+    "dev": "nodemon app.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
@@ -104,6 +105,7 @@
     "husky": "^9.1.7",
     "mocha": "next",
     "mongodb-memory-server": "^11.0.1",
+    "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "sinon": "^21.0.3",
     "supertest": "^7.2.2"

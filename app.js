@@ -168,6 +168,12 @@ app.use((req, res, next) => {
   res.locals.user = req.user;
   next();
 });
+
+// --- Modular Business OS: Mount all modules ---
+const modules = require('./config/modules');
+modules.forEach((moduleRoute) => {
+  app.use(moduleRoute.basePath, moduleRoute.router);
+});
 // Function to validate if the URL is a safe relative path
 const isSafeRedirect = (url) => /^\/[a-zA-Z0-9/_-]*$/.test(url);
 app.use((req, res, next) => {
