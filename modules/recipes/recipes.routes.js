@@ -23,6 +23,10 @@ router.get('/fragments/suppliers', isAuthenticated, controller.fragmentSuppliers
 router.get('/fragments/suppliers/new', isAuthenticated, controller.fragmentSuppliersNew);
 router.get('/fragments/suppliers/:id/edit', isAuthenticated, controller.fragmentSuppliersEdit);
 
+router.get('/fragments/supplies', isAuthenticated, controller.fragmentSuppliesList);
+router.get('/fragments/supplies/new', isAuthenticated, controller.fragmentSuppliesNew);
+router.get('/fragments/supplies/:id/edit', isAuthenticated, controller.fragmentSuppliesEdit);
+
 // ─── CRUD Mutations (return JSON — no redirects) ──────────────────────────────
 router.post('/ingredients', isAuthenticated, controller.createIngredient);
 router.post('/ingredients/:id', isAuthenticated, controller.updateIngredient);
@@ -39,5 +43,13 @@ router.post('/products/:id/delete', isAuthenticated, controller.deleteProduct);
 router.post('/suppliers', isAuthenticated, controller.createSupplier);
 router.post('/suppliers/:id', isAuthenticated, controller.updateSupplier);
 router.post('/suppliers/:id/delete', isAuthenticated, controller.deleteSupplier);
+
+router.post('/supplies', isAuthenticated, controller.createSupply);
+router.post('/supplies/:id', isAuthenticated, controller.updateSupply);
+router.post('/supplies/:id/delete', isAuthenticated, controller.deleteSupply);
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+router.get('/fragments/settings', isAuthenticated, controller.fragmentSettings);
+router.post('/settings', isAuthenticated, controller.updateSettings);
 
 module.exports = { basePath: '/recipes', router };

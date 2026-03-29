@@ -13,19 +13,27 @@ if products && products.length
         tr
           th Name
           th SKU
+          th COGS
           th Price
-          th Components
+          th Margin
           th.text-end Actions
       tbody
-        each item in products
+        each item, idx in products
+          - var c = costings[idx] || {};
           tr
             td
               strong= item.name
             td= item.sku || '—'
+            td
+              if c.totalCOGS > 0
+                = '$' + c.totalCOGS.toFixed(2)
+              else
+                span.text-muted —
             td= item.price ? '$' + item.price.toFixed(2) : '—'
             td
-              if item.components && item.components.length
-                = item.components.length + ' component(s)'
+              if c.margin !== null && c.margin !== undefined
+                - var mc = c.margin < 0 ? 'text-danger' : c.margin < 20 ? 'text-warning' : 'text-success';
+                span(class=mc)= c.margin.toFixed(1) + '%'
               else
                 span.text-muted —
             td.text-end

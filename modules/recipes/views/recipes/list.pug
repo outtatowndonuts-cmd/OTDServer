@@ -14,9 +14,12 @@ if recipes && recipes.length
           th Name
           th Ingredients
           th Yield
+          th Cost/Batch
+          th Cost/Unit
           th.text-end Actions
       tbody
-        each item in recipes
+        each item, idx in recipes
+          - var c = costings[idx] || {};
           tr
             td
               strong= item.name
@@ -27,6 +30,28 @@ if recipes && recipes.length
               else
                 span.text-muted —
             td= item.yield ? item.yield + ' units' : '—'
+            td
+              if c.hasIngredients
+                if c.costPerBatch > 0
+                  = '$' + c.costPerBatch.toFixed(2)
+                  if c.missingCount
+                    = ' '
+                    span.badge.bg-warning.text-dark(title='Some ingredients are missing pricing') ⚠
+                else
+                  span.text-muted —
+              else
+                span.text-muted —
+            td
+              if c.hasIngredients
+                if c.costPerUnit > 0
+                  = '$' + c.costPerUnit.toFixed(4).replace(/\.?0+$/, '')
+                  if c.missingCount && !c.costPerBatch
+                    = ' '
+                    span.badge.bg-warning.text-dark ⚠
+                else
+                  span.text-muted —
+              else
+                span.text-muted —
             td.text-end
               button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='recipes', data-id=item._id.toString()) Edit
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='recipes', data-id=item._id.toString(), data-url=`/recipes/recipes/${item._id}/delete`) Delete

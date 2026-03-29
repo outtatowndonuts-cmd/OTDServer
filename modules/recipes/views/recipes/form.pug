@@ -1,6 +1,20 @@
 - var isEdit = item != null;
 - var formTitle = isEdit ? 'Edit Recipe' : 'Add Recipe';
 - var formAction = isEdit ? '/recipes/recipes/' + item._id : '/recipes/recipes';
+- var defaultUnit = !isEdit && settings ? settings.defaultWeightUnit || '' : '';
+
+mixin unitSel(fname, curVal)
+  select.form-select.form-select-sm(name=fname)
+    option(value='') — unit —
+    optgroup(label='Weight')
+      each u in unitOptions.weight
+        option(value=u, selected=curVal === u)= u
+    optgroup(label='Volume')
+      each u in unitOptions.volume
+        option(value=u, selected=curVal === u)= u
+    optgroup(label='Count')
+      each u in unitOptions.count
+        option(value=u, selected=curVal === u)= u
 
 .d-flex.justify-content-between.align-items-center.mb-4
   h5.mb-0= formTitle
@@ -33,46 +47,77 @@ form#section-form(action=formAction, method='POST')
         | Add Row
 
     .row.gx-2.text-muted.small.mb-1
-      .col-5 Ingredient
-      .col-3 Qty
-      .col-3 Unit
+      .col-4 Ingredient
+      .col-2 Qty
+      .col-2 Unit
+      .col-3 Est. Cost
       .col-1
 
     #ingredient-rows
       if isEdit && item.ingredients && item.ingredients.length
         each line, idx in item.ingredients
+          - var curUnit = line.unit || '';
           .row.gx-2.mb-2.item-row
-            .col-5
+            .col-4
               select.form-select.form-select-sm(name=`ingredients[${idx}][ingredient]`)
                 option(value='') — Select —
                 each ing in allIngredients
                   - var sel = line.ingredient && (line.ingredient._id ? line.ingredient._id.toString() : line.ingredient.toString()) === ing._id.toString();
                   option(value=ing._id, selected=sel)= ing.name
-            .col-3
+            .col-2
               input.form-control.form-control-sm(type='number', step='0.01', min='0', name=`ingredients[${idx}][quantity]`, value=line.quantity || '')
+            .col-2
+              +unitSel(`ingredients[${idx}][unit]`, curUnit)
             .col-3
-              input.form-control.form-control-sm(type='text', name=`ingredients[${idx}][unit]`, value=line.unit || '', placeholder='cup, g...')
+              input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='ing-cost', tabindex='-1', placeholder='—')
             .col-1
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
       else
         .row.gx-2.mb-2.item-row
-          .col-5
+          .col-4
             select.form-select.form-select-sm(name='ingredients[0][ingredient]')
               option(value='') — Select —
               each ing in allIngredients
                 option(value=ing._id)= ing.name
-          .col-3
+          .col-2
             input.form-control.form-control-sm(type='number', step='0.01', min='0', name='ingredients[0][quantity]')
+          .col-2
+            +unitSel('ingredients[0][unit]', defaultUnit)
           .col-3
-            input.form-control.form-control-sm(type='text', name='ingredients[0][unit]', placeholder='cup, g...')
+            input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='ing-cost', tabindex='-1', placeholder='—')
           .col-1
             button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
+
+  #ing-cost-data(data-costs=JSON.stringify(ingCostData || {}), style='display: none')
 
   .row.g-3.mt-1
     .col-12
       label.form-label.fw-semibold(for='rc-notes') Notes
       textarea#rc-notes.form-control(name='notes', rows='2', placeholder='Optional...')
         = isEdit ? item.notes || '' : ''
+
+  //- ── Live Cost Panel ──────────────────────────────────────────────────────
+  .card.mt-4.border-primary-subtle
+    .card-header.bg-primary-subtle.fw-semibold.text-primary-emphasis
+      i.fas.fa-calculator.me-2
+      | Cost Preview
+    .card-body
+      .row
+        .col-md-6
+          table.table.table-sm.table-borderless.mb-0
+            tbody
+              tr
+                td Cost / Batch
+                td.text-end
+                  span#rc-live-batch —
+              tr
+                td Yield
+                td.text-end
+                  span#rc-live-yield —
+              tr.fw-bold.border-top
+                td Cost / Unit
+                td.text-end
+                  span#rc-live-unit —
 
   .mt-4.d-flex.gap-2
     button.btn.btn-primary(type='submit')

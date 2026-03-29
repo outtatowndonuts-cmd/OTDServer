@@ -1,0 +1,39 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-box.me-2.text-secondary
+    | Supplies
+  button.btn.btn-primary(type='button', data-action='new-form', data-section='supplies')
+    i.fas.fa-plus.me-1
+    | Add Supply
+
+if supplies && supplies.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th Name
+          th Category
+          th Supplier
+          th Unit
+          th Cost / Unit
+          th.text-end Actions
+      tbody
+        each item in supplies
+          tr
+            td
+              strong= item.name
+              if item.sku
+                small.text-muted.ms-2= item.sku
+            td
+              span.badge.bg-secondary= item.category || 'Other'
+            td= item.supplier ? item.supplier.name : '—'
+            td= item.unit || '—'
+            td= item.costPerUnit ? '$' + item.costPerUnit.toFixed(2) : '—'
+            td.text-end
+              button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='supplies', data-id=item._id.toString()) Edit
+              button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='supplies', data-id=item._id.toString(), data-url=`/recipes/supplies/${item._id}/delete`) Delete
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-box.fa-3x.mb-3.d-block.opacity-25
+    p.mb-0 No supplies yet.
+    p.small Track packaging, labels, and other non-ingredient consumables here.

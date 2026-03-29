@@ -32,62 +32,133 @@ form#section-form(action=formAction, method='POST')
         | Add Row
 
     .row.gx-2.text-muted.small.mb-1
-      .col-4 Type
+      .col-3 Type
       .col-4 Item
       .col-2 Qty
-      .col-1 Unit
+      .col-2 Est. Cost
       .col-1
 
     #component-rows
       if isEdit && item.components && item.components.length
         each comp, idx in item.components
           .row.gx-2.mb-2.item-row
-            .col-4
+            .col-3
               select.form-select.form-select-sm(name=`components[${idx}][type]`, data-role='comp-type')
-              option(value='Recipe', selected=comp.type !== 'Ingredient') Recipe
-              option(value='Ingredient', selected=comp.type === 'Ingredient') Ingredient
+                option(value='Recipe', selected=comp.type === 'Recipe') Recipe
+                option(value='Ingredient', selected=comp.type === 'Ingredient') Ingredient
+                option(value='Supply', selected=comp.type === 'Supply') Supply
             .col-4
-              select.form-select.form-select-sm(name=`components[${idx}][ref]`)
-                optgroup(label='Recipes')
-                  each rec in allRecipes
-                    - var sel = comp.ref && comp.ref.toString() === rec._id.toString();
-                    option(value=rec._id, data-type='recipe', selected=sel)= rec.name
-                optgroup(label='Ingredients')
-                  each ing in allIngredients
-                    - var sel = comp.ref && comp.ref.toString() === ing._id.toString();
-                    option(value=ing._id, data-type='ingredient', selected=sel)= ing.name
+              select.form-select.form-select-sm(name=`components[${idx}][ref]`, data-role='comp-ref')
+                each rec in allRecipes
+                  - var sel = comp.ref && comp.ref.toString() === rec._id.toString();
+                  option(value=rec._id, data-kind='Recipe', selected=sel)= rec.name
+                each ing in allIngredients
+                  - var sel = comp.ref && comp.ref.toString() === ing._id.toString();
+                  option(value=ing._id, data-kind='Ingredient', selected=sel)= ing.name
+                each sup in allSupplies
+                  - var sel = comp.ref && comp.ref.toString() === sup._id.toString();
+                  option(value=sup._id, data-kind='Supply', selected=sel)= sup.name
             .col-2
               input.form-control.form-control-sm(type='number', step='0.01', min='0', name=`components[${idx}][quantity]`, value=comp.quantity || '')
-            .col-1
-              input.form-control.form-control-sm(type='text', name=`components[${idx}][unit]`, value=comp.unit || '', placeholder='ea')
+            .col-2
+              input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='comp-cost', tabindex='-1', placeholder='—')
             .col-1
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
       else
         .row.gx-2.mb-2.item-row
-          .col-4
+          .col-3
             select.form-select.form-select-sm(name='components[0][type]', data-role='comp-type')
               option(value='Recipe') Recipe
               option(value='Ingredient') Ingredient
+              option(value='Supply') Supply
           .col-4
-            select.form-select.form-select-sm(name='components[0][ref]')
-              optgroup(label='Recipes')
-                each rec in allRecipes
-                  option(value=rec._id, data-type='recipe')= rec.name
-              optgroup(label='Ingredients')
-                each ing in allIngredients
-                  option(value=ing._id, data-type='ingredient')= ing.name
+            select.form-select.form-select-sm(name='components[0][ref]', data-role='comp-ref')
+              each rec in allRecipes
+                option(value=rec._id, data-kind='Recipe')= rec.name
+              each ing in allIngredients
+                option(value=ing._id, data-kind='Ingredient')= ing.name
+              each sup in allSupplies
+                option(value=sup._id, data-kind='Supply')= sup.name
           .col-2
             input.form-control.form-control-sm(type='number', step='0.01', min='0', name='components[0][quantity]')
-          .col-1
-            input.form-control.form-control-sm(type='text', name='components[0][unit]', placeholder='ea')
+          .col-2
+            input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='comp-cost', tabindex='-1', placeholder='—')
           .col-1
             button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
+
+  #comp-cost-data(data-costs=JSON.stringify(costData || {}), style='display: none')
 
   .row.g-3.mt-1
     .col-12
       label.form-label.fw-semibold(for='pr-notes') Notes
       textarea#pr-notes.form-control(name='notes', rows='2', placeholder='Optional...')
         = isEdit ? item.notes || '' : ''
+
+  //- ── Costing Section ─────────────────────────────────────────────────────
+  .card.mt-4.border-success-subtle
+    .card-header.bg-success-subtle.fw-semibold.text-success-emphasis
+      i.fas.fa-calculator.me-2
+      | Costing & Pricing
+    .card-body
+      .row.g-3
+        .col-md-4
+          label.form-label(for='pr-labor') Labor Cost ($/unit)
+          input#pr-labor.form-control(type='number', name='laborCost', step='0.01', min='0', value=isEdit ? item.laborCost || 0 : defaults ? defaults.defaultLaborCost || 0 : 0, placeholder='0.00')
+        .col-md-4
+          label.form-label(for='pr-overhead') Overhead ($/unit)
+          input#pr-overhead.form-control(type='number', name='overheadCost', step='0.01', min='0', value=isEdit ? item.overheadCost || 0 : defaults ? defaults.defaultOverheadCost || 0 : 0, placeholder='0.00')
+        .col-md-4
+          label.form-label(for='pr-margin') Target Margin (%)
+          input#pr-margin.form-control(type='number', name='targetMarginPct', step='1', min='0', max='99', value=isEdit ? item.targetMarginPct || 30 : defaults ? defaults.defaultMarginPct || 30 : 30)
+
+      if costing && !costing.canCalculate
+        .alert.alert-warning.mt-2.py-2.small
+          i.fas.fa-exclamation-triangle.me-1
+          | Some ingredients are missing unit pricing \u2014 their contribution will show as $0.00 below.
+
+      hr.my-3
+      .row.g-3
+        .col-md-6
+          h6.text-muted.small.text-uppercase.fw-semibold.mb-2 Cost Breakdown
+          table.table.table-sm.table-borderless.mb-0
+            tbody
+              tr
+                td Component Cost
+                td.text-end
+                  span#live-ingredient-cost \u2014
+              tr
+                td Labor
+                td.text-end
+                  span#live-labor-cost \u2014
+              tr
+                td Overhead
+                td.text-end
+                  span#live-overhead-cost \u2014
+
+              tr.fw-bold.border-top
+                td Total COGS
+                td.text-end
+                  span#live-total-cogs \u2014
+        .col-md-6
+          h6.text-muted.small.text-uppercase.fw-semibold.mb-2 Pricing Analysis
+          table.table.table-sm.table-borderless.mb-0
+            tbody
+              tr
+                td Selling Price
+                td.text-end
+                  span#live-price \u2014
+              tr
+                td Gross Margin
+                td.text-end
+                  span#live-margin \u2014
+              tr.border-top
+                td Suggested Price
+                td.text-end
+                  small.text-muted at&nbsp;
+                  span#live-target-pct \u2014
+                  small.text-muted % margin:&nbsp;
+                  strong
+                    span#live-suggested-price \u2014
 
   .mt-4.d-flex.gap-2
     button.btn.btn-primary(type='submit')

@@ -1,0 +1,80 @@
+- var isEdit = item != null;
+- var formTitle = isEdit ? 'Edit Supply' : 'Add Supply';
+- var formAction = isEdit ? '/recipes/supplies/' + item._id : '/recipes/supplies';
+
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0= formTitle
+  button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel')
+    i.fas.fa-arrow-left.me-1
+    | Back
+
+form#section-form(action=formAction, method='POST')
+  input(type='hidden', name='_csrf', value=_csrf)
+  .row.g-3
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-name') Name *
+      input#sup-name.form-control(type='text', name='name', value=isEdit ? item.name : '', required, placeholder='e.g. 12-count Donut Box')
+
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-cat') Category
+      select#sup-cat.form-select(name='category')
+        each cat in supplyCategories
+          - var sel = isEdit && item.category === cat;
+          option(value=cat, selected=sel)= cat
+
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-supplier') Supplier
+      select#sup-supplier.form-select(name='supplier')
+        option(value='') — None —
+        each s in suppliers
+          - var sel = isEdit && item.supplier && item.supplier._id && item.supplier._id.toString() === s._id.toString();
+          option(value=s._id, selected=sel)= s.name
+
+    .col-md-3
+      label.form-label.fw-semibold(for='sup-unit') Unit
+      select#sup-unit.form-select(name='unit')
+        option(value='') — unit —
+        optgroup(label='Count')
+          each u in ['each', 'pack', 'box', 'case', 'roll', 'sheet', 'bag', 'bottle', 'tube', 'dozen']
+            option(value=u, selected=isEdit && item.unit === u)= u
+        optgroup(label='Weight')
+          each u in unitOptions.weight
+            option(value=u, selected=isEdit && item.unit === u)= u
+        optgroup(label='Volume')
+          each u in unitOptions.volume
+            option(value=u, selected=isEdit && item.unit === u)= u
+      small.text-muted.d-block.mt-1 What you count (box, label...)
+
+    .col-md-3
+      label.form-label.fw-semibold(for='sup-pqty') Qty Purchased
+      input#sup-pqty.form-control(type='number', name='purchaseQty', step='1', min='0', value=isEdit ? item.purchaseQty || '' : '', placeholder='e.g. 100')
+      small.text-muted.d-block.mt-1 How many units in one purchase
+
+    .col-md-3
+      label.form-label.fw-semibold(for='sup-ptc') Total Purchase Cost ($)
+      input#sup-ptc.form-control(type='number', name='purchaseTotalCost', step='0.01', min='0', value=isEdit ? item.purchaseTotalCost || '' : '', placeholder='e.g. 50.00')
+      small.text-muted.d-block.mt-1 Total $ paid for that quantity
+
+    if isEdit && item.costPerUnit
+      .col-12
+        .alert.alert-info.py-2.small.mb-0
+          i.fas.fa-info-circle.me-1
+          | Computed cost:&nbsp;
+          strong $#{ item.costPerUnit.toFixed(4) } per #{ item.unit || 'unit' }
+          |
+          | — used for product costing
+
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-sku') SKU
+      input#sup-sku.form-control(type='text', name='sku', value=isEdit ? item.sku || '' : '', placeholder='Optional')
+
+    .col-12
+      label.form-label.fw-semibold(for='sup-notes') Notes
+      textarea#sup-notes.form-control(name='notes', rows='2', placeholder='Optional notes...')
+        = isEdit ? item.notes || '' : ''
+
+  .mt-4.d-flex.gap-2
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      = isEdit ? 'Save Changes' : 'Add Supply'
+    button.btn.btn-outline-secondary(type='button', data-action='cancel') Cancel

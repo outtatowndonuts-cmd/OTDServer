@@ -25,11 +25,37 @@ form#section-form(action=formAction, method='POST')
 
     .col-md-4
       label.form-label.fw-semibold(for='ing-pu') Purchase Unit
-      input#ing-pu.form-control(type='text', name='purchaseUnit', value=isEdit ? item.purchaseUnit || '' : '', placeholder='kg, L, box...')
+      select#ing-pu.form-select(name='purchaseUnit')
+        option(value='') — select unit —
+        optgroup(label='Weight')
+          each u in unitOptions.weight
+            option(value=u, selected=isEdit && item.purchaseUnit === u)= u
+        optgroup(label='Volume')
+          each u in unitOptions.volume
+            option(value=u, selected=isEdit && item.purchaseUnit === u)= u
+        optgroup(label='Count')
+          each u in unitOptions.count
+            option(value=u, selected=isEdit && item.purchaseUnit === u)= u
+      small.text-muted.d-block.mt-1 The unit you buy in (e.g. lb)
 
     .col-md-4
-      label.form-label.fw-semibold(for='ing-pc') Cost per Unit ($)
-      input#ing-pc.form-control(type='number', name='purchaseCost', step='0.01', min='0', value=isEdit ? item.purchaseCost || '' : '')
+      label.form-label.fw-semibold(for='ing-pqty') Qty Purchased
+      input#ing-pqty.form-control(type='number', name='purchaseQty', step='0.001', min='0', value=isEdit ? item.purchaseQty || '' : '', placeholder='e.g. 50')
+      small.text-muted.d-block.mt-1 How many units in one purchase
+
+    .col-md-4
+      label.form-label.fw-semibold(for='ing-ptc') Total Purchase Cost ($)
+      input#ing-ptc.form-control(type='number', name='purchaseTotalCost', step='0.01', min='0', value=isEdit ? item.purchaseTotalCost || '' : '', placeholder='e.g. 30.00')
+      small.text-muted.d-block.mt-1 Total $ paid for that quantity
+
+    if isEdit && item.purchaseCost
+      .col-12
+        .alert.alert-info.py-2.small.mb-0
+          i.fas.fa-info-circle.me-1
+          | Computed cost:&nbsp;
+          strong $#{ item.purchaseCost.toFixed(4) } per #{ item.purchaseUnit || 'unit' }
+          |
+          | — used for recipe costing
 
     .col-md-4
       label.form-label.fw-semibold(for='ing-sku') SKU

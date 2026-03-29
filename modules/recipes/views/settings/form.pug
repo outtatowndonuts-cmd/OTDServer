@@ -1,0 +1,61 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0
+    i.fas.fa-cog.me-2
+    | Settings
+
+form#section-form(action='/recipes/settings', method='POST')
+  input(type='hidden', name='_csrf', value=_csrf)
+
+  .card.mb-4.border-secondary-subtle
+    .card-header.fw-semibold
+      i.fas.fa-ruler.me-2
+      | Default Units
+    .card-body
+      .row.g-3
+        .col-md-4
+          label.form-label(for='st-wu') Default Weight Unit
+          select#st-wu.form-select(name='defaultWeightUnit')
+            each u in unitOptions.weight
+              option(value=u, selected=item.defaultWeightUnit === u)= u
+        .col-md-4
+          label.form-label(for='st-vu') Default Volume Unit
+          select#st-vu.form-select(name='defaultVolumeUnit')
+            each u in unitOptions.volume
+              option(value=u, selected=item.defaultVolumeUnit === u)= u
+        .col-md-4
+          label.form-label(for='st-cu') Default Count Unit
+          select#st-cu.form-select(name='defaultCountUnit')
+            each u in unitOptions.count
+              option(value=u, selected=item.defaultCountUnit === u)= u
+      p.form-text.mt-2.mb-0 These units will be pre-selected when adding new recipe ingredient rows.
+
+  .card.mb-4.border-secondary-subtle
+    .card-header.fw-semibold
+      i.fas.fa-dollar-sign.me-2
+      | Costing Defaults
+    .card-body
+      .row.g-3
+        .col-md-4
+          label.form-label(for='st-lc') Default Labor Cost ($/unit)
+          input#st-lc.form-control(type='number', name='defaultLaborCost', step='0.01', min='0', value=item.defaultLaborCost || 0)
+        .col-md-4
+          label.form-label(for='st-oc') Default Overhead ($/unit)
+          input#st-oc.form-control(type='number', name='defaultOverheadCost', step='0.01', min='0', value=item.defaultOverheadCost || 0)
+        .col-md-4
+          label.form-label(for='st-mp') Default Target Margin (%)
+          input#st-mp.form-control(type='number', name='defaultMarginPct', step='1', min='0', max='99', value=item.defaultMarginPct || 30)
+      p.form-text.mt-2.mb-0 These values will be pre-filled when creating a new product.
+
+  .card.mb-4.border-secondary-subtle
+    .card-header.fw-semibold
+      i.fas.fa-tags.me-2
+      | Supply Categories
+    .card-body
+      label.form-label(for='st-cats') Categories
+      textarea#st-cats.form-control(name='supplyCategories', rows='8', placeholder='Packaging\nLabels\nCleaning\nEquipment\nOther')= (item.supplyCategories || []).join('\n')
+      p.form-text.mt-1.mb-0 One category per line. These appear in the supply category dropdown.
+
+  .mt-4
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      | Save Settings
