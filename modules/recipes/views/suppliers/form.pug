@@ -1,0 +1,31 @@
+- var isEdit = item != null;
+- var formTitle = isEdit ? 'Edit Supplier' : 'Add Supplier';
+- var formAction = isEdit ? '/recipes/suppliers/' + item._id : '/recipes/suppliers';
+
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0= formTitle
+  button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel')
+    i.fas.fa-arrow-left.me-1
+    | Back
+
+form#section-form(action=formAction, method='POST')
+  input(type='hidden', name='_csrf', value=_csrf)
+  .row.g-3
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-name') Name *
+      input#sup-name.form-control(type='text', name='name', value=isEdit ? item.name : '', required, placeholder='e.g. Acme Flour Co.')
+
+    .col-md-6
+      label.form-label.fw-semibold(for='sup-contact') Contact
+      input#sup-contact.form-control(type='text', name='contact', value=isEdit ? item.contact || '' : '', placeholder='Phone, email, or rep name')
+
+    .col-12
+      label.form-label.fw-semibold(for='sup-notes') Notes
+      textarea#sup-notes.form-control(name='notes', rows='3', placeholder='Delivery schedule, terms, etc...')
+        = isEdit ? item.notes || '' : ''
+
+  .mt-4.d-flex.gap-2
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      = isEdit ? 'Save Changes' : 'Add Supplier'
+    button.btn.btn-outline-secondary(type='button', data-action='cancel') Cancel

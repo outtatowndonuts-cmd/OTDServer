@@ -1,0 +1,27 @@
+extends ../layout.pug
+block content
+  h1 Add Recipe
+  form(action='/recipes', method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', required)
+    .form-group
+      label(for='yield') Yield
+      input.form-control(type='number', name='yield')
+    .form-group
+      label(for='ingredients') Ingredients
+      select.form-control(name='ingredients', multiple)
+        each ingredient in ingredients
+          option(value=ingredient._id)= ingredient.name
+    .form-group
+      label(for='subRecipes') Sub-Recipes
+      select.form-control(name='subRecipes', multiple)
+        each rec in recipes
+          option(value=rec._id)= rec.name
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')
+    button.btn.btn-primary(type='submit') Add
+    a.btn.btn-secondary(href='/recipes') Cancel

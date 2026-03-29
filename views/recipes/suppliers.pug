@@ -1,0 +1,25 @@
+//- h1 Suppliers (removed for SPA)
+  a.btn.btn-primary(href='/recipes/suppliers/new') Add Supplier
+  table.table.table-striped.mt-3
+    thead
+      tr
+        th Name
+        th Contact
+        th Phone
+        th Email
+        th Notes
+        th Actions
+    tbody
+      each supplier in suppliers
+        tr
+          td= supplier.name
+          td= supplier.contact
+          td= supplier.phone
+          td= supplier.email
+          td= supplier.notes
+          td
+            a.btn.btn-sm.btn-secondary(href=`/recipes/suppliers/${supplier._id}/edit`) Edit
+            form(action=`/recipes/suppliers/${supplier._id}/delete`, method='post', style='display:inline')
+              if typeof _csrf !== 'undefined'
+                input(type='hidden', name='_csrf', value=_csrf)
+              button.btn.btn-sm.btn-danger(type='submit') Delete

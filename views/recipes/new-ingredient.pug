@@ -1,0 +1,26 @@
+extends ../layout.pug
+block content
+  h1 Add Ingredient
+  form(action='/recipes/ingredients', method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', required)
+    .form-group
+      label(for='supplier') Supplier
+      select.form-control(name='supplier')
+        option(value='') -- Select Supplier --
+        each supplier in suppliers
+          option(value=supplier._id)= supplier.name
+    .form-group
+      label(for='unit') Unit
+      input.form-control(type='text', name='unit')
+    .form-group
+      label(for='cost') Cost
+      input.form-control(type='number', name='cost', step='0.01')
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')
+    button.btn.btn-primary(type='submit') Add
+    a.btn.btn-secondary(href='/recipes/ingredients') Cancel

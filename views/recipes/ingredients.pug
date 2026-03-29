@@ -1,0 +1,23 @@
+//- h1 Ingredients (removed for SPA)
+  a.btn.btn-primary(href='/recipes/ingredients/new') Add Ingredient
+  table.table.table-striped.mt-3
+    thead
+      tr
+        th Name
+        th Supplier
+        th Unit
+        th Cost
+        th Actions
+    tbody
+      each ingredient in ingredients
+        tr
+          td= ingredient.name
+          td= ingredient.supplier
+          td= ingredient.unit
+          td= ingredient.cost
+          td
+            a.btn.btn-sm.btn-secondary(href=`/recipes/ingredients/${ingredient._id}/edit`) Edit
+            form(action=`/recipes/ingredients/${ingredient._id}/delete`, method='post', style='display:inline')
+              if typeof _csrf !== 'undefined'
+                input(type='hidden', name='_csrf', value=_csrf)
+              button.btn.btn-sm.btn-danger(type='submit') Delete

@@ -1,0 +1,20 @@
+extends ../layout.pug
+block content
+  #recipes-dashboard
+    h1 Recipe & Product Catalog Dashboard
+    p.lead Build and manage your entire product catalog, ingredients, suppliers, and recipes from one place.
+    ul.nav.nav-pills.dashboard-nav.mb-4
+      li.nav-item
+        a.nav-link.active(href='#', data-section='ingredients') Ingredients
+      li.nav-item
+        a.nav-link(href='#', data-section='recipes') Recipes
+      li.nav-item
+        a.nav-link(href='#', data-section='products') Products
+      li.nav-item
+        a.nav-link(href='#', data-section='suppliers') Suppliers
+    #dashboard-content
+      // Content loaded dynamically
+    hr
+    p.text-muted.text-center.mt-4
+      | Use the navigation above to add, edit, and relate all catalog data. All relationships are enforced and visible in each form.
+  script(src='/js/recipes-dashboard.js')

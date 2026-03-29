@@ -1,0 +1,47 @@
+- var isEdit = item != null;
+- var formTitle = isEdit ? 'Edit Ingredient' : 'Add Ingredient';
+- var formAction = isEdit ? '/recipes/ingredients/' + item._id : '/recipes/ingredients';
+
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0= formTitle
+  button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel')
+    i.fas.fa-arrow-left.me-1
+    | Back
+
+form#section-form(action=formAction, method='POST')
+  input(type='hidden', name='_csrf', value=_csrf)
+  .row.g-3
+    .col-md-6
+      label.form-label.fw-semibold(for='ing-name') Name *
+      input#ing-name.form-control(type='text', name='name', value=isEdit ? item.name : '', required, placeholder='e.g. All-Purpose Flour')
+
+    .col-md-6
+      label.form-label.fw-semibold(for='ing-supplier') Supplier
+      select#ing-supplier.form-select(name='supplier')
+        option(value='') — None —
+        each s in suppliers
+          - var sel = isEdit && item.supplier && item.supplier._id && item.supplier._id.toString() === s._id.toString();
+          option(value=s._id, selected=sel)= s.name
+
+    .col-md-4
+      label.form-label.fw-semibold(for='ing-pu') Purchase Unit
+      input#ing-pu.form-control(type='text', name='purchaseUnit', value=isEdit ? item.purchaseUnit || '' : '', placeholder='kg, L, box...')
+
+    .col-md-4
+      label.form-label.fw-semibold(for='ing-pc') Cost per Unit ($)
+      input#ing-pc.form-control(type='number', name='purchaseCost', step='0.01', min='0', value=isEdit ? item.purchaseCost || '' : '')
+
+    .col-md-4
+      label.form-label.fw-semibold(for='ing-sku') SKU
+      input#ing-sku.form-control(type='text', name='sku', value=isEdit ? item.sku || '' : '', placeholder='Optional')
+
+    .col-12
+      label.form-label.fw-semibold(for='ing-notes') Notes
+      textarea#ing-notes.form-control(name='notes', rows='2', placeholder='Optional notes...')
+        = isEdit ? item.notes || '' : ''
+
+  .mt-4.d-flex.gap-2
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      = isEdit ? 'Save Changes' : 'Add Ingredient'
+    button.btn.btn-outline-secondary(type='button', data-action='cancel') Cancel

@@ -1,0 +1,81 @@
+- var isEdit = item != null;
+- var formTitle = isEdit ? 'Edit Recipe' : 'Add Recipe';
+- var formAction = isEdit ? '/recipes/recipes/' + item._id : '/recipes/recipes';
+
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0= formTitle
+  button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel')
+    i.fas.fa-arrow-left.me-1
+    | Back
+
+form#section-form(action=formAction, method='POST')
+  input(type='hidden', name='_csrf', value=_csrf)
+
+  .row.g-3.mb-4
+    .col-md-8
+      label.form-label.fw-semibold(for='rc-name') Recipe Name *
+      input#rc-name.form-control(type='text', name='name', value=isEdit ? item.name : '', required, placeholder='e.g. Classic Donut Base')
+
+    .col-md-4
+      label.form-label.fw-semibold(for='rc-yield') Yield (units)
+      input#rc-yield.form-control(type='number', name='yield', min='0', value=isEdit ? item.yield || '' : '', placeholder='e.g. 12')
+
+    .col-12
+      label.form-label.fw-semibold(for='rc-instructions') Instructions
+      textarea#rc-instructions.form-control(name='instructions', rows='3', placeholder='Step-by-step preparation notes...')
+        = isEdit ? item.instructions || '' : ''
+
+  .mb-2
+    .d-flex.justify-content-between.align-items-center.mb-2
+      label.form-label.fw-semibold.mb-0 Ingredients
+      button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-row', data-target='ingredient-rows')
+        i.fas.fa-plus.me-1
+        | Add Row
+
+    .row.gx-2.text-muted.small.mb-1
+      .col-5 Ingredient
+      .col-3 Qty
+      .col-3 Unit
+      .col-1
+
+    #ingredient-rows
+      if isEdit && item.ingredients && item.ingredients.length
+        each line, idx in item.ingredients
+          .row.gx-2.mb-2.item-row
+            .col-5
+              select.form-select.form-select-sm(name=`ingredients[${idx}][ingredient]`)
+                option(value='') — Select —
+                each ing in allIngredients
+                  - var sel = line.ingredient && (line.ingredient._id ? line.ingredient._id.toString() : line.ingredient.toString()) === ing._id.toString();
+                  option(value=ing._id, selected=sel)= ing.name
+            .col-3
+              input.form-control.form-control-sm(type='number', step='0.01', min='0', name=`ingredients[${idx}][quantity]`, value=line.quantity || '')
+            .col-3
+              input.form-control.form-control-sm(type='text', name=`ingredients[${idx}][unit]`, value=line.unit || '', placeholder='cup, g...')
+            .col-1
+              button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
+      else
+        .row.gx-2.mb-2.item-row
+          .col-5
+            select.form-select.form-select-sm(name='ingredients[0][ingredient]')
+              option(value='') — Select —
+              each ing in allIngredients
+                option(value=ing._id)= ing.name
+          .col-3
+            input.form-control.form-control-sm(type='number', step='0.01', min='0', name='ingredients[0][quantity]')
+          .col-3
+            input.form-control.form-control-sm(type='text', name='ingredients[0][unit]', placeholder='cup, g...')
+          .col-1
+            button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') ×
+
+  .row.g-3.mt-1
+    .col-12
+      label.form-label.fw-semibold(for='rc-notes') Notes
+      textarea#rc-notes.form-control(name='notes', rows='2', placeholder='Optional...')
+        = isEdit ? item.notes || '' : ''
+
+  .mt-4.d-flex.gap-2
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      = isEdit ? 'Save Changes' : 'Add Recipe'
+    button.btn.btn-outline-secondary(type='button', data-action='cancel') Cancel

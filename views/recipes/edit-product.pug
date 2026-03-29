@@ -1,0 +1,35 @@
+extends ../layout.pug
+block content
+  h1 Edit Product
+  form(action=`/recipes/products/${product._id}/edit`, method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', value=product.name, required)
+    .form-group
+      label(for='price') Price
+      input.form-control(type='number', name='price', value=product.price, step='0.01')
+    .form-group
+      label(for='ingredients') Ingredient Components
+      select.form-control(name='ingredientComponents', multiple)
+        each ingredient in ingredients
+          - var selected = product.components && product.components.some((c) => c.type === 'ingredient' && c.ref && c.ref._id.toString() === ingredient._id.toString());
+          if selected
+            option(value=ingredient._id, selected)= ingredient.name
+          else
+            option(value=ingredient._id)= ingredient.name
+    .form-group
+      label(for='recipeComponents') Recipe Components
+      select.form-control(name='recipeComponents', multiple)
+        each rec in recipes
+          - var selected = product.components && product.components.some((c) => c.type === 'recipe' && c.ref && c.ref._id.toString() === rec._id.toString());
+          if selected
+            option(value=rec._id, selected)= rec.name
+          else
+            option(value=rec._id)= rec.name
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')= product.notes
+    button.btn.btn-primary(type='submit') Save
+    a.btn.btn-secondary(href='/recipes/products') Cancel

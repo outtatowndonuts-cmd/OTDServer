@@ -1,0 +1,23 @@
+extends ../layout.pug
+block content
+  h1 Add Supplier
+  form(action='/recipes/suppliers', method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', required)
+    .form-group
+      label(for='contact') Contact
+      input.form-control(type='text', name='contact')
+    .form-group
+      label(for='phone') Phone
+      input.form-control(type='text', name='phone')
+    .form-group
+      label(for='email') Email
+      input.form-control(type='email', name='email')
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')
+    button.btn.btn-primary(type='submit') Add
+    a.btn.btn-secondary(href='/recipes/suppliers') Cancel

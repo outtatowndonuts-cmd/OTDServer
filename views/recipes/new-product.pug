@@ -1,0 +1,27 @@
+extends ../layout.pug
+block content
+  h1 Add Product
+  form(action='/recipes/products', method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', required)
+    .form-group
+      label(for='price') Price
+      input.form-control(type='number', name='price', step='0.01')
+    .form-group
+      label(for='ingredients') Ingredient Components
+      select.form-control(name='ingredientComponents', multiple)
+        each ingredient in ingredients
+          option(value=ingredient._id)= ingredient.name
+    .form-group
+      label(for='recipeComponents') Recipe Components
+      select.form-control(name='recipeComponents', multiple)
+        each rec in recipes
+          option(value=rec._id)= rec.name
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')
+    button.btn.btn-primary(type='submit') Add
+    a.btn.btn-secondary(href='/recipes/products') Cancel

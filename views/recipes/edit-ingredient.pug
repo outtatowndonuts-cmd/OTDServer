@@ -1,0 +1,29 @@
+extends ../layout.pug
+block content
+  h1 Edit Ingredient
+  form(action=`/recipes/ingredients/${ingredient._id}/edit`, method='post')
+    if typeof _csrf !== 'undefined'
+      input(type='hidden', name='_csrf', value=_csrf)
+    .form-group
+      label(for='name') Name
+      input.form-control(type='text', name='name', value=ingredient.name, required)
+    .form-group
+      label(for='supplier') Supplier
+      select.form-control(name='supplier')
+        option(value='') -- Select Supplier --
+        each supplier in suppliers
+          if ingredient.supplier && supplier._id.toString() === ingredient.supplier._id.toString()
+            option(value=supplier._id, selected)= supplier.name
+          else
+            option(value=supplier._id)= supplier.name
+    .form-group
+      label(for='unit') Unit
+      input.form-control(type='text', name='unit', value=ingredient.unit)
+    .form-group
+      label(for='cost') Cost
+      input.form-control(type='number', name='cost', value=ingredient.cost, step='0.01')
+    .form-group
+      label(for='notes') Notes
+      textarea.form-control(name='notes')= ingredient.notes
+    button.btn.btn-primary(type='submit') Save
+    a.btn.btn-secondary(href='/recipes/ingredients') Cancel

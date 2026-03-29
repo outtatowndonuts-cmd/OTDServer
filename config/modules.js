@@ -1,3 +1,4 @@
 // Register all modules here
 const posRoutes = require('../modules/pos/pos.routes');
-module.exports = [posRoutes];
+const recipesRoutes = require('../modules/recipes/recipes.routes');
+module.exports = [posRoutes, recipesRoutes];

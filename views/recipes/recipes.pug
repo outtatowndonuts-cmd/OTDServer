@@ -1,0 +1,27 @@
+//- h1 Recipes (removed for SPA)
+  a.btn.btn-primary(href='/recipes/recipes/new') Add Recipe
+  table.table.table-striped.mt-3
+    thead
+      tr
+        th Name
+        th Ingredients
+        th Yield
+        th Actions
+    tbody
+      each recipe in recipes
+        tr
+          td= recipe.name
+          td
+            ul
+              each ing in recipe.ingredients
+                if ing.ingredient
+                  li #{ing.ingredient.name} (#{ing.quantity} #{ing.unit})
+                else
+                  li [missing ingredient] (#{ing.quantity} #{ing.unit})
+          td= recipe.yield
+          td
+            a.btn.btn-sm.btn-secondary(href=`/recipes/${recipe._id}/edit`) Edit
+            form(action=`/recipes/${recipe._id}/delete`, method='post', style='display:inline')
+              if typeof _csrf !== 'undefined'
+                input(type='hidden', name='_csrf', value=_csrf)
+              button.btn.btn-sm.btn-danger(type='submit') Delete

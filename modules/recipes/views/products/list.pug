@@ -1,0 +1,38 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-box-open.me-2.text-warning
+    | Products
+  button.btn.btn-primary(type='button', data-action='new-form', data-section='products')
+    i.fas.fa-plus.me-1
+    | Add Product
+
+if products && products.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th Name
+          th SKU
+          th Price
+          th Components
+          th.text-end Actions
+      tbody
+        each item in products
+          tr
+            td
+              strong= item.name
+            td= item.sku || '—'
+            td= item.price ? '$' + item.price.toFixed(2) : '—'
+            td
+              if item.components && item.components.length
+                = item.components.length + ' component(s)'
+              else
+                span.text-muted —
+            td.text-end
+              button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='products', data-id=item._id.toString()) Edit
+              button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='products', data-id=item._id.toString(), data-url=`/recipes/products/${item._id}/delete`) Delete
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-box-open.fa-3x.mb-3.d-block.opacity-25
+    p.mb-0 No products yet.
+    p.small Products are sellable items built from recipes.
