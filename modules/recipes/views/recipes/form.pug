@@ -34,6 +34,10 @@ form#section-form(action=formAction, method='POST')
       label.form-label.fw-semibold(for='rc-yield') Yield (units)
       input#rc-yield.form-control(type='number', name='yield', min='0', value=isEdit ? item.yield || '' : '', placeholder='e.g. 12')
 
+    .col-md-4
+      label.form-label.fw-semibold(for='rc-shelf-life') Shelf Life (days)
+      input#rc-shelf-life.form-control(type='number', name='shelfLifeDays', min='0', value=isEdit ? item.shelfLifeDays || '' : '', placeholder='e.g. 3')
+
     .col-12
       label.form-label.fw-semibold(for='rc-instructions') Instructions
       textarea#rc-instructions.form-control(name='instructions', rows='3', placeholder='Step-by-step preparation notes...')

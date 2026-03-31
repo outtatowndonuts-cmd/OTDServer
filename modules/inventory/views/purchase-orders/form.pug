@@ -1,0 +1,70 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0
+    i.fas.fa-file-circle-plus.me-2.text-primary
+    | New Purchase Order
+  button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel-po')
+    i.fas.fa-arrow-left.me-1
+    | Back
+
+form#po-form(data-suppliers=suppliers, data-supplies=supplies, data-ingredients=ingredients)
+  input(type='hidden', name='_csrf', value=_csrf)
+
+  .row.g-3.mb-4
+    .col-md-6
+      label.form-label.fw-semibold Supplier *
+      select#po-supplier.form-select(name='supplier', required)
+        option(value='') — Select Supplier —
+      input(type='hidden', name='supplierName')
+
+    .col-md-6
+      label.form-label.fw-semibold Notes
+      input.form-control(type='text', name='notes', placeholder='Optional notes')
+
+  //- Items
+  h6.mb-3
+    i.fas.fa-list.me-2
+    | Line Items
+  #po-items-container
+    .po-item-row.row.mb-2.g-2.align-items-end
+      .col-md-2
+        label.form-label Kind
+        select.form-select.po-item-kind(name='items[0][kind]')
+          option(value='') — Select —
+          option(value='supply') Supply
+          option(value='ingredient') Ingredient
+      .col-md-3
+        label.form-label Item *
+        select.form-select.po-item-ref(name='items[0][refId]', required)
+          option(value='') — Select kind first —
+        input(type='hidden', name='items[0][name]')
+      .col-md-2
+        label.form-label Qty *
+        input.form-control.po-item-qty(type='number', name='items[0][quantity]', step='any', min='0.001', required)
+      .col-md-2
+        label.form-label Unit Cost
+        input.form-control.po-item-cost(type='number', name='items[0][unitCost]', step='0.01', min='0')
+      .col-md-2
+        label.form-label Line $
+        input.form-control-plaintext.po-item-total.fw-semibold(type='text', readonly, tabindex='-1', value='—')
+      .col-md-1.d-flex.align-items-end
+        button.btn.btn-outline-danger.btn-sm(type='button', data-action='remove-po-row', title='Remove')
+          i.fas.fa-times
+
+  .mb-3
+    button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-po-row')
+      i.fas.fa-plus.me-1
+      | Add Item
+
+  //- Totals
+  .card.mb-4
+    .card-body
+      .row.align-items-center
+        .col-md-4
+          label.form-label.fw-semibold Subtotal
+          input#po-subtotal.form-control-plaintext.fw-bold.fs-5(type='text', readonly, value='$0.00')
+
+  .d-flex.gap-2
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      | Create Purchase Order
+    button.btn.btn-outline-secondary(type='button', data-action='cancel-po') Cancel

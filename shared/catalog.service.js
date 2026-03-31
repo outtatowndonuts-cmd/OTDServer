@@ -12,4 +12,10 @@ module.exports = {
   getProductById: recipesService.getProductById,
   getRecipes: recipesService.getRecipes,
   getRecipeById: recipesService.getRecipeById,
+  getIngredients: recipesService.getIngredients,
+  getIngredientById: recipesService.getIngredientById,
+  getSupplies: recipesService.getSupplies,
+  getSupplyById: recipesService.getSupplyById,
+  getSuppliers: recipesService.getSuppliers,
+  getSupplierById: recipesService.getSupplierById,
 };

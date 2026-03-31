@@ -1,0 +1,66 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-file-invoice.me-2.text-primary
+    | Purchase Orders
+    if filterStatus
+      small.text-muted.ms-2= '(' + filterStatus + ')'
+  button.btn.btn-sm.btn-primary(type='button', data-action='new-po')
+    i.fas.fa-plus.me-1
+    | New PO
+
+if purchaseOrders && purchaseOrders.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th PO #
+          th Supplier
+          th Items
+          th Subtotal
+          th Status
+          th Date
+          th.text-end Actions
+      tbody
+        each po in purchaseOrders
+          tr
+            td.fw-semibold
+              a.po-detail-link(href='#', data-id=po._id)= po._id.toString().slice(-6).toUpperCase()
+            td= po.supplierName
+            td= po.items.length
+            td= '$' + po.subtotal.toFixed(2)
+            td
+              if po.status === 'draft'
+                span.badge.bg-secondary Draft
+              else if po.status === 'ordered'
+                span.badge.bg-warning.text-dark Ordered
+              else if po.status === 'received'
+                span.badge.bg-success Received
+              else if po.status === 'cancelled'
+                span.badge.bg-danger Cancelled
+            td
+              if po.status === 'received' && po.receivedAt
+                = new Date(po.receivedAt).toLocaleDateString()
+              else if po.status === 'ordered' && po.orderedAt
+                = new Date(po.orderedAt).toLocaleDateString()
+              else
+                = new Date(po.createdAt).toLocaleDateString()
+            td.text-end
+              if po.status === 'draft'
+                button.btn.btn-sm.btn-outline-warning.me-1(type='button', data-action='po-status', data-id=po._id, data-status='ordered', title='Mark Ordered')
+                  i.fas.fa-paper-plane
+                button.btn.btn-sm.btn-outline-danger(type='button', data-action='po-status', data-id=po._id, data-status='cancelled', title='Cancel')
+                  i.fas.fa-ban
+              else if po.status === 'ordered'
+                button.btn.btn-sm.btn-outline-success.me-1(type='button', data-action='po-status', data-id=po._id, data-status='received', title='Mark Received')
+                  i.fas.fa-check
+                button.btn.btn-sm.btn-outline-danger(type='button', data-action='po-status', data-id=po._id, data-status='cancelled', title='Cancel')
+                  i.fas.fa-ban
+              button.btn.btn-sm.btn-outline-primary.ms-1(type='button', data-action='po-detail', data-id=po._id, title='View')
+                i.fas.fa-eye
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-file-invoice.fa-3x.mb-3.d-block
+    p No purchase orders found.
+    button.btn.btn-primary(type='button', data-action='new-po')
+      i.fas.fa-plus.me-1
+      | Create First Purchase Order

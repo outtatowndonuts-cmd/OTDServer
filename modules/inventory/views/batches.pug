@@ -1,0 +1,59 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-layer-group.me-2.text-primary
+    | Batches
+    if filterStatus
+      small.text-muted.ms-2= '(' + filterStatus + ')'
+  .btn-group
+    button.btn.btn-sm.btn-outline-danger(type='button', data-action='cull-expired')
+      i.fas.fa-skull-crossbones.me-1
+      | Cull Expired
+
+if batches && batches.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th Recipe
+          th Produced
+          th Remaining
+          th Produced On
+          th Expires
+          th Status
+          th.text-end Actions
+      tbody
+        each batch in batches
+          tr(class=batch.status === 'culled' ? 'table-secondary' : batch.expiresAt && new Date(batch.expiresAt) < new Date() ? 'table-danger' : '')
+            td= batch.name
+            td= batch.producedQty
+            td
+              if batch.remainingQty <= 0
+                span.text-muted 0
+              else
+                span.fw-bold= batch.remainingQty
+            td= batch.producedAt ? new Date(batch.producedAt).toLocaleDateString() : '—'
+            td
+              if batch.expiresAt
+                - var isExpired = new Date(batch.expiresAt) < new Date();
+                span(class=isExpired ? 'text-danger fw-bold' : '')= new Date(batch.expiresAt).toLocaleDateString()
+                if isExpired
+                  |
+                  span.badge.bg-danger Expired
+              else
+                span.text-muted No expiry
+            td
+              if batch.status === 'active'
+                span.badge.bg-success Active
+              else if batch.status === 'depleted'
+                span.badge.bg-secondary Depleted
+              else if batch.status === 'culled'
+                span.badge.bg-danger Culled
+            td.text-end
+              if batch.status === 'active'
+                button.btn.btn-sm.btn-outline-danger(type='button', data-action='cull-batch', data-id=batch._id, title='Cull this batch')
+                  i.fas.fa-trash-can.me-1
+                  | Cull
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-layer-group.fa-3x.mb-3.d-block
+    p No batches found.

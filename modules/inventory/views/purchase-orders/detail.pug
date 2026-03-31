@@ -1,0 +1,79 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0
+    i.fas.fa-file-invoice.me-2.text-primary
+    | Purchase Order ##{ po._id.toString().slice(-6).toUpperCase() }
+  .d-flex.gap-2
+    if po.status === 'draft'
+      button.btn.btn-sm.btn-warning(type='button', data-action='po-status', data-id=po._id, data-status='ordered')
+        i.fas.fa-paper-plane.me-1
+        | Mark Ordered
+      button.btn.btn-sm.btn-danger(type='button', data-action='po-status', data-id=po._id, data-status='cancelled')
+        i.fas.fa-ban.me-1
+        | Cancel
+    else if po.status === 'ordered'
+      button.btn.btn-sm.btn-success(type='button', data-action='po-status', data-id=po._id, data-status='received')
+        i.fas.fa-check.me-1
+        | Mark Received
+      button.btn.btn-sm.btn-danger(type='button', data-action='po-status', data-id=po._id, data-status='cancelled')
+        i.fas.fa-ban.me-1
+        | Cancel
+    button.btn.btn-sm.btn-outline-secondary(type='button', data-action='back-to-po-list')
+      i.fas.fa-arrow-left.me-1
+      | Back
+
+.row.mb-4
+  .col-md-6
+    .card
+      .card-body
+        h6.card-title Supplier
+        p.mb-1.fw-semibold= po.supplierName
+        if po.notes
+          p.text-muted.mb-0= po.notes
+  .col-md-6
+    .card
+      .card-body
+        h6.card-title Status &amp; Dates
+        .mb-1
+          if po.status === 'draft'
+            span.badge.bg-secondary.fs-6 Draft
+          else if po.status === 'ordered'
+            span.badge.bg-warning.text-dark.fs-6 Ordered
+          else if po.status === 'received'
+            span.badge.bg-success.fs-6 Received
+          else if po.status === 'cancelled'
+            span.badge.bg-danger.fs-6 Cancelled
+        if po.orderedAt
+          small.text-muted.d-block Ordered: #{ new Date(po.orderedAt).toLocaleDateString() }
+        if po.receivedAt
+          small.text-muted.d-block Received: #{ new Date(po.receivedAt).toLocaleDateString() }
+        small.text-muted.d-block Created: #{ new Date(po.createdAt).toLocaleDateString() }
+
+.card.mb-4
+  .card-header
+    h6.mb-0 Items
+  .card-body.p-0
+    .table-responsive
+      table.table.table-hover.align-middle.mb-0
+        thead.table-light
+          tr
+            th Kind
+            th Item
+            th Qty
+            th Unit Cost
+            th Line Total
+        tbody
+          each item in po.items
+            tr
+              td
+                if item.kind === 'supply'
+                  span.badge.bg-warning.text-dark Supply
+                else
+                  span.badge.bg-info Ingredient
+              td= item.name
+              td= item.quantity
+              td= '$' + (item.unitCost || 0).toFixed(2)
+              td.fw-semibold= '$' + (item.totalCost || 0).toFixed(2)
+        tfoot
+          tr
+            td.text-end.fw-bold(colspan='4') Subtotal
+            td.fw-bold.fs-5= '$' + po.subtotal.toFixed(2)

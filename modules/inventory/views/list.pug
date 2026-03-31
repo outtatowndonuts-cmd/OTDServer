@@ -1,0 +1,47 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    if filterKind === 'product'
+      i.fas.fa-cookie.me-2.text-primary
+      | Product Inventory
+    else if filterKind === 'ingredient'
+      i.fas.fa-wheat-awn.me-2.text-primary
+      | Ingredient Inventory
+    else if filterKind === 'supply'
+      i.fas.fa-box-open.me-2.text-primary
+      | Supply Inventory
+    else
+      i.fas.fa-boxes-stacked.me-2.text-primary
+      | All Inventory
+
+if items && items.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th Name
+          th Kind
+          th Quantity
+          th Last Updated
+      tbody
+        each item in items
+          tr
+            td= item.name
+            td
+              if item.kind === 'product'
+                span.badge.bg-success Product
+              else if item.kind === 'ingredient'
+                span.badge.bg-info Ingredient
+              else if item.kind === 'supply'
+                span.badge.bg-warning.text-dark Supply
+            td
+              if item.quantity < 0
+                span.text-danger.fw-bold= item.quantity
+              else if item.quantity === 0
+                span.text-warning= item.quantity
+              else
+                span= item.quantity
+            td= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-boxes-stacked.fa-3x.mb-3.d-block
+    p No inventory items found.
