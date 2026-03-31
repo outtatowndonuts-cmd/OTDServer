@@ -19,6 +19,7 @@ tmp
 #Build
 public/css/main.css
 modules/pos/public/assets/
+modules/admin/public/assets/
 .nyc_output/*
 
 # API keys and secrets

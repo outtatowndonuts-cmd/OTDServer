@@ -1,3 +1,109 @@
+// ── Dark theme variables (matches Admin/POS panels) ──────────────
+$body-bg: #0f1117;
+$body-color: #e4e6eb;
+$primary: #4dabf7;
+$secondary: #6c757d;
+$success: #6ee7b7;
+$danger: #fca5a5;
+$warning: #fcd34d;
+$info: #93c5fd;
+$light: #1e2130;
+$dark: #0f1117;
+
+// Cards / surfaces
+$card-bg: #1e2130;
+$card-border-color: #2a2d3a;
+$card-cap-bg: #161828;
+$card-color: #e4e6eb;
+
+// Inputs
+$input-bg: #1e2130;
+$input-border-color: #3a3d4a;
+$input-color: #e4e6eb;
+$input-placeholder-color: #6c757d;
+$input-focus-border-color: #4dabf7;
+$input-focus-box-shadow: 0 0 0 0.2rem rgba(77, 171, 247, 0.25);
+$input-group-addon-bg: #161828;
+$input-group-addon-color: #9ca3af;
+$input-group-addon-border-color: #3a3d4a;
+$form-select-bg: #1e2130;
+$form-select-color: #e4e6eb;
+$form-select-border-color: #3a3d4a;
+$form-check-input-bg: #1e2130;
+$form-check-input-border: 1px solid #3a3d4a;
+
+// Navbar
+$navbar-dark-color: #9ca3af;
+$navbar-dark-hover-color: #fff;
+$navbar-dark-active-color: #fff;
+$navbar-dark-brand-color: #fff;
+
+// Tables
+$table-bg: transparent;
+$table-color: #e4e6eb;
+$table-border-color: #2a2d3a;
+$table-striped-bg: #161828;
+$table-hover-bg: #1a1d2e;
+
+// Dropdowns
+$dropdown-bg: #1e2130;
+$dropdown-border-color: #3a3d4a;
+$dropdown-color: #e4e6eb;
+$dropdown-link-color: #e4e6eb;
+$dropdown-link-hover-bg: #2a2d3a;
+$dropdown-link-hover-color: #fff;
+
+// Modals
+$modal-content-bg: #1e2130;
+$modal-content-border-color: #3a3d4a;
+$modal-content-color: #e4e6eb;
+$modal-header-border-color: #2a2d3a;
+$modal-footer-border-color: #2a2d3a;
+
+// List groups
+$list-group-bg: #1e2130;
+$list-group-border-color: #2a2d3a;
+$list-group-color: #e4e6eb;
+$list-group-hover-bg: #2a2d3a;
+$list-group-action-color: #e4e6eb;
+$list-group-action-hover-color: #fff;
+$list-group-action-active-bg: #2a2d3a;
+
+// Misc
+$border-color: #2a2d3a;
+$hr-color: #2a2d3a;
+$text-muted: #9ca3af;
+$link-color: #4dabf7;
+$link-hover-color: #74c0fc;
+$breadcrumb-divider-color: #6c757d;
+$breadcrumb-active-color: #9ca3af;
+
+// Alerts - darker backgrounds to match theme
+$alert-bg-scale: -80%;
+$alert-border-scale: -60%;
+$alert-color-scale: 30%;
+
+// Accordion
+$accordion-bg: #1e2130;
+$accordion-border-color: #2a2d3a;
+$accordion-color: #e4e6eb;
+$accordion-button-bg: #1e2130;
+$accordion-button-color: #e4e6eb;
+$accordion-button-active-bg: #161828;
+$accordion-button-active-color: #4dabf7;
+
+// Pagination
+$pagination-bg: #1e2130;
+$pagination-border-color: #2a2d3a;
+$pagination-color: #e4e6eb;
+$pagination-hover-bg: #2a2d3a;
+$pagination-hover-color: #fff;
+$pagination-hover-border-color: #3a3d4a;
+$pagination-active-bg: #4dabf7;
+$pagination-active-border-color: #4dabf7;
+$pagination-disabled-bg: #161828;
+$pagination-disabled-color: #6c757d;
+
 @import 'node_modules/bootstrap/scss/bootstrap';
 @import 'node_modules/bootstrap-social/bootstrap-social.scss';
 @import 'node_modules/@fortawesome/fontawesome-free/scss/fontawesome';
@@ -87,4 +193,116 @@
     color: #fff !important;
     border: solid #000000;
   }
+}
+
+// ── Dark Theme Overrides (matches Admin/POS panels) ──────────────
+
+// Navbar (bg-dark already works, just tighten the colors)
+.navbar {
+  background-color: #1a1d2e !important;
+  border-bottom: 1px solid #2a2d3a;
+}
+
+// Footer
+footer {
+  background-color: #161828 !important;
+  border-top: 1px solid #2a2d3a;
+  color: #9ca3af;
+
+  a {
+    color: #4dabf7;
+    &:hover {
+      color: #74c0fc;
+    }
+  }
+}
+
+// Cards — enforce dark surface
+.card {
+  background-color: #1e2130;
+  border-color: #2a2d3a;
+  color: #e4e6eb;
+
+  .card-header {
+    background-color: #161828;
+    border-bottom-color: #2a2d3a;
+    color: #e4e6eb;
+  }
+  .card-footer {
+    background-color: #161828;
+    border-top-color: #2a2d3a;
+  }
+}
+
+// Lead text & headings
+.lead {
+  color: #c5c8d0;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #fff;
+}
+
+// btn-outline-light visibility fix
+.btn-outline-light {
+  border-color: #3a3d4a;
+  color: #e4e6eb;
+  &:hover {
+    background-color: #2a2d3a;
+    border-color: #4dabf7;
+    color: #fff;
+  }
+}
+
+// btn-outline-danger
+.btn-outline-danger {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+  &:hover {
+    background-color: #7f1d1d;
+    color: #fff;
+  }
+}
+
+// Shadow softening in dark theme
+.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+// Cookie consent dark override
+.cc-window {
+  background: #1e2130 !important;
+  color: #e4e6eb !important;
+  border: 1px solid #2a2d3a;
+}
+.cc-btn {
+  background: #4dabf7 !important;
+  color: #000 !important;
+}
+
+// Well / jumbotron / bg-light overrides
+.bg-light {
+  background-color: #161828 !important;
+  color: #e4e6eb;
+}
+.bg-white {
+  background-color: #1e2130 !important;
+}
+.text-muted {
+  color: #9ca3af !important;
+}
+.text-dark {
+  color: #e4e6eb !important;
+}
+.border {
+  border-color: #2a2d3a !important;
+}
+
+// Ensure form-control placeholders are visible
+.form-control::placeholder {
+  color: #6c757d;
 }
