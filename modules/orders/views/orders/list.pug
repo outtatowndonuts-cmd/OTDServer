@@ -1,0 +1,72 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    if filterType === 'sale'
+      i.fas.fa-cash-register.me-2.text-primary
+      | Sale Orders
+    else if filterType === 'production'
+      i.fas.fa-industry.me-2.text-primary
+      | Production Orders
+    else
+      i.fas.fa-list.me-2.text-primary
+      | All Orders
+  button.btn.btn-primary(type='button', data-action='new-form', data-section='new')
+    i.fas.fa-plus.me-1
+    | New Order
+
+if orders && orders.length
+  .table-responsive
+    table.table.table-hover.align-middle
+      thead.table-light
+        tr
+          th Order #
+          th Type
+          th Source
+          th Items
+          th Total
+          th Payment
+          th Status
+          th Date
+          th.text-end Actions
+      tbody
+        each order in orders
+          tr
+            td
+              a.order-detail-link(href='#', data-id=order._id)
+                code= order._id.toString().slice(-6).toUpperCase()
+            td
+              if order.type === 'sale'
+                span.badge.bg-success Sale
+              else
+                span.badge.bg-info Production
+            td
+              span.badge.bg-secondary= order.source
+            td= order.items.length + ' item' + (order.items.length !== 1 ? 's' : '')
+            td
+              if order.type === 'sale' && order.total != null
+                | $#{ order.total.toFixed(2) }
+              else
+                span.text-muted —
+            td
+              if order.type === 'sale'
+                if order.paymentStatus === 'paid'
+                  span.badge.bg-success= order.paymentMethod + ' / paid'
+                else
+                  span.badge.bg-warning.text-dark= order.paymentMethod + ' / ' + order.paymentStatus
+              else
+                span.text-muted n/a
+            td
+              if order.status === 'completed'
+                span.badge.bg-success Completed
+              else
+                span.badge.bg-warning.text-dark Pending
+            td= order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '—'
+            td.text-end
+              if order.status === 'pending'
+                button.btn.btn-sm.btn-outline-success.me-1(type='button', data-action='complete-order', data-id=order._id, title='Complete')
+                  i.fas.fa-check
+              button.btn.btn-sm.btn-outline-primary(type='button', data-action='view-detail', data-id=order._id, title='View')
+                i.fas.fa-eye
+else
+  .text-center.py-5.text-muted
+    i.fas.fa-receipt.fa-3x.mb-3.d-block
+    p No orders found.

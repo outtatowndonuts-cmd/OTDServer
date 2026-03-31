@@ -1,0 +1,42 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h5.mb-0
+    i.fas.fa-cog.me-2
+    | Order Settings
+
+form#settings-form
+  input(type='hidden', name='_csrf', value=_csrf)
+
+  .card.mb-4.border-secondary-subtle
+    .card-header.fw-semibold
+      i.fas.fa-percent.me-2
+      | Tax
+    .card-body
+      .row.g-3
+        .col-md-6
+          label.form-label(for='os-tax') Tax Rate (%)
+          input#os-tax.form-control(type='number', name='taxRate', step='0.01', min='0', max='100', value=item.taxRate || 0)
+          p.form-text.mb-0 Applied automatically to sale order subtotals.
+
+  .card.mb-4.border-secondary-subtle
+    .card-header.fw-semibold
+      i.fas.fa-sliders-h.me-2
+      | Defaults
+    .card-body
+      .row.g-3
+        .col-md-6
+          label.form-label(for='os-pm') Default Payment Method
+          select#os-pm.form-select(name='defaultPaymentMethod')
+            option(value='none', selected=item.defaultPaymentMethod === 'none') None
+            option(value='cash', selected=item.defaultPaymentMethod === 'cash') Cash
+            option(value='card', selected=item.defaultPaymentMethod === 'card') Card
+        .col-md-6
+          label.form-label(for='os-src') Default Source (Sales)
+          select#os-src.form-select(name='defaultSource')
+            option(value='pos', selected=item.defaultSource === 'pos') POS
+            option(value='online', selected=item.defaultSource === 'online') Online
+      p.form-text.mt-2.mb-0 Pre-selected when creating new sale orders.
+
+  .mt-4
+    button.btn.btn-primary(type='submit')
+      i.fas.fa-save.me-1
+      | Save Settings

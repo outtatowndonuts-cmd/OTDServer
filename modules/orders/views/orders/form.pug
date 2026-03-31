@@ -1,0 +1,105 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-plus-circle.me-2.text-primary
+    | New Order
+
+.card
+  .card-body
+    form#order-form(
+      data-products=JSON.stringify(
+        (products || []).map(function (p) {
+          return { _id: p._id, name: p.name, price: p.price || 0 };
+        }),
+      ),
+      data-recipes=JSON.stringify(
+        (recipes || []).map(function (r) {
+          return { _id: r._id, name: r.name };
+        }),
+      ),
+      data-tax-rate=settings && settings.taxRate != null ? settings.taxRate : 0,
+      data-default-payment=settings && settings.defaultPaymentMethod ? settings.defaultPaymentMethod : 'none',
+      data-default-source=settings && settings.defaultSource ? settings.defaultSource : 'pos'
+    )
+      input(type='hidden', name='_csrf', value=_csrf)
+      input#order-source-hidden(type='hidden', name='source', value='internal')
+
+      .row.mb-3
+        .col-md-4
+          label.form-label Type
+          select#order-type.form-select(name='type', required)
+            option(value='') — Select —
+            option(value='sale') Sale
+            option(value='production') Production
+        #source-group.col-md-4(style='display: none')
+          label.form-label Source
+          select#order-source.form-select
+            option(value='pos') POS
+            option(value='online') Online
+        #payment-method-group.col-md-4(style='display: none')
+          label.form-label Payment Method
+          select.form-select(name='paymentMethod')
+            option(value='none') None
+            option(value='cash') Cash
+            option(value='card') Card
+
+      //- Items section
+      h5.mb-3 Items
+      #items-container
+        .item-row.row.mb-2
+          .col-md-3
+            label.form-label Item
+            select.form-select.item-ref-select(name='items[0][refId]', required)
+              option(value='') — Select type first —
+            input(type='hidden', name='items[0][kind]')
+            input(type='hidden', name='items[0][nameSnapshot]')
+          .col-md-2
+            label.form-label Qty
+            input.form-control(type='number', name='items[0][quantity]', placeholder='Qty', step='any', min='0.001', required)
+          .col-md-2.price-col
+            label.form-label Price
+            input.form-control.item-price(type='number', name='items[0][priceSnapshot]', placeholder='Price', step='0.01', min='0')
+          .col-md-1.price-col
+            label.form-label Line $
+            input.form-control-plaintext.item-line-total.fw-semibold(type='text', readonly, tabindex='-1', value='—')
+          .col-md-1.d-flex.align-items-end
+            button.btn.btn-outline-danger.btn-sm(type='button', data-action='remove-row', title='Remove')
+              i.fas.fa-times
+
+      .mb-3
+        button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-row')
+          i.fas.fa-plus.me-1
+          | Add Item
+
+      //- Totals section (sale only, auto-calculated)
+      #totals-section
+        hr
+        .card.border-secondary-subtle
+          .card-header.fw-semibold
+            i.fas.fa-calculator.me-2
+            | Order Totals
+          .card-body
+            .row.g-3
+              .col-md-3
+                label.form-label Subtotal
+                input#calc-subtotal.form-control-plaintext.fw-semibold(type='text', readonly, value='$0.00')
+                input(type='hidden', name='subtotal', value='0')
+              .col-md-3
+                label.form-label Tax Rate
+                .input-group
+                  input#calc-tax-rate.form-control(type='number', step='0.01', min='0', max='100', value=settings && settings.taxRate != null ? settings.taxRate : 0)
+                  span.input-group-text %
+              .col-md-3
+                label.form-label Tax Amount
+                input#calc-tax.form-control-plaintext.fw-semibold(type='text', readonly, value='$0.00')
+                input(type='hidden', name='tax', value='0')
+              .col-md-3
+                label.form-label.fw-bold Total
+                input#calc-total.form-control-plaintext.fw-bold.fs-5(type='text', readonly, value='$0.00')
+                input(type='hidden', name='total', value='0')
+
+      .d-flex.gap-2
+        button.btn.btn-primary(type='submit')
+          i.fas.fa-save.me-1
+          | Create Order
+        button.btn.btn-outline-secondary(type='button', data-action='cancel')
+          | Cancel

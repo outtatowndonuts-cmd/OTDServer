@@ -1,0 +1,97 @@
+.d-flex.justify-content-between.align-items-center.mb-4
+  h4.mb-0
+    i.fas.fa-receipt.me-2.text-primary
+    | Order ##{ order._id.toString().slice(-6).toUpperCase() }
+  .d-flex.gap-2
+    if order.status === 'pending'
+      button.btn.btn-success(type='button', data-action='complete-order', data-id=order._id)
+        i.fas.fa-check.me-1
+        | Mark Complete
+    button.btn.btn-outline-secondary(type='button', data-action='back-to-list')
+      i.fas.fa-arrow-left.me-1
+      | Back
+
+.row.mb-4
+  .col-md-6
+    .card
+      .card-header.fw-semibold Order Details
+      .card-body
+        table.table.table-sm.mb-0
+          tbody
+            tr
+              th(style='width: 40%') Type
+              td
+                if order.type === 'sale'
+                  span.badge.bg-success Sale
+                else
+                  span.badge.bg-info Production
+            tr
+              th Source
+              td
+                span.badge.bg-secondary= order.source
+            tr
+              th Status
+              td
+                if order.status === 'completed'
+                  span.badge.bg-success Completed
+                else
+                  span.badge.bg-warning.text-dark Pending
+            tr
+              th Created
+              td= order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'
+            if order.updatedAt
+              tr
+                th Updated
+                td= new Date(order.updatedAt).toLocaleString()
+
+  .col-md-6
+    if order.type === 'sale'
+      .card
+        .card-header.fw-semibold Payment
+        .card-body
+          table.table.table-sm.mb-0
+            tbody
+              tr
+                th(style='width: 40%') Method
+                td= order.paymentMethod
+              tr
+                th Status
+                td
+                  if order.paymentStatus === 'paid'
+                    span.badge.bg-success Paid
+                  else
+                    span.badge.bg-warning.text-dark= order.paymentStatus
+              tr
+                th Subtotal
+                td= order.subtotal != null ? '$' + order.subtotal.toFixed(2) : '—'
+              tr
+                th Tax
+                td= order.tax != null ? '$' + order.tax.toFixed(2) : '—'
+              tr.fw-bold
+                th Total
+                td= order.total != null ? '$' + order.total.toFixed(2) : '—'
+
+.card
+  .card-header.fw-semibold Items
+  .card-body
+    .table-responsive
+      table.table.table-hover.align-middle.mb-0
+        thead.table-light
+          tr
+            th Kind
+            th Name
+            th Qty
+            if order.type === 'sale'
+              th Price
+        tbody
+          each item in order.items
+            tr
+              td
+                if item.kind === 'product'
+                  span.badge.bg-primary Product
+                else
+                  span.badge.bg-info Recipe
+              td= item.nameSnapshot
+              td= item.quantity
+              if order.type === 'sale'
+                td= item.priceSnapshot != null ? '$' + item.priceSnapshot.toFixed(2) : '—'
