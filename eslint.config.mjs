@@ -6,7 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier/flat';
 export default [
   eslintConfigPrettier, // Disable Prettier-handled style rules - prettier owns styling
   {
-    ignores: ['tmp/**', 'tmp'],
+    ignores: ['tmp/**', 'tmp', 'modules/pos/client/**', 'modules/pos/public/**'],
 
     plugins: {
       'chai-friendly': chaiFriendly,

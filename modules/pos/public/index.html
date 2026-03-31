@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>OTD — Point of Sale</title>
+    <style>
+      /* ── Reset & Base ───────────────────────────────────────── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body,
+      #pos-root {
+        height: 100%;
+        width: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+        background: #0f1117;
+        color: #e8e8e8;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+
+      /* ── Layout Shell ──────────────────────────────────────── */
+      .pos-app {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        grid-template-rows: 56px 1fr;
+        height: 100vh;
+      }
+
+      /* ── Top Bar ───────────────────────────────────────────── */
+      .pos-topbar {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        background: #1a1d27;
+        border-bottom: 1px solid #2a2d3a;
+      }
+      .pos-topbar h1 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+      .pos-topbar .pos-clock {
+        font-size: 0.9rem;
+        color: #888;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Exit Button ───────────────────────────────────────── */
+      .btn-exit {
+        background: #dc3545;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .btn-exit:hover,
+      .btn-exit:active {
+        background: #bb2d3b;
+      }
+
+      /* ── Product Grid ──────────────────────────────────────── */
+      .pos-grid-area {
+        overflow-y: auto;
+        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .pos-grid-area::-webkit-scrollbar {
+        width: 6px;
+      }
+      .pos-grid-area::-webkit-scrollbar-thumb {
+        background: #3a3d4a;
+        border-radius: 3px;
+      }
+
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+      }
+      .product-card {
+        background: #1e2130;
+        border: 2px solid #2a2d3a;
+        border-radius: 12px;
+        padding: 18px 12px;
+        text-align: center;
+        cursor: pointer;
+        user-select: none;
+        transition:
+          border-color 0.15s,
+          transform 0.1s;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .product-card:active {
+        transform: scale(0.95);
+        border-color: #4dabf7;
+      }
+      .product-card .product-name {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .product-card .product-price {
+        font-size: 0.9rem;
+        color: #69db7c;
+        font-weight: 500;
+      }
+
+      /* ── Cart Panel ────────────────────────────────────────── */
+      .pos-cart {
+        display: flex;
+        flex-direction: column;
+        background: #1a1d27;
+        border-left: 1px solid #2a2d3a;
+      }
+      .cart-header {
+        padding: 14px 16px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        border-bottom: 1px solid #2a2d3a;
+      }
+      .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+        -webkit-overflow-scrolling: touch;
+      }
+      .cart-items::-webkit-scrollbar {
+        width: 4px;
+      }
+      .cart-items::-webkit-scrollbar-thumb {
+        background: #3a3d4a;
+        border-radius: 2px;
+      }
+
+      .cart-item {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-bottom: 1px solid #23263a;
+      }
+      .cart-item-name {
+        font-size: 0.9rem;
+      }
+      .cart-item-qty {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .cart-item-qty button {
+        width: 32px;
+        height: 32px;
+        border: 1px solid #3a3d4a;
+        border-radius: 6px;
+        background: #252838;
+        color: #e8e8e8;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cart-item-qty button:active {
+        background: #4dabf7;
+      }
+      .cart-item-qty span {
+        min-width: 20px;
+        text-align: center;
+        font-weight: 600;
+      }
+      .cart-item-price {
+        font-size: 0.9rem;
+        color: #69db7c;
+        font-weight: 600;
+        min-width: 60px;
+        text-align: right;
+      }
+
+      .cart-empty {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #555;
+        font-size: 0.95rem;
+      }
+
+      /* ── Cart Totals ───────────────────────────────────────── */
+      .cart-totals {
+        padding: 12px 16px;
+        border-top: 1px solid #2a2d3a;
+        font-size: 0.9rem;
+      }
+      .cart-totals .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+      }
+      .cart-totals .row.total {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #fff;
+        padding-top: 8px;
+        border-top: 1px solid #3a3d4a;
+        margin-top: 4px;
+      }
+
+      /* ── Payment Buttons ───────────────────────────────────── */
+      .cart-actions {
+        padding: 12px 16px;
+        display: flex;
+        gap: 10px;
+      }
+      .btn-pay {
+        flex: 1;
+        padding: 14px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .btn-pay:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-pay.cash {
+        background: #37b24d;
+        color: #fff;
+      }
+      .btn-pay.cash:active:not(:disabled) {
+        background: #2f9e44;
+      }
+      .btn-pay.card {
+        background: #4dabf7;
+        color: #fff;
+      }
+      .btn-pay.card:active:not(:disabled) {
+        background: #339af0;
+      }
+
+      /* ── Modals / Overlays ─────────────────────────────────── */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        overflow-y: auto;
+        padding: 20px 0;
+      }
+      .modal-box {
+        background: #1e2130;
+        border: 1px solid #3a3d4a;
+        border-radius: 16px;
+        padding: 28px 32px;
+        min-width: 360px;
+        max-width: 460px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .modal-box h2 {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+      }
+
+      .cash-input-group {
+        margin-bottom: 16px;
+      }
+      .cash-input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #aaa;
+        margin-bottom: 6px;
+      }
+      .cash-input-group input {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        background: #252838;
+        border: 2px solid #3a3d4a;
+        border-radius: 10px;
+        color: #fff;
+        outline: none;
+      }
+      .cash-input-group input:focus {
+        border-color: #4dabf7;
+      }
+
+      .cash-quick-amounts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .cash-quick-amounts button {
+        padding: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        border: 1px solid #3a3d4a;
+        border-radius: 8px;
+        background: #252838;
+        color: #e8e8e8;
+        cursor: pointer;
+      }
+      .cash-quick-amounts button:active {
+        background: #37b24d;
+        border-color: #37b24d;
+      }
+
+      .change-display {
+        text-align: center;
+        padding: 12px;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      .change-display.positive {
+        background: #2b3a2b;
+        color: #69db7c;
+      }
+      .change-display.negative {
+        background: #3a2b2b;
+        color: #ff6b6b;
+      }
+      .change-display.zero {
+        background: #252838;
+        color: #aaa;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .modal-actions button {
+        flex: 1;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .modal-actions .btn-cancel {
+        background: #495057;
+        color: #fff;
+      }
+      .modal-actions .btn-confirm {
+        background: #37b24d;
+        color: #fff;
+      }
+      .modal-actions .btn-confirm:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      /* ── Receipt ───────────────────────────────────────────── */
+      .receipt {
+        text-align: center;
+      }
+      .receipt .checkmark {
+        font-size: 3rem;
+        margin-bottom: 12px;
+      }
+      .receipt h2 {
+        color: #69db7c;
+        margin-bottom: 4px;
+      }
+      .receipt .receipt-total {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 12px 0;
+      }
+      .receipt .receipt-change {
+        font-size: 1.1rem;
+        color: #4dabf7;
+        margin-bottom: 20px;
+      }
+      .receipt .receipt-method {
+        color: #aaa;
+        margin-bottom: 20px;
+      }
+      .btn-new-sale {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        background: #4dabf7;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      /* ── Card Payment ──────────────────────────────────────── */
+      .stripe-element-wrapper {
+        background: #252838;
+        border: 2px solid #3a3d4a;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .card-total-display {
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+      .stripe-error {
+        color: #ff6b6b;
+        font-size: 0.85rem;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .processing-spinner {
+        text-align: center;
+        padding: 20px;
+        color: #4dabf7;
+        font-size: 1rem;
+      }
+
+      /* ── Misc ──────────────────────────────────────────────── */
+      .clear-cart-btn {
+        background: none;
+        border: none;
+        color: #ff6b6b;
+        cursor: pointer;
+        font-size: 0.8rem;
+        padding: 4px 8px;
+      }
+      .clear-cart-btn:hover {
+        text-decoration: underline;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="pos-root"></div>
+    <script src="/pos/assets/pos.js"></script>
+  </body>
+</html>

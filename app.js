@@ -17,7 +17,7 @@ const { flash } = require('./config/flash');
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
 try {
-  process.loadEnvFile('.env.example');
+  process.loadEnvFile('.env');
 } catch (err) {
   if (err && err.code === 'ENOENT') {
     console.log('No .env.example file found. This is OK if the required environment variables are already set in your environment.');
