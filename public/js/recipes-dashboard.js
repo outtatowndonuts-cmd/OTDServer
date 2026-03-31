@@ -266,11 +266,12 @@
     var unitEl = document.getElementById('rc-live-unit');
     var yldEl = document.getElementById('rc-live-yield');
     if (batchEl) batchEl.textContent = `$${totalCost.toFixed(2)}`;
-    if (unitEl)
+    if (unitEl) {
       unitEl.textContent = `$${(totalCost / yieldQty)
         .toFixed(4)
         .replace(/(\.[0-9]*[1-9])0+$/, '$1')
         .replace(/\.0+$/, '.00')}`;
+    }
     if (yldEl) yldEl.textContent = yieldQty;
   }
 
@@ -381,19 +382,21 @@
         var ingSelect2 = clone.querySelector('select[name*="[ingredient]"]');
         var qtyInput = clone.querySelector('[name*="[quantity]"]');
         var unitInput = clone.querySelector('[name*="[unit]"]');
-        if (refSelect)
+        if (refSelect) {
           refSelect.addEventListener('change', function () {
             updateRowCost(clone);
             recalcCosting();
             recalcRecipe();
           });
+        }
         if (ingSelect2 && !refSelect) ingSelect2.addEventListener('change', recalcRecipe);
-        if (qtyInput)
+        if (qtyInput) {
           qtyInput.addEventListener('input', function () {
             updateRowCost(clone);
             recalcCosting();
             recalcRecipe();
           });
+        }
         if (unitInput) unitInput.addEventListener('change', recalcRecipe);
       });
     });
@@ -419,19 +422,21 @@
       var ingSelect = row.querySelector('select[name*="[ingredient]"]');
       var qtyInput = row.querySelector('[name*="[quantity]"]');
       var unitInput = row.querySelector('[name*="[unit]"]');
-      if (refSelect)
+      if (refSelect) {
         refSelect.addEventListener('change', function () {
           updateRowCost(row);
           recalcCosting();
           recalcRecipe();
         });
+      }
       if (ingSelect && !refSelect) ingSelect.addEventListener('change', recalcRecipe);
-      if (qtyInput)
+      if (qtyInput) {
         qtyInput.addEventListener('input', function () {
           updateRowCost(row);
           recalcCosting();
           recalcRecipe();
         });
+      }
       if (unitInput) unitInput.addEventListener('change', recalcRecipe);
     });
 
