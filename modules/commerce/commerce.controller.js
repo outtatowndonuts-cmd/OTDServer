@@ -1,5 +1,7 @@
 const path = require('node:path');
+const validator = require('validator');
 const commerceService = require('./commerce.service');
+const nodemailerConfig = require('../../config/nodemailer');
 
 /**
  * GET /shop — Public storefront homepage.
@@ -10,6 +12,7 @@ async function index(req, res, next) {
     const products = await commerceService.getStorefrontProducts();
     res.render(path.join(__dirname, 'views/storefront'), {
       title: 'Outta Town Donuts',
+      currentPage: 'home',
       products,
     });
   } catch (err) {
@@ -18,20 +21,104 @@ async function index(req, res, next) {
 }
 
 /**
- * GET /shop/order — Public ordering page.
+ * GET /shop/pickup — Public ordering page (pickup orders).
  * Shows available products with quantity selectors.
  */
-async function orderPage(req, res, next) {
+async function pickupPage(req, res, next) {
   try {
     const products = await commerceService.getStorefrontProducts();
     res.render(path.join(__dirname, 'views/order'), {
-      title: 'Order — Outta Town Donuts',
+      title: 'Pickup Orders — Outta Town Donuts',
+      currentPage: 'pickup',
       products,
       cancelled: req.query.cancelled === 'true',
     });
   } catch (err) {
     next(err);
   }
+}
+
+/**
+ * GET /shop/custom-boxes — Coming soon page.
+ */
+function customBoxes(req, res) {
+  res.render(path.join(__dirname, 'views/custom-boxes'), {
+    title: 'Custom Boxes — Outta Town Donuts',
+    currentPage: 'custom-boxes',
+  });
+}
+
+/**
+ * GET /shop/about — About Us page.
+ */
+function about(req, res) {
+  res.render(path.join(__dirname, 'views/about'), {
+    title: 'About Us — Outta Town Donuts',
+    currentPage: 'about',
+  });
+}
+
+/**
+ * GET /shop/contact — Contact form page.
+ */
+function getContact(req, res) {
+  const unknownUser = !req.user;
+  res.render(path.join(__dirname, 'views/contact'), {
+    title: 'Contact — Outta Town Donuts',
+    currentPage: 'contact',
+    sitekey: process.env.GOOGLE_RECAPTCHA_SITE_KEY || null,
+    unknownUser,
+  });
+}
+
+/**
+ * POST /shop/contact — Handle contact form submission.
+ */
+async function postContact(req, res, next) {
+  const validationErrors = [];
+  let fromName;
+  let fromEmail;
+
+  if (!req.user) {
+    if (validator.isEmpty(req.body.name || '')) validationErrors.push({ msg: 'Please enter your name' });
+    if (!validator.isEmail(req.body.email || '')) validationErrors.push({ msg: 'Please enter a valid email address.' });
+  }
+  if (validator.isEmpty(req.body.message || '')) validationErrors.push({ msg: 'Please enter your message.' });
+
+  if (validationErrors.length) {
+    req.flash('errors', validationErrors);
+    return res.redirect('/shop/contact');
+  }
+
+  if (req.user) {
+    fromName = req.user.profile.name || 'No name supplied';
+    fromEmail = req.user.email;
+  } else {
+    fromName = validator.escape(req.body.name);
+    fromEmail = req.body.email;
+  }
+
+  try {
+    const mailOptions = {
+      to: process.env.SITE_CONTACT_EMAIL,
+      from: `${fromName} <${fromEmail}>`,
+      subject: `[Outta Town Donuts] Contact from ${fromName}`,
+      text: req.body.message,
+    };
+
+    await nodemailerConfig.sendMail({
+      successfulType: 'success',
+      successfulMsg: 'Your message has been sent. Thank you!',
+      loggingError: 'ERROR: Could not send commerce contact email after security downgrade.\n',
+      errorType: 'errors',
+      errorMsg: 'There was a problem sending your message. Please try again later.',
+      mailOptions,
+      req,
+    });
+  } catch (err) {
+    console.error('[Commerce] Contact email error:', err.message);
+  }
+  return res.redirect('/shop/contact');
 }
 
 /**
@@ -87,6 +174,7 @@ async function confirmation(req, res, next) {
 
     res.render(path.join(__dirname, 'views/confirmation'), {
       title: 'Order Confirmation — Outta Town Donuts',
+      currentPage: 'pickup',
       order: order.toObject(),
     });
   } catch (err) {
@@ -116,7 +204,11 @@ async function stripeWebhook(req, res) {
 
 module.exports = {
   index,
-  orderPage,
+  pickupPage,
+  customBoxes,
+  about,
+  getContact,
+  postContact,
   createOrder,
   confirmation,
   stripeWebhook,

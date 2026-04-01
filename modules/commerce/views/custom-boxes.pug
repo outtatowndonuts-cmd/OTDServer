@@ -1,0 +1,15 @@
+extends layout
+
+block head
+  meta(property='og:title', content='Custom Boxes — Outta Town Donuts')
+  meta(property='og:description', content='Build your own custom donut box. Coming soon.')
+
+block content
+  .otd-coming-soon
+    img.otd-hero-logo(src='/commerce/otd-logo.png', alt='Outta Town Donuts', style='max-width: 180px; margin-bottom: 2rem')
+    h1 Custom Boxes
+    hr.otd-divider
+    p Build your own box of hand-shaped donuts. Pick your flavors, pick your quantity. We&rsquo;ll have it ready for you.
+    p.otd-text-orange We&rsquo;re putting the finishing touches on this one.
+    .otd-mt-4
+      a.otd-btn.otd-btn-outline(href='/shop') Back to Home

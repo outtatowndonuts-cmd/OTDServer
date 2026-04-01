@@ -1,35 +1,59 @@
-extends ../../../views/layout
+extends layout
 
 block head
   meta(property='og:title', content='Outta Town Donuts — Woodbury, TN')
   meta(property='og:description', content='Hand-shaped donuts. Made fresh every morning. No cutters. No factories.')
   meta(property='og:type', content='website')
-  meta(property='og:url', content=siteURL + '/shop')
+  meta(property='og:url', content=(process.env.BASE_URL || '') + '/shop')
 
 block content
-  .text-center.mb-5
-    h1.display-5.fw-bold Outta Town Donuts
-    p.lead.text-secondary Hand-shaped donuts. Made fresh every morning in Woodbury.
-    p.text-secondary No cutters. No factories. Just real food, done right.
+  //- Hero Section
+  .otd-hero
+    img.otd-hero-logo(src='/commerce/otd-logo.png', alt='Outta Town Donuts')
+    h1 Outta Town Donuts
+    p.otd-tagline Made by hand. Sold by hand.
+    p.otd-subtitle Hand-shaped donuts, made fresh every morning in Woodbury, Tennessee. No cutters. No factories. Just real food, done right.
+    a.otd-btn.otd-btn-primary.otd-btn-large(href='/shop/pickup') Order for Pickup
 
-  if products && products.length
-    h2.mb-3 Available Today
-    .row.g-3
-      each product in products
-        .col-sm-6.col-md-4.col-lg-3
-          .card.h-100
-            .card-body.d-flex.flex-column
-              h5.card-title= product.name
-              .mt-auto
-                .d-flex.justify-content-between.align-items-center
-                  span.fw-bold $#{ product.price.toFixed(2) }
+  //- Available Today
+  .otd-section
+    .container
+      .otd-section-header
+        h2 Available Today
+        hr.otd-divider
+
+      if products && products.length
+        .otd-products
+          each product in products
+            .otd-product-card
+              .otd-product-name= product.name
+              .d-flex.justify-content-between.align-items-center
+                span.otd-product-price $#{ product.price.toFixed(2) }
+                .otd-product-stock
                   if product.available > 0
-                    span.badge.bg-success #{ product.available } left
+                    span.otd-badge.otd-badge-available #{ product.available } left
                   else
-                    span.badge.bg-secondary Sold out
-    .text-center.mt-4
-      a.btn.btn-primary.btn-lg(href='/shop/order') Place an Order
-  else
-    .text-center.py-5
-      h3.text-secondary Nothing available right now.
-      p Check back tomorrow morning — we make everything fresh.
+                    span.otd-badge.otd-badge-soldout Sold out
+        .otd-text-center.otd-mt-4
+          a.otd-btn.otd-btn-primary(href='/shop/pickup') Place an Order
+      else
+        .otd-text-center.otd-py-5
+          h3.otd-text-muted Nothing available right now.
+          p.otd-text-muted Check back tomorrow morning &mdash; we make everything fresh.
+
+  //- How It Works
+  .otd-section.otd-section-alt
+    .container
+      .otd-section-header
+        h2 How It Works
+        hr.otd-divider
+      .otd-values
+        .otd-value-item
+          h3 Pick Your Donuts
+          p Browse what&rsquo;s available today. Inventory is real &mdash; when it&rsquo;s gone, it&rsquo;s gone.
+        .otd-value-item
+          h3 Place Your Order
+          p Select your quantities and pay securely online. No account required.
+        .otd-value-item
+          h3 Pick Up in Woodbury
+          p Orders are available at our flea market booth. Made fresh, handed to you directly.

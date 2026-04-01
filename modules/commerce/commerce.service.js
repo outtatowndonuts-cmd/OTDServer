@@ -114,7 +114,7 @@ async function createCheckoutSession(order) {
     line_items: lineItems,
     mode: 'payment',
     success_url: `${process.env.BASE_URL}/shop/confirmation?orderId=${order._id}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.BASE_URL}/shop/order?cancelled=true`,
+    cancel_url: `${process.env.BASE_URL}/shop/pickup?cancelled=true`,
     metadata: { orderId: order._id.toString() },
   });
 

@@ -1,0 +1,67 @@
+extends layout
+
+block head
+  meta(property='og:title', content='About Us — Outta Town Donuts')
+  meta(property='og:description', content='Hand-shaped donuts from Woodbury, Tennessee. A small, independent operation built on doing things the real way.')
+
+block content
+  //- Intro
+  .otd-about-intro
+    h1 About Us
+    hr.otd-divider
+    p Outta Town Donuts is a small, independent donut operation based in Woodbury, Tennessee. Every donut is hand-shaped, individually weighed, and made fresh each morning using high-quality, locally sourced ingredients whenever possible.
+
+  //- Story Section
+  .otd-section.otd-section-alt
+    .container
+      .otd-section-header
+        h2 Our Story
+        hr.otd-divider
+      .row
+        .col-lg-8.mx-auto
+          p(style='color: var(--otd-cream-dark); line-height: 1.8; font-size: 1.05rem') We started making donuts the way most good things start &mdash; by just doing it. No business plan written in a co-working space. No branding agency. Just a kitchen, some flour, and the belief that you can still make something real without asking permission.
+          p(style='color: var(--otd-cream-dark); line-height: 1.8; font-size: 1.05rem') Every morning, we weigh, shape, and finish each donut by hand. No molds, no stamping machines, no mass production. The result is something slightly imperfect and entirely intentional. Each one weighing between 70 and 80 grams &mdash; enough structure to do it right, enough freedom to keep it real.
+          p(style='color: var(--otd-cream-dark); line-height: 1.8; font-size: 1.05rem') We sell directly through our local flea market booth in Woodbury, packaging each order by hand. What you&rsquo;re buying hasn&rsquo;t traveled far, and it hasn&rsquo;t been abstracted into a system you can&rsquo;t see.
+
+  //- Quote
+  .otd-section
+    .container
+      .col-lg-8.mx-auto
+        .otd-quote We make donuts by hand every morning. No molds. No shortcuts. Just enough structure to do it right, and enough freedom to keep it real.
+
+  //- Values
+  .otd-section.otd-section-alt
+    .container
+      .otd-section-header
+        h2 What We Stand For
+        hr.otd-divider
+      .otd-values
+        .otd-value-item
+          h3 Handcrafted
+          p Individually shaped, not stamped. Every donut shows the hand that made it. Visible human variation isn&rsquo;t a flaw &mdash; it&rsquo;s the whole point.
+        .otd-value-item
+          h3 Local
+          p Ingredients sourced locally when possible. Made in a cottage kitchen. Sold face-to-face at the booth. No abstraction layer between us and you.
+        .otd-value-item
+          h3 Honest
+          p We show our real process, in our real workspace. Nothing staged, nothing polished beyond what it actually is.
+        .otd-value-item
+          h3 Independent
+          p This isn&rsquo;t a franchise. It&rsquo;s not optimized for scale. It&rsquo;s a quiet proof that alternatives work &mdash; that you can still make things locally, by people who are actually there.
+
+  //- NWA Connection
+  .otd-section
+    .container
+      .col-lg-8.mx-auto.otd-text-center
+        h2 Part of Something Bigger
+        hr.otd-divider
+        p(style='color: var(--otd-cream-dark); line-height: 1.8; font-size: 1.05rem; max-width: 600px; margin: 0 auto') Outta Town Donuts is part of New Weird America, a broader effort to build practical, sustainable systems at the community level. This isn&rsquo;t just about donuts &mdash; it&rsquo;s about showing what&rsquo;s possible when things are made locally, by people who choose to participate instead of outsource.
+        p.otd-mt-2(style='color: var(--otd-text-muted); font-style: italic') It&rsquo;s not a protest. It&rsquo;s just proof.
+
+  //- CTA
+  .otd-section.otd-section-alt
+    .container.otd-text-center
+      h2 Ready to Try?
+      hr.otd-divider
+      p.otd-text-muted(style='max-width: 400px; margin: 0 auto 1.5rem') Available until sold out. Made fresh every morning.
+      a.otd-btn.otd-btn-primary.otd-btn-large(href='/shop/pickup') Order for Pickup

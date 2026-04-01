@@ -1,0 +1,54 @@
+extends layout
+
+block head
+  meta(property='og:title', content='Contact — Outta Town Donuts')
+  meta(property='og:description', content='Get in touch with Outta Town Donuts in Woodbury, Tennessee.')
+  if sitekey
+    script(src='https://www.google.com/recaptcha/enterprise.js', async='', defer='')
+
+block content
+  .otd-section
+    .container
+      .otd-contact
+        h1 Contact Us
+        p Got a question, special request, or just want to say hey? We&rsquo;d love to hear from you.
+        hr.otd-divider
+
+        form#contactForm(method='POST', action='/shop/contact')
+          input(type='hidden', name='_csrf', value=_csrf)
+
+          if unknownUser
+            .otd-form-group
+              label.otd-label(for='name') Name
+              input#name.otd-input(type='text', name='name', autocomplete='name', required, placeholder='Your name')
+            .otd-form-group
+              label.otd-label(for='email') Email
+              input#email.otd-input(type='email', name='email', autocomplete='email', required, placeholder='your@email.com')
+
+          .otd-form-group
+            label.otd-label(for='message') Message
+            textarea#message.otd-textarea(name='message', rows='6', required, placeholder='What\u2019s on your mind?')
+
+          if sitekey
+            .otd-form-group
+              #recaptchaWidget.g-recaptcha(data-sitekey=sitekey, data-theme='dark')
+              span#recaptchaError.otd-text-danger(style='display: none; margin-top: 0.5rem') Please complete the reCAPTCHA before submitting.
+
+          .otd-form-group
+            button.otd-btn.otd-btn-primary(type='submit') Send Message
+
+        script.
+          document.getElementById('contactForm').addEventListener('submit', function (event) {
+            var recaptchaError = document.getElementById('recaptchaError');
+            if (typeof grecaptcha !== 'undefined' && !grecaptcha.getResponse()) {
+              event.preventDefault();
+              if (recaptchaError) recaptchaError.style.display = 'block';
+            } else if (recaptchaError) {
+              recaptchaError.style.display = 'none';
+            }
+          });
+
+        //- Location info
+        .otd-mt-4(style='border-top: 1px solid var(--otd-border); padding-top: 1.5rem')
+          h3(style='font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.03em') Find Us
+          p.otd-text-muted We sell our donuts at the flea market in Woodbury, Tennessee. Swing by and grab some fresh.

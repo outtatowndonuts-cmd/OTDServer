@@ -5,7 +5,11 @@ const router = express.Router();
 
 // ─── Public Pages (no auth required) ──────────────────────────────────────────
 router.get('/', controller.index);
-router.get('/order', controller.orderPage);
+router.get('/pickup', controller.pickupPage);
+router.get('/custom-boxes', controller.customBoxes);
+router.get('/about', controller.about);
+router.get('/contact', controller.getContact);
+router.post('/contact', controller.postContact);
 router.get('/confirmation', controller.confirmation);
 
 // ─── API (CSRF-protected, no auth) ───────────────────────────────────────────

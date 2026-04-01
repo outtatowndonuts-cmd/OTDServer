@@ -1,0 +1,104 @@
+doctype html
+html.h-100(lang='en')
+  head
+    meta(charset='utf-8')
+    meta(http-equiv='X-UA-Compatible', content='IE=edge')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    meta(name='csrf-token', content=_csrf)
+    meta(property='fb:app_id', content=FACEBOOK_ID)
+
+    title #{ title } — Outta Town Donuts
+    link(rel='shortcut icon', href='/favicon.ico')
+    link(rel='stylesheet', href='/css/main.css')
+    link(rel='stylesheet', href='/css/commerce.css')
+    link(rel='stylesheet', href='https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css')
+    block head
+
+  body.otd-commerce.d-flex.flex-column.h-100
+    //- Commerce Header
+    nav.otd-nav
+      .container
+        .otd-nav-inner
+          a.otd-brand(href='/shop')
+            img.otd-logo(src='/commerce/otd-logo.png', alt='Outta Town Donuts')
+            span.otd-brand-text Outta Town Donuts
+          button.otd-nav-toggle(type='button', onclick='this.closest(".otd-nav").classList.toggle("open")', aria-label='Toggle navigation')
+            span.otd-nav-toggle-bar
+            span.otd-nav-toggle-bar
+            span.otd-nav-toggle-bar
+          .otd-nav-links
+            a.otd-nav-link(href='/shop', class=currentPage === 'home' ? 'active' : '') Home
+            a.otd-nav-link(href='/shop/pickup', class=currentPage === 'pickup' ? 'active' : '') Pickup Orders
+            a.otd-nav-link(href='/shop/custom-boxes', class=currentPage === 'custom-boxes' ? 'active' : '') Custom Boxes
+            a.otd-nav-link(href='/shop/about', class=currentPage === 'about' ? 'active' : '') About Us
+            a.otd-nav-link(href='/shop/contact', class=currentPage === 'contact' ? 'active' : '') Contact
+
+    .otd-main.flex-shrink-0.flex-grow-1
+      if messages && messages.errors
+        .container.mt-3
+          each error in messages.errors
+            .otd-alert.otd-alert-error= error.msg
+      if messages && messages.success
+        .container.mt-3
+          each msg in messages.success
+            .otd-alert.otd-alert-success= msg.msg
+      if messages && messages.info
+        .container.mt-3
+          each msg in messages.info
+            .otd-alert.otd-alert-warning= msg.msg
+      block content
+
+    //- Commerce Footer
+    footer.otd-footer
+      .container
+        .otd-footer-inner
+          .otd-footer-brand
+            img.otd-footer-logo(src='/commerce/otd-logo.png', alt='Outta Town Donuts')
+            p.otd-footer-tagline Made by hand. Sold by hand.
+          .otd-footer-links
+            .otd-footer-col
+              h4 Shop
+              ul
+                li: a(href='/shop') Home
+                li: a(href='/shop/pickup') Pickup Orders
+                li: a(href='/shop/custom-boxes') Custom Boxes
+            .otd-footer-col
+              h4 Company
+              ul
+                li: a(href='/shop/about') About Us
+                li: a(href='/shop/contact') Contact
+                li: a(href='/privacy-policy.html') Privacy Policy
+                li: a(href='/terms-of-use.html') Terms of Use
+            .otd-footer-col
+              h4 Location
+              ul
+                li Woodbury, Tennessee
+                li Available at the local flea market
+        .otd-footer-bottom
+          span &copy; #{ new Date().getFullYear() } Outta Town Donuts &mdash; A New Weird America project.
+          a.otd-admin-link(href='/') Administration
+
+    script(src='/js/lib/jquery.min.js')
+    script(src='/js/lib/bootstrap.min.js')
+    block scripts
+
+    script(src='https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js')
+    script(type='text/javascript').
+      window.cookieconsent.initialise({
+        palette: {
+          popup: { background: '#0E0E0E', text: '#F4E9D8' },
+          button: { background: '#C24A1A', text: '#F4E9D8' },
+        },
+        position: 'bottom-right',
+        content: { href: '/privacy-policy.html' },
+      });
+
+    if GOOGLE_ANALYTICS_ID
+      script(async, src=`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`)
+      script.
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', '#{GOOGLE_ANALYTICS_ID}');
