@@ -132,7 +132,16 @@ app.set('view engine', 'pug');
 app.set('trust proxy', numberOfProxies);
 app.use(morganLogger());
 app.use(compression());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      // Preserve raw body for Stripe webhook signature verification
+      if (req.originalUrl === '/shop/webhook/stripe') {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(limiter);
 app.use(
@@ -156,6 +165,9 @@ app.use((req, res, next) => {
     // Multer multipart/form-data handling needs to occur before the Lusca CSRF check.
     // WARN: Any path that is not protected by CSRF here should have lusca.csrf() chained
     // in their route handler.
+    next();
+  } else if (req.originalUrl === '/shop/webhook/stripe') {
+    // Stripe webhooks are verified via signature, not CSRF
     next();
   } else {
     lusca.csrf()(req, res, next);

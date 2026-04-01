@@ -11,4 +11,9 @@ module.exports = {
   getOrders: ordersService.getOrders,
   getOrderById: ordersService.getOrderById,
   completeOrder: ordersService.completeOrder,
+  getSettings: ordersService.getSettings,
+  markOrderPaid: ordersService.markOrderPaid,
+  markPaidAndComplete: ordersService.markPaidAndComplete,
+  cancelOrder: ordersService.cancelOrder,
+  refundOrder: ordersService.refundOrder,
 };

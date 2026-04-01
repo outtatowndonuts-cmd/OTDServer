@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('./inventory.controller');
 const { isAuthenticated } = require('../../config/passport');
+const { requireRole } = require('../../shared/requireRole');
 
 // ─── Dashboard Shell ──────────────────────────────────────────────────────────
 router.get('/', isAuthenticated, controller.getDashboard);
@@ -33,10 +34,10 @@ router.get('/fragments/batches/culled', isAuthenticated, (req, res) => {
 // ─── API Routes (return JSON) ─────────────────────────────────────────────────
 router.get('/api', isAuthenticated, controller.listInventory);
 router.get('/api/:id', isAuthenticated, controller.getInventoryItem);
-router.post('/adjust', isAuthenticated, controller.adjustStock);
-router.post('/sync', isAuthenticated, controller.syncFromOrders);
-router.post('/batches/:id/cull', isAuthenticated, controller.cullBatch);
-router.post('/cull-expired', isAuthenticated, controller.cullExpired);
+router.post('/adjust', isAuthenticated, requireRole('admin', 'manager'), controller.adjustStock);
+router.post('/sync', isAuthenticated, requireRole('admin'), controller.syncFromOrders);
+router.post('/batches/:id/cull', isAuthenticated, requireRole('admin', 'manager'), controller.cullBatch);
+router.post('/cull-expired', isAuthenticated, requireRole('admin', 'manager'), controller.cullExpired);
 
 // ─── Purchase Order Fragments ─────────────────────────────────────────────────
 router.get('/fragments/purchase-orders', isAuthenticated, controller.fragmentPurchaseOrders);
@@ -56,7 +57,7 @@ router.get('/fragments/purchase-orders/new', isAuthenticated, controller.fragmen
 router.get('/fragments/purchase-orders/:id/detail', isAuthenticated, controller.fragmentPurchaseOrderDetail);
 
 // ─── Purchase Order API ───────────────────────────────────────────────────────
-router.post('/purchase-orders', isAuthenticated, controller.createPurchaseOrder);
-router.post('/purchase-orders/:id/status', isAuthenticated, controller.updatePurchaseOrderStatus);
+router.post('/purchase-orders', isAuthenticated, requireRole('admin', 'manager'), controller.createPurchaseOrder);
+router.post('/purchase-orders/:id/status', isAuthenticated, requireRole('admin', 'manager'), controller.updatePurchaseOrderStatus);
 
 module.exports = { basePath: '/inventory', router };

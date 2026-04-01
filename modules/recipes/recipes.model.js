@@ -41,7 +41,7 @@ const RecipeSchema = new mongoose.Schema({
       unit: { type: String },
     },
   ],
-  yield: { type: Number }, // e.g. number of donuts produced
+  yield: { type: Number, min: 1 }, // e.g. number of donuts produced
   shelfLifeDays: { type: Number }, // days before batch expires (optional)
   instructions: { type: String },
   notes: { type: String },

@@ -113,6 +113,27 @@ exports.completeOrder = async function (req, res) {
   }
 };
 
+// --- API: Cancel order --------------------------------------------------------
+exports.cancelOrder = async function (req, res) {
+  try {
+    const { reason } = req.body;
+    const order = await service.cancelOrder(req.params.id, { reason, user: req.user });
+    res.json({ ok: true, order });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+// --- API: Refund order --------------------------------------------------------
+exports.refundOrder = async function (req, res) {
+  try {
+    const order = await service.refundOrder(req.params.id, { user: req.user });
+    res.json({ ok: true, order });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
 // --- Fragment: Settings -------------------------------------------------------
 exports.fragmentSettings = async function (req, res) {
   try {

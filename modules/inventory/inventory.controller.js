@@ -1,6 +1,7 @@
 const path = require('path');
 const service = require('./inventory.service');
 const catalog = require('../../shared/catalog.service');
+const audit = require('../../shared/audit');
 
 const VIEWS = path.join(__dirname, 'views');
 
@@ -56,6 +57,11 @@ exports.adjustStock = async function (req, res) {
       return res.status(400).json({ ok: false, error: 'kind, refId, name, and quantityDelta are required' });
     }
     const item = await service.adjustStock({ kind, refId, name, quantityDelta });
+    await audit.log('inventory.adjusted', req.user, {
+      targetType: 'InventoryItem',
+      targetId: item._id,
+      details: { kind, refId, name, quantityDelta: Number(quantityDelta), newQuantity: item.quantity },
+    });
     res.json({ ok: true, item });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });

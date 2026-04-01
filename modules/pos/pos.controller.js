@@ -118,10 +118,36 @@ exports.confirmStripePayment = async (req, res) => {
     if (!verified) {
       return res.status(400).json({ ok: false, error: 'Payment not confirmed by Stripe' });
     }
-    const order = await posService.markOrderPaid(orderId);
-    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
-    const completed = await posService.completeOrder(orderId);
+    // Atomically mark paid + complete to avoid partial state
+    const completed = await posService.markPaidAndComplete(orderId, { stripePaymentIntentId: paymentIntentId });
     res.json({ ok: true, order: completed });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /pos/api/orders/:id/cancel
+ * Cancel a pending POS order.
+ */
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const order = await posService.cancelOrder(req.params.id, { reason, user: req.user });
+    res.json({ ok: true, order });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /pos/api/orders/:id/refund
+ * Refund a completed POS order (processes Stripe refund for card payments).
+ */
+exports.refundOrder = async (req, res) => {
+  try {
+    const order = await posService.refundOrder(req.params.id, { user: req.user });
+    res.json({ ok: true, order });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
   }

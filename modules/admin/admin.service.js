@@ -6,6 +6,7 @@
  */
 const orderService = require('../../shared/order.service');
 const inventoryService = require('../../shared/inventory.service');
+const audit = require('../../shared/audit');
 const User = require('../../models/User');
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -44,20 +45,10 @@ async function getOrders(filters = {}) {
   const serviceFilters = {};
   if (filters.type) serviceFilters.type = filters.type;
   if (filters.status) serviceFilters.status = filters.status;
+  if (filters.dateFrom) serviceFilters.dateFrom = filters.dateFrom;
+  if (filters.dateTo) serviceFilters.dateTo = filters.dateTo;
 
-  let orders = await orderService.getOrders(serviceFilters);
-
-  if (filters.dateFrom) {
-    const from = new Date(filters.dateFrom);
-    orders = orders.filter((o) => o.createdAt >= from);
-  }
-  if (filters.dateTo) {
-    const to = new Date(filters.dateTo);
-    to.setHours(23, 59, 59, 999);
-    orders = orders.filter((o) => o.createdAt <= to);
-  }
-
-  return orders;
+  return orderService.getOrders(serviceFilters);
 }
 
 /**
@@ -84,15 +75,23 @@ async function getEmployees() {
 /**
  * Update a user's role.
  */
-async function updateEmployeeRole(userId, newRole) {
+async function updateEmployeeRole(userId, newRole, { actor } = {}) {
   const validRoles = ['admin', 'manager', 'staff'];
   if (!validRoles.includes(newRole)) {
     throw new Error(`Invalid role: ${newRole}`);
   }
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
+  const oldRole = user.role;
   user.role = newRole;
   await user.save();
+
+  await audit.log('employee.roleChanged', actor, {
+    targetType: 'User',
+    targetId: user._id,
+    details: { email: user.email, oldRole, newRole },
+  });
+
   return { id: user._id, email: user.email, role: user.role };
 }
 

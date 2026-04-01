@@ -31,6 +31,10 @@ async function updateSupplier(id, data) {
   return Supplier.findByIdAndUpdate(id, data, { new: true });
 }
 async function deleteSupplier(id) {
+  const usedByIngredients = await Ingredient.countDocuments({ supplier: id });
+  if (usedByIngredients > 0) throw new Error(`Cannot delete: supplier is referenced by ${usedByIngredients} ingredient(s)`);
+  const usedBySupplies = await Supply.countDocuments({ supplier: id });
+  if (usedBySupplies > 0) throw new Error(`Cannot delete: supplier is referenced by ${usedBySupplies} supply item(s)`);
   return Supplier.findByIdAndDelete(id);
 }
 
@@ -48,6 +52,10 @@ async function updateIngredient(id, data) {
   return Ingredient.findByIdAndUpdate(id, derivePerUnitCost(data), { new: true });
 }
 async function deleteIngredient(id) {
+  const usedInRecipes = await Recipe.countDocuments({ 'ingredients.ingredient': id });
+  if (usedInRecipes > 0) throw new Error(`Cannot delete: ingredient is used in ${usedInRecipes} recipe(s)`);
+  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Ingredient' });
+  if (usedInProducts > 0) throw new Error(`Cannot delete: ingredient is used in ${usedInProducts} product(s)`);
   return Ingredient.findByIdAndDelete(id);
 }
 
@@ -65,6 +73,8 @@ async function updateRecipe(id, data) {
   return Recipe.findByIdAndUpdate(id, data, { new: true });
 }
 async function deleteRecipe(id) {
+  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Recipe' });
+  if (usedInProducts > 0) throw new Error(`Cannot delete: recipe is used in ${usedInProducts} product(s)`);
   return Recipe.findByIdAndDelete(id);
 }
 
@@ -99,6 +109,8 @@ async function updateSupply(id, data) {
   return Supply.findByIdAndUpdate(id, deriveSupplyCost(data), { new: true });
 }
 async function deleteSupply(id) {
+  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Supply' });
+  if (usedInProducts > 0) throw new Error(`Cannot delete: supply is used in ${usedInProducts} product(s)`);
   return Supply.findByIdAndDelete(id);
 }
 
@@ -177,22 +189,31 @@ async function calculateProductCosting(product) {
   return { ingredientCost, laborCost, overheadCost, totalCOGS, price, margin, targetMargin, suggestedPrice, canCalculate };
 }
 
-// Settings (singleton — always one document)
+// Settings (singleton — always one document, created atomically if missing)
 async function getSettings() {
-  let s = await Settings.findOne();
-  if (!s) s = await Settings.create({});
-  return s;
+  return Settings.findOneAndUpdate({}, { $setOnInsert: {} }, { upsert: true, new: true, setDefaultsOnInsert: true });
 }
 async function updateSettings(data) {
-  if (typeof data.supplyCategories === 'string') {
-    data.supplyCategories = data.supplyCategories
-      .split('\n')
-      .map((c) => c.trim())
-      .filter(Boolean);
-  } else if (!Array.isArray(data.supplyCategories)) {
-    data.supplyCategories = [];
+  const allowed = {};
+  if (data.defaultWeightUnit != null) allowed.defaultWeightUnit = data.defaultWeightUnit;
+  if (data.defaultVolumeUnit != null) allowed.defaultVolumeUnit = data.defaultVolumeUnit;
+  if (data.defaultCountUnit != null) allowed.defaultCountUnit = data.defaultCountUnit;
+  if (data.defaultLaborCost != null) allowed.defaultLaborCost = data.defaultLaborCost;
+  if (data.defaultOverheadCost != null) allowed.defaultOverheadCost = data.defaultOverheadCost;
+  if (data.defaultMarginPct != null) allowed.defaultMarginPct = data.defaultMarginPct;
+  if (data.supplyCategories != null) {
+    if (typeof data.supplyCategories === 'string') {
+      allowed.supplyCategories = data.supplyCategories
+        .split('\n')
+        .map((c) => c.trim())
+        .filter(Boolean);
+    } else if (Array.isArray(data.supplyCategories)) {
+      allowed.supplyCategories = data.supplyCategories;
+    } else {
+      allowed.supplyCategories = [];
+    }
   }
-  return Settings.findOneAndUpdate({}, data, { upsert: true, new: true, setDefaultsOnInsert: true });
+  return Settings.findOneAndUpdate({}, allowed, { upsert: true, new: true, setDefaultsOnInsert: true });
 }
 
 module.exports = {

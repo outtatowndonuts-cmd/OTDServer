@@ -1,0 +1,48 @@
+extends ../../../views/layout
+
+block content
+  .text-center.mb-4
+    if order.status === 'completed' && order.paymentStatus === 'paid'
+      h1.text-success &#10003; Order Confirmed
+      p.lead.text-secondary Thank you. Your order has been placed.
+    else if order.status === 'pending'
+      h1.text-warning &#8987; Processing Payment
+      p.lead.text-secondary Your payment is being verified. This page will update shortly.
+      meta(http-equiv='refresh', content='5')
+    else if order.status === 'cancelled'
+      h1.text-danger Order Cancelled
+      p.lead.text-secondary This order was cancelled.
+    else
+      h1 Order Status: #{ order.status }
+
+  .card.mx-auto(style='max-width: 500px')
+    .card-body
+      h5.card-title Order Details
+      table.table.table-sm.mb-0
+        thead
+          tr
+            th Item
+            th.text-center Qty
+            th.text-end Price
+        tbody
+          each item in order.items
+            tr
+              td= item.nameSnapshot
+              td.text-center= item.quantity
+              td.text-end $#{ (item.priceSnapshot * item.quantity).toFixed(2) }
+        tfoot
+          if order.subtotal != null
+            tr
+              td.text-end(colspan='2') Subtotal
+              td.text-end $#{ order.subtotal.toFixed(2) }
+          if order.tax != null && order.tax > 0
+            tr
+              td.text-end(colspan='2') Tax
+              td.text-end $#{ order.tax.toFixed(2) }
+          if order.total != null
+            tr.fw-bold
+              td.text-end(colspan='2') Total
+              td.text-end $#{ order.total.toFixed(2) }
+
+  .text-center.mt-4
+    a.btn.btn-outline-primary(href='/shop') Back to Storefront

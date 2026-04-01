@@ -1,7 +1,6 @@
 const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SKEY) : null;
 const catalogService = require('../../shared/catalog.service');
 const orderService = require('../../shared/order.service');
-const { Order, OrderSettings } = require('../orders/orders.model');
 
 /**
  * Fetch all products for the POS product grid.
@@ -15,9 +14,7 @@ async function getCatalog() {
  * Get order settings (tax rate, defaults).
  */
 async function getSettings() {
-  let s = await OrderSettings.findOne();
-  if (!s) s = await OrderSettings.create({});
-  return s;
+  return orderService.getSettings();
 }
 
 /**
@@ -62,7 +59,14 @@ async function createPaymentIntent(amountCents, orderId) {
  * Mark a Stripe-paid order as paid.
  */
 async function markOrderPaid(orderId) {
-  return Order.findByIdAndUpdate(orderId, { paymentStatus: 'paid' }, { new: true });
+  return orderService.markOrderPaid(orderId);
+}
+
+/**
+ * Mark a Stripe-paid order as paid and completed atomically.
+ */
+async function markPaidAndComplete(orderId, { stripePaymentIntentId } = {}) {
+  return orderService.markPaidAndComplete(orderId, { stripePaymentIntentId });
 }
 
 /**
@@ -74,6 +78,35 @@ async function verifyPaymentIntent(paymentIntentId) {
   return pi.status === 'succeeded';
 }
 
+/**
+ * Cancel a pending POS order.
+ */
+async function cancelOrder(orderId, { reason, user } = {}) {
+  return orderService.cancelOrder(orderId, { reason, user });
+}
+
+/**
+ * Refund a completed POS order.
+ * Handles Stripe refund for card payments, then marks order as refunded.
+ */
+async function refundOrder(orderId, { user } = {}) {
+  const order = await orderService.getOrderById(orderId);
+  if (!order) throw new Error('Order not found');
+
+  let stripeRefundId = null;
+
+  // Process Stripe refund for card payments
+  if (order.paymentMethod === 'card' && order.stripePaymentIntentId) {
+    if (!stripe) throw new Error('Stripe is not configured — cannot process refund');
+    const refund = await stripe.refunds.create({
+      payment_intent: order.stripePaymentIntentId,
+    });
+    stripeRefundId = refund.id;
+  }
+
+  return orderService.refundOrder(orderId, { user, stripeRefundId });
+}
+
 module.exports = {
   getCatalog,
   getSettings,
@@ -81,5 +114,8 @@ module.exports = {
   completeOrder,
   createPaymentIntent,
   markOrderPaid,
+  markPaidAndComplete,
   verifyPaymentIntent,
+  cancelOrder,
+  refundOrder,
 };

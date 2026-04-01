@@ -3,19 +3,7 @@ const path = require('path');
 const router = express.Router();
 const adminController = require('./admin.controller');
 const passportConfig = require('../../config/passport');
-
-/**
- * Role-based access middleware.
- * Allows admin for all routes; manager for read-only routes.
- */
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ ok: false, error: 'Forbidden: insufficient role' });
-    }
-    next();
-  };
-}
+const { requireRole } = require('../../shared/requireRole');
 
 // Serve built React assets
 router.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), { maxAge: 31557600000 }));
@@ -36,6 +24,9 @@ router.get('/api/employees', passportConfig.isAuthenticated, requireRole('admin'
 // Write endpoints — admin only
 router.post('/api/employees/:id/role', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateEmployeeRole);
 router.post('/api/inventory/adjust', passportConfig.isAuthenticated, requireRole('admin'), adminController.adjustInventory);
+
+// Audit log — admin only
+router.get('/api/audit-logs', passportConfig.isAuthenticated, requireRole('admin'), adminController.getAuditLogs);
 
 module.exports = {
   basePath: '/admin',

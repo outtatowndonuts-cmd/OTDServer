@@ -1,7 +1,9 @@
 const { InventoryItem, InventoryBatch, PurchaseOrder } = require('./inventory.model');
+const { Order } = require('../orders/orders.model');
 const eventBus = require('../../shared/eventBus');
 const orderService = require('../../shared/order.service');
 const catalog = require('../../shared/catalog.service');
+const audit = require('../../shared/audit');
 
 /**
  * Get inventory items with optional filters (kind).
@@ -44,7 +46,63 @@ async function adjustStock({ kind, refId, name, quantityDelta }) {
     await item.save();
   }
 
+  if (item.quantity < 0) {
+    console.warn('[Inventory] Negative stock: %s %s (refId: %s) = %d', kind, name, refId, item.quantity);
+  }
+
   return item;
+}
+
+/**
+ * Atomically deduct stock only if sufficient quantity exists.
+ * Returns null if insufficient stock (caller decides how to handle).
+ */
+async function safeDeduct({ kind, refId, name, quantity }) {
+  const qty = Math.abs(Number(quantity));
+  if (Number.isNaN(qty) || qty <= 0) {
+    throw new Error('quantity must be a positive number');
+  }
+
+  const item = await InventoryItem.findOneAndUpdate({ kind, refId, quantity: { $gte: qty } }, { $inc: { quantity: -qty }, $set: { name } }, { new: true });
+
+  return item; // null if insufficient stock
+}
+
+/**
+ * Check whether all items in an order can be fulfilled from current stock.
+ * Returns { available: true } or { available: false, shortages: [...] }.
+ */
+async function checkAvailability(items) {
+  const shortages = [];
+
+  for (const item of items) {
+    const product = await catalog.getProductById(item.refId);
+    if (!product || !product.components || !product.components.length) continue;
+
+    for (const comp of product.components) {
+      const needed = comp.quantity * item.quantity;
+      let kind;
+      if (comp.type === 'Recipe') kind = 'product';
+      else if (comp.type === 'Ingredient') kind = 'ingredient';
+      else if (comp.type === 'Supply') kind = 'supply';
+      else continue;
+
+      const inv = await InventoryItem.findOne({ kind, refId: comp.ref });
+      const available = inv ? inv.quantity : 0;
+      if (available < needed) {
+        const ref = await (kind === 'product' ? catalog.getRecipeById(comp.ref) : kind === 'ingredient' ? catalog.getIngredientById(comp.ref) : catalog.getSupplyById(comp.ref));
+        shortages.push({
+          kind,
+          refId: comp.ref,
+          name: ref ? ref.name : 'Unknown',
+          needed,
+          available,
+        });
+      }
+    }
+  }
+
+  return shortages.length ? { available: false, shortages } : { available: true };
 }
 
 // ─── Batch Operations ─────────────────────────────────────────────────────────
@@ -141,8 +199,15 @@ async function cullExpired() {
 
 // ─── Order Event Handler ──────────────────────────────────────────────────────
 
-async function handleOrderCompleted(order) {
+async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}) {
   if (!order || !order.items || !order.items.length) return;
+
+  // Idempotency guard: atomically claim processing rights for this order.
+  // syncFromOrders() passes skipIdempotencyCheck=true since it rebuilds from scratch.
+  if (!skipIdempotencyCheck) {
+    const claimed = await Order.findOneAndUpdate({ _id: order._id, inventoryProcessed: { $ne: true } }, { $set: { inventoryProcessed: true } });
+    if (!claimed) return; // already processed
+  }
 
   if (order.type === 'sale') {
     for (const item of order.items) {
@@ -199,16 +264,66 @@ eventBus.on('order.completed', (order) => {
   });
 });
 
+eventBus.on('order.refunded', (order) => {
+  handleOrderRefunded(order).catch((err) => {
+    console.error('[Inventory] Failed to handle order.refunded:', err);
+  });
+});
+
+/**
+ * Reverse inventory deductions for a refunded sale order.
+ * Only reverses if the order was previously inventory-processed.
+ */
+async function handleOrderRefunded(order) {
+  if (!order || order.type !== 'sale' || !order.items || !order.items.length) return;
+
+  // Only reverse if inventory was actually deducted
+  const claimed = await Order.findOneAndUpdate({ _id: order._id, inventoryProcessed: true }, { $set: { inventoryProcessed: false } });
+  if (!claimed) return; // inventory was never deducted
+
+  for (const item of order.items) {
+    const product = await catalog.getProductById(item.refId);
+    if (!product || !product.components || !product.components.length) continue;
+
+    for (const comp of product.components) {
+      const delta = comp.quantity * item.quantity; // positive: restoring stock
+
+      if (comp.type === 'Recipe') {
+        const recipe = await catalog.getRecipeById(comp.ref);
+        const name = recipe ? recipe.name : 'Unknown recipe';
+        await adjustStock({ kind: 'product', refId: comp.ref, name, quantityDelta: delta });
+      } else if (comp.type === 'Ingredient') {
+        const ingredient = await catalog.getIngredientById(comp.ref);
+        const name = ingredient ? ingredient.name : 'Unknown ingredient';
+        await adjustStock({ kind: 'ingredient', refId: comp.ref, name, quantityDelta: delta });
+      } else if (comp.type === 'Supply') {
+        const supply = await catalog.getSupplyById(comp.ref);
+        const name = supply ? supply.name : 'Unknown supply';
+        await adjustStock({ kind: 'supply', refId: comp.ref, name, quantityDelta: delta });
+      }
+    }
+  }
+
+  await audit.log('inventory.refund_reversed', null, {
+    targetType: 'Order',
+    targetId: order._id,
+    details: { itemCount: order.items.length },
+  });
+}
+
 /**
  * Rebuild inventory and batches from all completed orders.
+ * Resets inventoryProcessed flags since we rebuild from scratch.
  */
 async function syncFromOrders() {
   await InventoryItem.deleteMany({});
   await InventoryBatch.deleteMany({});
+  await Order.updateMany({ inventoryProcessed: true }, { $set: { inventoryProcessed: false } });
   const orders = await orderService.getOrders({ status: 'completed' });
   for (const order of orders) {
-    await handleOrderCompleted(order);
+    await handleOrderCompleted(order, { skipIdempotencyCheck: true });
   }
+  await Order.updateMany({ _id: { $in: orders.map((o) => o._id) } }, { $set: { inventoryProcessed: true } });
   return { synced: orders.length };
 }
 
@@ -294,6 +409,8 @@ module.exports = {
   getInventoryItem,
   getInventoryItemById,
   adjustStock,
+  safeDeduct,
+  checkAvailability,
   getBatches,
   getBatchById,
   createBatch,
@@ -301,6 +418,7 @@ module.exports = {
   cullBatch,
   cullExpired,
   handleOrderCompleted,
+  handleOrderRefunded,
   syncFromOrders,
   // Purchase Orders
   getPurchaseOrders,

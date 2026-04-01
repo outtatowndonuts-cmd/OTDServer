@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const adminService = require('./admin.service');
+const audit = require('../../shared/audit');
 
 let htmlTemplate = null;
 function getHtml() {
@@ -84,7 +85,7 @@ exports.updateEmployeeRole = async (req, res) => {
   try {
     const { role } = req.body;
     if (!role) return res.status(400).json({ ok: false, error: 'role is required' });
-    const result = await adminService.updateEmployeeRole(req.params.id, role);
+    const result = await adminService.updateEmployeeRole(req.params.id, role, { actor: req.user });
     res.json({ ok: true, employee: result });
   } catch (err) {
     const status = err.message === 'User not found' ? 404 : 400;
@@ -102,8 +103,25 @@ exports.adjustInventory = async (req, res) => {
       return res.status(400).json({ ok: false, error: 'kind, refId, name, and quantityDelta are required' });
     }
     const item = await adminService.adjustInventory({ kind, refId, name, quantityDelta });
+    await audit.log('inventory.adjusted', req.user, {
+      targetType: 'InventoryItem',
+      targetId: item._id,
+      details: { kind, refId, name, quantityDelta: Number(quantityDelta), newQuantity: item.quantity },
+    });
     res.json({ ok: true, item });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * GET /admin/api/audit-logs
+ */
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const logs = await audit.getAuditLogs(req.query);
+    res.json({ ok: true, logs });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 };

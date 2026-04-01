@@ -11,6 +11,8 @@ module.exports = {
   getInventoryItem: inventoryService.getInventoryItem,
   getInventoryItemById: inventoryService.getInventoryItemById,
   adjustStock: inventoryService.adjustStock,
+  safeDeduct: inventoryService.safeDeduct,
+  checkAvailability: inventoryService.checkAvailability,
   getBatches: inventoryService.getBatches,
   getBatchById: inventoryService.getBatchById,
 };

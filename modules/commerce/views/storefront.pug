@@ -1,0 +1,35 @@
+extends ../../../views/layout
+
+block head
+  meta(property='og:title', content='Outta Town Donuts — Woodbury, TN')
+  meta(property='og:description', content='Hand-shaped donuts. Made fresh every morning. No cutters. No factories.')
+  meta(property='og:type', content='website')
+  meta(property='og:url', content=siteURL + '/shop')
+
+block content
+  .text-center.mb-5
+    h1.display-5.fw-bold Outta Town Donuts
+    p.lead.text-secondary Hand-shaped donuts. Made fresh every morning in Woodbury.
+    p.text-secondary No cutters. No factories. Just real food, done right.
+
+  if products && products.length
+    h2.mb-3 Available Today
+    .row.g-3
+      each product in products
+        .col-sm-6.col-md-4.col-lg-3
+          .card.h-100
+            .card-body.d-flex.flex-column
+              h5.card-title= product.name
+              .mt-auto
+                .d-flex.justify-content-between.align-items-center
+                  span.fw-bold $#{ product.price.toFixed(2) }
+                  if product.available > 0
+                    span.badge.bg-success #{ product.available } left
+                  else
+                    span.badge.bg-secondary Sold out
+    .text-center.mt-4
+      a.btn.btn-primary.btn-lg(href='/shop/order') Place an Order
+  else
+    .text-center.py-5
+      h3.text-secondary Nothing available right now.
+      p Check back tomorrow morning — we make everything fresh.
