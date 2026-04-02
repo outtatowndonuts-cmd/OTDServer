@@ -22,9 +22,10 @@ block content
         h2 Available Today
         hr.otd-divider
 
-      if products && products.length
+      - const available = (products || []).filter((p) => p.available > 0);
+      if available.length
         .otd-products
-          each product in products
+          each product in available
             .otd-product-card
               .otd-product-name= product.name
               .d-flex.justify-content-between.align-items-center

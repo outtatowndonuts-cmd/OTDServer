@@ -215,12 +215,12 @@
 
 .otd-btn-primary {
   background-color: var(--otd-orange);
-  color: var(--otd-cream);
+  color: var(--otd-cream) !important;
 }
 
 .otd-btn-primary:hover {
-  background-color: var(--otd-cream);
-  color: var(--otd-orange);
+  background-color: var(--otd-orange);
+  color: var(--otd-black) !important;
 }
 
 .otd-btn-outline {
@@ -682,8 +682,15 @@
 
 .otd-footer-inner {
   display: grid;
-  grid-template-columns: 1.5fr repeat(4, 1fr);
+  grid-template-columns: 1.5fr 1fr;
   gap: 2rem;
+  align-items: start;
+}
+
+.otd-footer-links {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
 }
 
 .otd-footer-logo {
@@ -755,6 +762,9 @@
   .otd-footer-inner {
     grid-template-columns: 1fr;
     text-align: center;
+  }
+  .otd-footer-links {
+    grid-template-columns: repeat(2, 1fr);
   }
   .otd-footer-bottom {
     flex-direction: column;

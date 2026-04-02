@@ -4,6 +4,21 @@ const eventBus = require('../../shared/eventBus');
 const orderService = require('../../shared/order.service');
 const catalog = require('../../shared/catalog.service');
 const audit = require('../../shared/audit');
+const units = require('../recipes/units');
+
+/**
+ * Convert a quantity from one unit to another, falling back to the raw quantity
+ * with a warning if the units are incompatible (different families).
+ */
+function convertUnits(qty, fromUnit, toUnit, label) {
+  if (!fromUnit || !toUnit || fromUnit.toLowerCase() === toUnit.toLowerCase()) return qty;
+  const converted = units.convert(qty, fromUnit, toUnit);
+  if (converted === null) {
+    console.warn(`[Inventory] Unit mismatch for "${label}": cannot convert "${fromUnit}" → "${toUnit}", using raw quantity`);
+    return qty;
+  }
+  return converted;
+}
 
 /**
  * Get inventory items with optional filters (kind).
@@ -31,24 +46,24 @@ async function adjustStock({ kind, refId, name, quantityDelta }) {
     throw new Error('quantityDelta must be a valid number');
   }
 
+  // Aggregation pipeline update so we can atomically clamp quantity >= 0.
+  // Prevents negative stock from sales racing ahead of available inventory.
   const item = await InventoryItem.findOneAndUpdate(
     { kind, refId },
-    {
-      $inc: { quantity: delta },
-      $set: { name },
-      $setOnInsert: { kind, refId },
-    },
-    { upsert: true, new: true },
+    [
+      {
+        $set: {
+          quantity: {
+            $max: [0, { $add: [{ $ifNull: ['$quantity', 0] }, delta] }],
+          },
+          name,
+          kind,
+          refId,
+        },
+      },
+    ],
+    { upsert: true, new: true, updatePipeline: true },
   );
-
-  if (Number.isNaN(item.quantity)) {
-    item.quantity = 0;
-    await item.save();
-  }
-
-  if (item.quantity < 0) {
-    console.warn('[Inventory] Negative stock: %s %s (refId: %s) = %d', kind, name, refId, item.quantity);
-  }
 
   return item;
 }
@@ -173,7 +188,12 @@ async function cullBatch(batchId) {
   batch.status = 'culled';
   await batch.save();
 
-  await adjustStock({ kind: 'product', refId: batch.refId, name: batch.name, quantityDelta: -writeOff });
+  // Recompute quantity from remaining active batches so the InventoryItem
+  // stays in sync even if it drifted. This is authoritative — don't clamp.
+  const activeBatches = await InventoryBatch.find({ refId: batch.refId, status: 'active' });
+  const remaining = activeBatches.reduce((sum, b) => sum + b.remainingQty, 0);
+  await InventoryItem.findOneAndUpdate({ kind: 'product', refId: batch.refId }, { $set: { quantity: Math.max(0, remaining) } });
+
   return { batch, writeOff };
 }
 
@@ -186,12 +206,18 @@ async function cullExpired() {
 
   let totalCulled = 0;
   for (const batch of expired) {
-    const writeOff = batch.remainingQty;
     batch.remainingQty = 0;
     batch.status = 'culled';
     await batch.save();
-    await adjustStock({ kind: 'product', refId: batch.refId, name: batch.name, quantityDelta: -writeOff });
     totalCulled += 1;
+  }
+
+  // Collect unique refIds and recompute each from remaining active batches
+  const refIds = [...new Set(expired.map((b) => b.refId.toString()))];
+  for (const refId of refIds) {
+    const activeBatches = await InventoryBatch.find({ refId, status: 'active' });
+    const remaining = activeBatches.reduce((sum, b) => sum + b.remainingQty, 0);
+    await InventoryItem.findOneAndUpdate({ kind: 'product', refId }, { $set: { quantity: Math.max(0, remaining) } });
   }
 
   return { culled: totalCulled };
@@ -215,21 +241,23 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
       if (!product || !product.components || !product.components.length) continue;
 
       for (const comp of product.components) {
-        const delta = -(comp.quantity * item.quantity);
+        const rawQty = comp.quantity * item.quantity;
 
         if (comp.type === 'Recipe') {
           const recipe = await catalog.getRecipeById(comp.ref);
           const name = recipe ? recipe.name : 'Unknown recipe';
-          await adjustStock({ kind: 'product', refId: comp.ref, name, quantityDelta: delta });
-          await consumeFromBatches(comp.ref, comp.quantity * item.quantity);
+          await adjustStock({ kind: 'product', refId: comp.ref, name, quantityDelta: -rawQty });
+          await consumeFromBatches(comp.ref, rawQty);
         } else if (comp.type === 'Ingredient') {
           const ingredient = await catalog.getIngredientById(comp.ref);
           const name = ingredient ? ingredient.name : 'Unknown ingredient';
-          await adjustStock({ kind: 'ingredient', refId: comp.ref, name, quantityDelta: delta });
+          // Convert from component unit to ingredient's purchase unit before deducting
+          const deductQty = convertUnits(rawQty, comp.unit, ingredient && ingredient.purchaseUnit, name);
+          await adjustStock({ kind: 'ingredient', refId: comp.ref, name, quantityDelta: -deductQty });
         } else if (comp.type === 'Supply') {
           const supply = await catalog.getSupplyById(comp.ref);
           const name = supply ? supply.name : 'Unknown supply';
-          await adjustStock({ kind: 'supply', refId: comp.ref, name, quantityDelta: delta });
+          await adjustStock({ kind: 'supply', refId: comp.ref, name, quantityDelta: -rawQty });
         }
       }
     }
@@ -237,22 +265,53 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
 
   if (order.type === 'production') {
     for (const item of order.items) {
-      const recipe = await catalog.getRecipeById(item.refId);
+      const recipe = await catalog.getRecipeById(item.refId); // fully populated
       const recipeYield = (recipe && recipe.yield) || 1;
-      const delta = item.quantity * recipeYield;
+      const batchCount = item.quantity; // number of batches being run
+      const totalProduced = batchCount * recipeYield;
       const name = recipe ? recipe.name : item.nameSnapshot;
       const shelfLifeDays = (recipe && recipe.shelfLifeDays) || 0;
 
-      await adjustStock({ kind: 'product', refId: item.refId, name, quantityDelta: delta });
+      // 1. Add finished product to inventory
+      await adjustStock({ kind: 'product', refId: item.refId, name, quantityDelta: totalProduced });
 
+      // 2. Create production batch record
       await createBatch({
         refId: item.refId,
         name,
         orderId: order._id,
-        producedQty: delta,
+        producedQty: totalProduced,
         producedAt: order.createdAt || new Date(),
         shelfLifeDays,
       });
+
+      if (!recipe) continue;
+
+      // 3. Deduct each ingredient used in this recipe
+      for (const line of recipe.ingredients || []) {
+        const { ingredient } = line; // populated via getRecipeById
+        if (!ingredient) continue;
+        const totalUsed = line.quantity * batchCount;
+        const recipeUnit = (line.unit && line.unit.trim()) || ingredient.purchaseUnit;
+        const deductQty = convertUnits(totalUsed, recipeUnit, ingredient.purchaseUnit, ingredient.name);
+        await adjustStock({
+          kind: 'ingredient',
+          refId: ingredient._id,
+          name: ingredient.name,
+          quantityDelta: -deductQty,
+        });
+      }
+
+      // 4. Deduct any sub-recipe components (e.g. pre-made donut base used in a recipe)
+      for (const sub of recipe.subRecipes || []) {
+        const subRecipe = sub.recipe; // populated
+        if (!subRecipe) continue;
+        const subUsed = sub.quantity * batchCount;
+        const subId = subRecipe._id || subRecipe;
+        const subName = typeof subRecipe === 'object' ? subRecipe.name : 'Sub-recipe';
+        await adjustStock({ kind: 'product', refId: subId, name: subName, quantityDelta: -subUsed });
+        await consumeFromBatches(subId, subUsed);
+      }
     }
   }
 }

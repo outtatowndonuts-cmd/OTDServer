@@ -2,11 +2,15 @@
   h5.mb-0
     i.fas.fa-file-circle-plus.me-2.text-primary
     | New Purchase Order
+    if prefill && prefill !== 'null'
+      span.badge.bg-warning.text-dark.ms-2
+        i.fas.fa-triangle-exclamation.me-1
+        | Low Stock Pre-filled
   button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel-po')
     i.fas.fa-arrow-left.me-1
     | Back
 
-form#po-form(data-suppliers=suppliers, data-supplies=supplies, data-ingredients=ingredients)
+form#po-form(data-suppliers=suppliers, data-supplies=supplies, data-ingredients=ingredients, data-prefill=prefill || 'null')
   input(type='hidden', name='_csrf', value=_csrf)
 
   .row.g-3.mb-4
@@ -42,7 +46,7 @@ form#po-form(data-suppliers=suppliers, data-supplies=supplies, data-ingredients=
         input.form-control.po-item-qty(type='number', name='items[0][quantity]', step='any', min='0.001', required)
       .col-md-2
         label.form-label Unit Cost
-        input.form-control.po-item-cost(type='number', name='items[0][unitCost]', step='0.01', min='0')
+        input.form-control-plaintext.po-item-cost.fw-semibold(type='number', name='items[0][unitCost]', readonly, tabindex='-1')
       .col-md-2
         label.form-label Line $
         input.form-control-plaintext.po-item-total.fw-semibold(type='text', readonly, tabindex='-1', value='—')

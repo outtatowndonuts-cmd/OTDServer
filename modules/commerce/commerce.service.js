@@ -25,14 +25,14 @@ async function getStorefrontProducts() {
       if (product.components && product.components.length) {
         for (const comp of product.components) {
           const stock = stockMap[comp.ref.toString()] || 0;
-          const canFulfill = Math.floor(stock / comp.quantity);
+          const canFulfill = Math.max(0, Math.floor(stock / comp.quantity));
           maxAvailable = Math.min(maxAvailable, canFulfill);
         }
       } else {
         maxAvailable = 0;
       }
 
-      product.available = maxAvailable === Infinity ? 0 : Math.max(0, maxAvailable);
+      product.available = maxAvailable === Infinity ? 0 : maxAvailable;
       return product;
     })
     .filter((p) => p.price != null && p.price > 0);

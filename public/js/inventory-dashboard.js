@@ -173,6 +173,7 @@
     var suppliersData = JSON.parse($form.attr('data-suppliers') || '[]');
     var suppliesData = JSON.parse($form.attr('data-supplies') || '[]');
     var ingredientsData = JSON.parse($form.attr('data-ingredients') || '[]');
+    var prefillData = JSON.parse($form.attr('data-prefill') || 'null');
 
     // Populate supplier dropdown
     var $sup = $form.find('#po-supplier');
@@ -184,7 +185,24 @@
       $form.find('input[name="supplierName"]').val(name);
     });
 
-    // Kind change → populate item select
+    // Pre-populate rows for low-stock ingredients
+    if (prefillData && prefillData.length > 0) {
+      var $container = $('#po-items-container');
+      var $template = $container.find('.po-item-row').first();
+
+      prefillData.forEach(function (ing, idx) {
+        var $row = idx === 0 ? $template : $template.clone();
+        $row.find('.po-item-kind').val('ingredient');
+        populatePOItemSelect($row, 'ingredient', suppliesData, ingredientsData);
+        $row.find('.po-item-ref').val(ing._id.toString());
+        $row.find('input[name$="[name]"]').val(ing.name);
+        $row.find('.po-item-cost').val(ing.purchaseCost || '');
+        if (idx > 0) $container.append($row);
+      });
+
+      reindexPORows();
+      recalcPO();
+    }
     $form.on('change', '.po-item-kind', function () {
       var $row = $(this).closest('.po-item-row');
       populatePOItemSelect($row, $(this).val(), suppliesData, ingredientsData);
@@ -358,6 +376,10 @@
       }
       if (action === 'new-po') {
         loadSection('purchase-orders/new');
+        return;
+      }
+      if (action === 'new-po-low-stock') {
+        loadSection('purchase-orders/new-low-stock');
         return;
       }
       var section = $(this).data('section');

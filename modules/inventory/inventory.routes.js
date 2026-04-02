@@ -54,6 +54,7 @@ router.get('/fragments/purchase-orders/received', isAuthenticated, (req, res) =>
   controller.fragmentPurchaseOrders(req, res);
 });
 router.get('/fragments/purchase-orders/new', isAuthenticated, controller.fragmentNewPurchaseOrder);
+router.get('/fragments/purchase-orders/new-low-stock', isAuthenticated, controller.fragmentLowStockPO);
 router.get('/fragments/purchase-orders/:id/detail', isAuthenticated, controller.fragmentPurchaseOrderDetail);
 
 // ─── Purchase Order API ───────────────────────────────────────────────────────

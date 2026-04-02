@@ -3,6 +3,12 @@ const controller = require('./commerce.controller');
 
 const router = express.Router();
 
+// Prevent browser from caching dynamic storefront pages (live inventory data)
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // ─── Public Pages (no auth required) ──────────────────────────────────────────
 router.get('/', controller.index);
 router.get('/pickup', controller.pickupPage);

@@ -131,6 +131,45 @@ exports.fragmentNewPurchaseOrder = async function (req, res) {
       suppliers: JSON.stringify(suppliers.map((s) => ({ _id: s._id, name: s.name }))),
       supplies: JSON.stringify(supplies.map((s) => ({ _id: s._id, name: s.name, costPerUnit: s.costPerUnit || 0, unit: s.unit || '' }))),
       ingredients: JSON.stringify(ingredients.map((i) => ({ _id: i._id, name: i.name, purchaseCost: i.purchaseCost || 0, purchaseUnit: i.purchaseUnit || '' }))),
+      prefill: null,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+exports.fragmentLowStockPO = async function (req, res) {
+  try {
+    const [suppliers, supplies, ingredients, inventory] = await Promise.all([catalog.getSuppliers(), catalog.getSupplies(), catalog.getIngredients(), service.getInventory({ kind: 'ingredient' })]);
+
+    // Build a qty map from live inventory
+    const qtyMap = {};
+    for (const item of inventory) {
+      qtyMap[item.refId.toString()] = item.quantity;
+    }
+
+    // An ingredient is low-stock when quantity <= reorderLevel (or <= 0 if no reorderLevel)
+    const lowStock = ingredients
+      .filter((ing) => {
+        const qty = qtyMap[ing._id.toString()] ?? 0;
+        const threshold = ing.reorderLevel != null ? ing.reorderLevel : 0;
+        return qty <= threshold;
+      })
+      .map((ing) => ({
+        _id: ing._id,
+        name: ing.name,
+        purchaseCost: ing.purchaseCost || 0,
+        purchaseUnit: ing.purchaseUnit || '',
+        currentQty: qtyMap[ing._id.toString()] ?? 0,
+        reorderLevel: ing.reorderLevel ?? 0,
+      }));
+
+    frag(res, 'purchase-orders/form.pug', {
+      _csrf: req.csrfToken(),
+      suppliers: JSON.stringify(suppliers.map((s) => ({ _id: s._id, name: s.name }))),
+      supplies: JSON.stringify(supplies.map((s) => ({ _id: s._id, name: s.name, costPerUnit: s.costPerUnit || 0, unit: s.unit || '' }))),
+      ingredients: JSON.stringify(ingredients.map((i) => ({ _id: i._id, name: i.name, purchaseCost: i.purchaseCost || 0, purchaseUnit: i.purchaseUnit || '' }))),
+      prefill: JSON.stringify(lowStock),
     });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
