@@ -16,43 +16,43 @@ block content
   h1 Outta Town Donuts — Admin Dashboard
   p.lead Welcome, Administrator. Manage operations, sales, and production for Outta Town Donuts from this central hub.
   hr
-  .row
-    .col-md-4
-      .card.mb-4.shadow-sm
-        .card-body
+  .row.row-cols-1.row-cols-md-3.g-4
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
           h3 POS
-          p Access the Point of Sale system for in-person transactions.
-          p
-            a.btn.btn-primary(href='/pos', role='button') Launch POS
-    .col-md-4
-      .card.mb-4.shadow-sm
-        .card-body
+          p.flex-grow-1 Access the Point of Sale system for in-person transactions.
+          a.btn.btn-primary.mt-auto(href='/pos', role='button') Launch POS
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
+          h3 Shop
+          p.flex-grow-1 Visit the public online shop.
+          a.btn.btn-success.mt-auto(href='/shop', role='button') Shop
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
           h3 Orders
-          p Review and manage all customer orders, both online and in-store.
-          p
-            a.btn.btn-primary(href='/orders', role='button') Orders
-    .col-md-4
-      .card.mb-4.shadow-sm
-        .card-body
+          p.flex-grow-1 Review and manage all customer orders, both online and in-store.
+          a.btn.btn-primary.mt-auto(href='/orders', role='button') Orders
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
           h3 Recipes
-          p Oversee recipes and production tracking for your kitchen.
-          p
-            a.btn.btn-primary(href='/recipes', role='button') Recipes
-  .row.mt-4
-    .col-md-4
-      .card.mb-4.shadow-sm
-        .card-body
+          p.flex-grow-1 Oversee recipes and production tracking for your kitchen.
+          a.btn.btn-primary.mt-auto(href='/recipes', role='button') Recipes
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
           h3 Inventory
-          p Track inventory and supplies.
-          p
-            a.btn.btn-primary(href='/inventory', role='button') Inventory
-    .col-md-4
-      .card.mb-4.shadow-sm
-        .card-body
+          p.flex-grow-1 Track inventory and supplies.
+          a.btn.btn-primary.mt-auto(href='/inventory', role='button') Inventory
+    .col.d-flex
+      .card.shadow-sm.w-100
+        .card-body.d-flex.flex-column
           h3 Admin
-          p Manage staff, roles, and system settings.
-          p
-            a.btn.btn-primary(href='/admin', role='button') Admin
+          p.flex-grow-1 Manage staff, roles, and system settings.
+          a.btn.btn-primary.mt-auto(href='/admin', role='button') Admin
   hr
   p.text-muted.text-center.mt-4
     | For support or to add new modules, contact your system administrator.

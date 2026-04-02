@@ -219,8 +219,8 @@
 }
 
 .otd-btn-primary:hover {
-  background-color: #a83e15;
-  color: var(--otd-cream);
+  background-color: var(--otd-cream);
+  color: var(--otd-orange);
 }
 
 .otd-btn-outline {
@@ -682,7 +682,7 @@
 
 .otd-footer-inner {
   display: grid;
-  grid-template-columns: 1.5fr repeat(3, 1fr);
+  grid-template-columns: 1.5fr repeat(4, 1fr);
   gap: 2rem;
 }
 
