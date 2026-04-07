@@ -40,6 +40,9 @@ const VOLUME = {
   gal: 3785.41,
   gallon: 3785.41,
   gallons: 3785.41,
+  'fl oz': 29.5735,
+  'fluid ounce': 29.5735,
+  'fluid ounces': 29.5735,
 };
 
 const COUNT = {

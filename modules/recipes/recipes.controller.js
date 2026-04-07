@@ -15,10 +15,10 @@ function frag(res, view, data, _csrf) {
 }
 
 // Parse bracketed form arrays: body.lines = { '0': {...}, '1': {...} } -> [...]
-function parseLines(obj) {
+function parseLines(obj, keyField) {
   if (!obj) return [];
   return Object.values(obj).filter(function (r) {
-    return r.ingredient || r.ref;
+    return r[keyField || 'ingredient'] || r.ref;
   });
 }
 
@@ -52,18 +52,28 @@ exports.fragmentRecipesList = async function (req, res) {
 };
 
 exports.fragmentRecipesNew = async function (req, res) {
-  const [allIngredients, settings] = await Promise.all([service.getIngredients(), service.getSettings()]);
+  const [allIngredients, allRecipes, settings] = await Promise.all([service.getIngredients(), service.getRecipes(), service.getSettings()]);
   const ingCostData = {};
   for (const i of allIngredients) ingCostData[i._id] = i.purchaseCost != null ? { cost: i.purchaseCost, unit: i.purchaseUnit || '' } : null;
-  frag(res, 'recipes/form.pug', { item: null, allIngredients, ingCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
+  const subRecipeCostData = {};
+  for (const r of allRecipes) {
+    const c = service.calculateRecipeCostSync(r);
+    subRecipeCostData[r._id] = { cost: c.canCalculate ? c.costPerUnit : null, unit: r.yieldUnit || 'each' };
+  }
+  frag(res, 'recipes/form.pug', { item: null, allIngredients, allRecipes, ingCostData, subRecipeCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
 };
 
 exports.fragmentRecipesEdit = async function (req, res) {
-  const [item, allIngredients, settings] = await Promise.all([service.getRecipeById(req.params.id), service.getIngredients(), service.getSettings()]);
+  const [item, allIngredients, allRecipes, settings] = await Promise.all([service.getRecipeById(req.params.id), service.getIngredients(), service.getRecipes(), service.getSettings()]);
   if (!item) return res.status(404).send('Not found');
   const ingCostData = {};
   for (const i of allIngredients) ingCostData[i._id] = i.purchaseCost != null ? { cost: i.purchaseCost, unit: i.purchaseUnit || '' } : null;
-  frag(res, 'recipes/form.pug', { item, allIngredients, ingCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
+  const subRecipeCostData = {};
+  for (const r of allRecipes) {
+    const c = service.calculateRecipeCostSync(r);
+    subRecipeCostData[r._id] = { cost: c.canCalculate ? c.costPerUnit : null, unit: r.yieldUnit || 'each' };
+  }
+  frag(res, 'recipes/form.pug', { item, allIngredients, allRecipes, ingCostData, subRecipeCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
 };
 
 // Build a cost-per-unit lookup map for all items, keyed 'Type:id'
@@ -184,8 +194,11 @@ exports.deleteIngredient = async function (req, res) {
 exports.createRecipe = async function (req, res) {
   try {
     const data = Object.assign({}, req.body);
-    data.ingredients = parseLines(data.ingredients).map(function (r) {
+    data.ingredients = parseLines(data.ingredients, 'ingredient').map(function (r) {
       return { ingredient: r.ingredient, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
+    });
+    data.subRecipes = parseLines(data.subRecipes, 'recipe').map(function (r) {
+      return { recipe: r.recipe, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
     });
     const item = await service.createRecipe(data);
     res.json({ ok: true, id: item._id });
@@ -197,8 +210,11 @@ exports.createRecipe = async function (req, res) {
 exports.updateRecipe = async function (req, res) {
   try {
     const data = Object.assign({}, req.body);
-    data.ingredients = parseLines(data.ingredients).map(function (r) {
+    data.ingredients = parseLines(data.ingredients, 'ingredient').map(function (r) {
       return { ingredient: r.ingredient, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
+    });
+    data.subRecipes = parseLines(data.subRecipes, 'recipe').map(function (r) {
+      return { recipe: r.recipe, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
     });
     await service.updateRecipe(req.params.id, data);
     res.json({ ok: true });

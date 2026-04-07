@@ -64,10 +64,14 @@ async function createRecipe(data) {
   return Recipe.create(data);
 }
 async function getRecipes() {
-  return Recipe.find().populate('ingredients.ingredient').populate('subRecipes.recipe');
+  return Recipe.find()
+    .populate('ingredients.ingredient')
+    .populate({ path: 'subRecipes.recipe', populate: { path: 'ingredients.ingredient' } });
 }
 async function getRecipeById(id) {
-  return Recipe.findById(id).populate('ingredients.ingredient').populate('subRecipes.recipe');
+  return Recipe.findById(id)
+    .populate('ingredients.ingredient')
+    .populate({ path: 'subRecipes.recipe', populate: { path: 'ingredients.ingredient' } });
 }
 async function updateRecipe(id, data) {
   return Recipe.findByIdAndUpdate(id, data, { new: true });
@@ -75,6 +79,8 @@ async function updateRecipe(id, data) {
 async function deleteRecipe(id) {
   const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Recipe' });
   if (usedInProducts > 0) throw new Error(`Cannot delete: recipe is used in ${usedInProducts} product(s)`);
+  const usedInRecipes = await Recipe.countDocuments({ 'subRecipes.recipe': id });
+  if (usedInRecipes > 0) throw new Error(`Cannot delete: recipe is used as a sub-recipe in ${usedInRecipes} recipe(s)`);
   return Recipe.findByIdAndDelete(id);
 }
 
@@ -119,10 +125,16 @@ async function deleteSupply(id) {
 // Sync: calculate recipe cost from an already-populated recipe object.
 // Use this when getRecipes() has already done the populate.
 // Returns partial costs even when some ingredients lack pricing (missingCount > 0).
-function calculateRecipeCostSync(recipe) {
+// _visited prevents infinite loops from circular sub-recipe references.
+function calculateRecipeCostSync(recipe, _visited) {
+  const visited = _visited || new Set();
+  const recipeId = recipe._id ? recipe._id.toString() : '';
+  if (recipeId && visited.has(recipeId)) return { costPerBatch: 0, costPerUnit: 0, yield: 1, yieldUnit: 'each', canCalculate: false, missingCount: 1, hasIngredients: false };
+  if (recipeId) visited.add(recipeId);
+
   let costPerBatch = 0;
   let missingCount = 0;
-  const hasIngredients = !!(recipe.ingredients && recipe.ingredients.length);
+  const hasIngredients = !!((recipe.ingredients && recipe.ingredients.length) || (recipe.subRecipes && recipe.subRecipes.length));
   for (const line of recipe.ingredients || []) {
     const ing = line.ingredient;
     if (!ing || ing.purchaseCost == null || !ing.purchaseUnit) {
@@ -135,14 +147,32 @@ function calculateRecipeCostSync(recipe) {
       missingCount += 1;
     } else costPerBatch += cost;
   }
+  // Sub-recipe costs
+  for (const line of recipe.subRecipes || []) {
+    const sub = line.recipe;
+    if (!sub || !sub._id) {
+      missingCount += 1;
+      continue;
+    }
+    const subCost = calculateRecipeCostSync(sub, visited);
+    if (!subCost.canCalculate) {
+      missingCount += 1;
+    }
+    // line.quantity is in the sub-recipe's yield units
+    costPerBatch += subCost.costPerUnit * (Number(line.quantity) || 0);
+  }
   const canCalculate = hasIngredients && missingCount === 0;
   const yieldQty = Number(recipe.yield) || 1;
-  return { costPerBatch, costPerUnit: costPerBatch / yieldQty, yield: yieldQty, canCalculate, missingCount, hasIngredients };
+  const yieldUnit = recipe.yieldUnit || 'each';
+  return { costPerBatch, costPerUnit: costPerBatch / yieldQty, yield: yieldQty, yieldUnit, canCalculate, missingCount, hasIngredients };
 }
 
 // Async: fetch recipe by ID, populate, and return cost breakdown.
 async function calculateRecipeCost(recipeId) {
-  const recipe = await Recipe.findById(recipeId).populate('ingredients.ingredient').lean();
+  const recipe = await Recipe.findById(recipeId)
+    .populate('ingredients.ingredient')
+    .populate({ path: 'subRecipes.recipe', populate: { path: 'ingredients.ingredient' } })
+    .lean();
   if (!recipe) return { costPerBatch: 0, costPerUnit: 0, yield: 1, canCalculate: false };
   return calculateRecipeCostSync(recipe);
 }

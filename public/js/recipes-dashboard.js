@@ -226,6 +226,40 @@
     }
   }
 
+  // Read sub-recipe cost data
+  function getSubRecipeCosts() {
+    var el = mainContent.querySelector('#sub-cost-data');
+    if (!el) return null;
+    try {
+      return JSON.parse(el.getAttribute('data-costs'));
+    } catch {
+      return null;
+    }
+  }
+
+  // Update per-row sub-recipe cost display
+  function updateSubRecipeRowCost(row) {
+    var costs = getSubRecipeCosts();
+    if (!costs) return;
+    var refSelect = row.querySelector('[data-role="sub-recipe-ref"]');
+    var qtyInput = row.querySelector('[name*="[quantity]"]');
+    var costDisplay = row.querySelector('[data-role="sub-cost"]');
+    if (!refSelect || !qtyInput || !costDisplay) return;
+    var id = refSelect.value;
+    var qty = parseFloat(qtyInput.value);
+    if (!id || isNaN(qty) || qty <= 0) {
+      costDisplay.value = '';
+      return;
+    }
+    var info = costs[id];
+    if (!info || info.cost == null) {
+      costDisplay.value = '?';
+      return;
+    }
+    var total = info.cost * qty;
+    costDisplay.value = `$${total.toFixed(2)}`;
+  }
+
   // Live cost preview for the recipe form
   function recalcRecipe() {
     var dataEl = mainContent.querySelector('#ing-cost-data');
@@ -239,7 +273,7 @@
     }
 
     var totalCost = 0;
-    form.querySelectorAll('.item-row').forEach(function (row) {
+    form.querySelectorAll('#ingredient-rows .item-row').forEach(function (row) {
       var ingSelect = row.querySelector('select[name*="[ingredient]"]');
       var qtyInput = row.querySelector('[name*="[quantity]"]');
       var unitField = row.querySelector('[name*="[unit]"]');
@@ -258,6 +292,22 @@
         if (costCell) costCell.value = `$${cost.toFixed(2)}`;
       }
     });
+
+    // Add sub-recipe costs
+    var subCosts = getSubRecipeCosts();
+    if (subCosts) {
+      form.querySelectorAll('#subrecipe-rows .item-row').forEach(function (row) {
+        updateSubRecipeRowCost(row);
+        var refSelect = row.querySelector('[data-role="sub-recipe-ref"]');
+        var qtyInput = row.querySelector('[name*="[quantity]"]');
+        if (!refSelect || !qtyInput) return;
+        var id = refSelect.value;
+        var qty = parseFloat(qtyInput.value) || 0;
+        if (!id || qty <= 0) return;
+        var info = subCosts[id];
+        if (info && info.cost != null) totalCost += info.cost * qty;
+      });
+    }
 
     var yieldEl = form.querySelector('#rc-yield');
     var yieldQty = parseFloat(yieldEl && yieldEl.value) || 1;
@@ -380,6 +430,7 @@
         // Wire cost display for cloned row
         var refSelect = clone.querySelector('[data-role="comp-ref"]');
         var ingSelect2 = clone.querySelector('select[name*="[ingredient]"]');
+        var subRefSelect = clone.querySelector('[data-role="sub-recipe-ref"]');
         var qtyInput = clone.querySelector('[name*="[quantity]"]');
         var unitInput = clone.querySelector('[name*="[unit]"]');
         if (refSelect) {
@@ -389,10 +440,17 @@
             recalcRecipe();
           });
         }
+        if (subRefSelect) {
+          subRefSelect.addEventListener('change', function () {
+            updateSubRecipeRowCost(clone);
+            recalcRecipe();
+          });
+        }
         if (ingSelect2 && !refSelect) ingSelect2.addEventListener('change', recalcRecipe);
         if (qtyInput) {
           qtyInput.addEventListener('input', function () {
             updateRowCost(clone);
+            updateSubRecipeRowCost(clone);
             recalcCosting();
             recalcRecipe();
           });
@@ -403,7 +461,7 @@
 
     // Dynamic row: Remove Row buttons
     mainContent.querySelectorAll('[data-action="remove-row"]').forEach(function (btn) {
-      var container = btn.closest('#ingredient-rows, #component-rows');
+      var container = btn.closest('#ingredient-rows, #component-rows, #subrecipe-rows');
       if (container) attachRowBtn(btn, container);
     });
 
@@ -434,6 +492,27 @@
         qtyInput.addEventListener('input', function () {
           updateRowCost(row);
           recalcCosting();
+          recalcRecipe();
+        });
+      }
+      if (unitInput) unitInput.addEventListener('change', recalcRecipe);
+    });
+
+    // Sub-recipe row event wiring
+    mainContent.querySelectorAll('.subrecipe-row').forEach(function (row) {
+      updateSubRecipeRowCost(row);
+      var subRef = row.querySelector('[data-role="sub-recipe-ref"]');
+      var qtyInput = row.querySelector('[name*="[quantity]"]');
+      var unitInput = row.querySelector('[name*="[unit]"]');
+      if (subRef) {
+        subRef.addEventListener('change', function () {
+          updateSubRecipeRowCost(row);
+          recalcRecipe();
+        });
+      }
+      if (qtyInput) {
+        qtyInput.addEventListener('input', function () {
+          updateSubRecipeRowCost(row);
           recalcRecipe();
         });
       }

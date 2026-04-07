@@ -2,6 +2,13 @@
 /* Inventory Dashboard SPA – mirrors orders-dashboard.js pattern */
 (function () {
   var currentSection = 'all';
+  var INVENTORY_KINDS = { all: 1, products: 1, ingredients: 1, supplies: 1 };
+  var KIND_META = {
+    all: { icon: 'fa-boxes-stacked', label: 'All Inventory', kind: null },
+    products: { icon: 'fa-cookie', label: 'Product Inventory', kind: 'product' },
+    ingredients: { icon: 'fa-wheat-awn', label: 'Ingredient Inventory', kind: 'ingredient' },
+    supplies: { icon: 'fa-box-open', label: 'Supply Inventory', kind: 'supply' },
+  };
 
   function csrfToken() {
     return $('meta[name="csrf-token"]').attr('content');
@@ -362,6 +369,38 @@
     });
   }
 
+  // ─── Client-side kind filtering (no round-trip) ────────────────────────────
+
+  function filterInventoryByKind(section) {
+    currentSection = section;
+    var meta = KIND_META[section];
+    if (!meta) return;
+
+    // Update sidebar active state
+    $('.sidebar-link').removeClass('active');
+    $(`.sidebar-link[data-section="${section}"]`).addClass('active');
+
+    // Update heading
+    var $heading = $('#inventory-heading');
+    if ($heading.length) {
+      $heading.html(`<i class="fas ${meta.icon} me-2 text-primary"></i><span>${meta.label}</span>`);
+    }
+
+    // Filter table rows
+    var $rows = $('#inventory-table tbody tr');
+    if (!$rows.length) return;
+    var visibleCount = 0;
+    $rows.each(function () {
+      var show = !meta.kind || $(this).data('kind') === meta.kind;
+      $(this).toggle(show);
+      if (show) visibleCount += 1;
+    });
+
+    // Show/hide "no items match" message
+    var $empty = $('#inventory-empty-filter');
+    if ($empty.length) $empty.toggleClass('d-none', visibleCount > 0);
+  }
+
   // ─── Sidebar & Init ─────────────────────────────────────────────────────────
 
   $(document).ready(function () {
@@ -383,7 +422,15 @@
         return;
       }
       var section = $(this).data('section');
-      if (section) loadSection(section);
+      if (!section) return;
+
+      // Kind sections filter client-side (no AJAX)
+      if (INVENTORY_KINDS[section] && currentSection in INVENTORY_KINDS) {
+        filterInventoryByKind(section);
+        return;
+      }
+
+      loadSection(section);
     });
   });
 

@@ -1,21 +1,11 @@
 .d-flex.justify-content-between.align-items-center.mb-4
-  h4.mb-0
-    if filterKind === 'product'
-      i.fas.fa-cookie.me-2.text-primary
-      | Product Inventory
-    else if filterKind === 'ingredient'
-      i.fas.fa-wheat-awn.me-2.text-primary
-      | Ingredient Inventory
-    else if filterKind === 'supply'
-      i.fas.fa-box-open.me-2.text-primary
-      | Supply Inventory
-    else
-      i.fas.fa-boxes-stacked.me-2.text-primary
-      | All Inventory
+  h4#inventory-heading.mb-0
+    i.fas.fa-boxes-stacked.me-2.text-primary
+    span All Inventory
 
 if items && items.length
   .table-responsive
-    table.table.table-hover.align-middle
+    table#inventory-table.table.table-hover.align-middle
       thead.table-light
         tr
           th Name
@@ -24,7 +14,7 @@ if items && items.length
           th Last Updated
       tbody
         each item in items
-          tr
+          tr(data-kind=item.kind)
             td= item.name
             td
               if item.kind === 'product'
@@ -41,6 +31,9 @@ if items && items.length
               else
                 span= item.quantity
             td= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'
+  #inventory-empty-filter.text-center.py-5.text-muted.d-none
+    i.fas.fa-filter-circle-xmark.fa-3x.mb-3.d-block
+    p No items match this filter.
 else
   .text-center.py-5.text-muted
     i.fas.fa-boxes-stacked.fa-3x.mb-3.d-block

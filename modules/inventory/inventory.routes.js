@@ -9,18 +9,6 @@ router.get('/', isAuthenticated, controller.getDashboard);
 
 // ─── HTML Fragment Routes (AJAX partials, no layout) ─────────────────────────
 router.get('/fragments/all', isAuthenticated, controller.fragmentList);
-router.get('/fragments/products', isAuthenticated, (req, res) => {
-  req.query.kind = 'product';
-  controller.fragmentList(req, res);
-});
-router.get('/fragments/ingredients', isAuthenticated, (req, res) => {
-  req.query.kind = 'ingredient';
-  controller.fragmentList(req, res);
-});
-router.get('/fragments/supplies', isAuthenticated, (req, res) => {
-  req.query.kind = 'supply';
-  controller.fragmentList(req, res);
-});
 router.get('/fragments/batches', isAuthenticated, controller.fragmentBatches);
 router.get('/fragments/batches/active', isAuthenticated, (req, res) => {
   req.query.status = 'active';

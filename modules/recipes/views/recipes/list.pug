@@ -12,7 +12,7 @@ if recipes && recipes.length
       thead.table-light
         tr
           th Name
-          th Ingredients
+          th Components
           th Yield
           th Cost/Batch
           th Cost/Unit
@@ -27,9 +27,14 @@ if recipes && recipes.length
               if item.ingredients && item.ingredients.length
                 each line in item.ingredients
                   span.badge.bg-light.text-dark.border.me-1= line.ingredient ? line.ingredient.name : '?'
-              else
+              if item.subRecipes && item.subRecipes.length
+                each line in item.subRecipes
+                  span.badge.bg-info.text-dark.border.me-1
+                    i.fas.fa-book-open.me-1
+                    = line.recipe ? line.recipe.name : '?'
+              if (!item.ingredients || !item.ingredients.length) && (!item.subRecipes || !item.subRecipes.length)
                 span.text-muted —
-            td= item.yield ? item.yield + ' units' : '—'
+            td= item.yield ? item.yield + ' ' + (item.yieldUnit || 'each') : '—'
             td
               if c.hasIngredients
                 if c.costPerBatch > 0
