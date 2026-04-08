@@ -1,4 +1,5 @@
 /* global $, document */
+/* eslint-disable no-alert */
 /* Inventory Dashboard SPA – mirrors orders-dashboard.js pattern */
 (function () {
   var currentSection = 'all';

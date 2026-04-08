@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const inventoryItemSchema = new mongoose.Schema(
   {
-    kind: { type: String, enum: ['product', 'ingredient', 'supply'], required: true },
+    // 'kitchen' = output of a production run (tracks Recipe batches awaiting assembly)
+    // 'product' = finished/assembled products in the display case ready for sale
+    kind: { type: String, enum: ['product', 'ingredient', 'supply', 'kitchen'], required: true },
     refId: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     quantity: { type: Number, required: true, default: 0 },
@@ -22,11 +24,14 @@ const inventoryBatchSchema = new mongoose.Schema(
     producedAt: { type: Date, default: Date.now },
     expiresAt: { type: Date },
     status: { type: String, enum: ['active', 'depleted', 'culled'], default: 'active' },
+    // 'kitchen' = produced by a production order (raw batch from kitchen)
+    // 'product' = assembled/finished product sent to the display case
+    batchKind: { type: String, enum: ['kitchen', 'product'], default: 'kitchen' },
   },
   { timestamps: true },
 );
 
-inventoryBatchSchema.index({ refId: 1, status: 1 });
+inventoryBatchSchema.index({ refId: 1, batchKind: 1, status: 1 });
 inventoryBatchSchema.index({ expiresAt: 1, status: 1 });
 
 const InventoryItem = mongoose.model('InventoryItem', inventoryItemSchema);

@@ -84,7 +84,9 @@ async function safeDeduct({ kind, refId, name, quantity }) {
 }
 
 /**
- * Check whether all items in an order can be fulfilled from current stock.
+ * Check whether all items in an order can be fulfilled from current display-case stock.
+ * For simple products: checks kind:'product' inventory for the product itself.
+ * For bundle products: checks each component product's display-case stock.
  * Returns { available: true } or { available: false, shortages: [...] }.
  */
 async function checkAvailability(items) {
@@ -92,24 +94,35 @@ async function checkAvailability(items) {
 
   for (const item of items) {
     const product = await catalog.getProductById(item.refId);
-    if (!product || !product.components || !product.components.length) continue;
+    if (!product) continue;
 
-    for (const comp of product.components) {
-      const needed = comp.quantity * item.quantity;
-      let kind;
-      if (comp.type === 'Recipe') kind = 'product';
-      else if (comp.type === 'Ingredient') kind = 'ingredient';
-      else if (comp.type === 'Supply') kind = 'supply';
-      else continue;
-
-      const inv = await InventoryItem.findOne({ kind, refId: comp.ref });
+    if (product.productType === 'bundle') {
+      // Bundle: each component product must have enough display-case stock
+      for (const bi of product.bundleItems || []) {
+        const needed = (bi.quantity || 1) * item.quantity;
+        const inv = await InventoryItem.findOne({ kind: 'product', refId: bi.product });
+        const available = inv ? inv.quantity : 0;
+        if (available < needed) {
+          const compProduct = await catalog.getProductById(bi.product);
+          shortages.push({
+            kind: 'product',
+            refId: bi.product,
+            name: compProduct ? compProduct.name : 'Unknown component',
+            needed,
+            available,
+          });
+        }
+      }
+    } else {
+      // Simple product: check display-case stock directly
+      const needed = item.quantity;
+      const inv = await InventoryItem.findOne({ kind: 'product', refId: item.refId });
       const available = inv ? inv.quantity : 0;
       if (available < needed) {
-        const ref = await (kind === 'product' ? catalog.getRecipeById(comp.ref) : kind === 'ingredient' ? catalog.getIngredientById(comp.ref) : catalog.getSupplyById(comp.ref));
         shortages.push({
-          kind,
-          refId: comp.ref,
-          name: ref ? ref.name : 'Unknown',
+          kind: 'product',
+          refId: item.refId,
+          name: product.name,
           needed,
           available,
         });
@@ -126,6 +139,7 @@ async function getBatches(filters = {}) {
   const query = {};
   if (filters.refId) query.refId = filters.refId;
   if (filters.status) query.status = filters.status;
+  if (filters.batchKind) query.batchKind = filters.batchKind;
   return InventoryBatch.find(query).sort({ producedAt: 1 });
 }
 
@@ -133,7 +147,7 @@ async function getBatchById(id) {
   return InventoryBatch.findById(id);
 }
 
-async function createBatch({ refId, name, orderId, producedQty, producedAt, shelfLifeDays }) {
+async function createBatch({ refId, name, orderId, producedQty, producedAt, shelfLifeDays, batchKind = 'kitchen' }) {
   const batchData = {
     refId,
     name,
@@ -142,6 +156,7 @@ async function createBatch({ refId, name, orderId, producedQty, producedAt, shel
     remainingQty: producedQty,
     producedAt: producedAt || new Date(),
     status: 'active',
+    batchKind,
   };
 
   if (shelfLifeDays && shelfLifeDays > 0) {
@@ -155,10 +170,11 @@ async function createBatch({ refId, name, orderId, producedQty, producedAt, shel
 
 /**
  * Consume from the oldest active batches (FIFO).
+ * batchKind: 'kitchen' (production output) or 'product' (assembled display-case stock)
  */
-async function consumeFromBatches(refId, quantity) {
+async function consumeFromBatches(refId, quantity, batchKind = 'kitchen') {
   let remaining = quantity;
-  const batches = await InventoryBatch.find({ refId, status: 'active' }).sort({ producedAt: 1 });
+  const batches = await InventoryBatch.find({ refId, batchKind, status: 'active' }).sort({ producedAt: 1 });
 
   for (const batch of batches) {
     if (remaining <= 0) break;
@@ -190,9 +206,11 @@ async function cullBatch(batchId) {
 
   // Recompute quantity from remaining active batches so the InventoryItem
   // stays in sync even if it drifted. This is authoritative — don't clamp.
-  const activeBatches = await InventoryBatch.find({ refId: batch.refId, status: 'active' });
+  const activeBatches = await InventoryBatch.find({ refId: batch.refId, batchKind: batch.batchKind, status: 'active' });
   const remaining = activeBatches.reduce((sum, b) => sum + b.remainingQty, 0);
-  await InventoryItem.findOneAndUpdate({ kind: 'product', refId: batch.refId }, { $set: { quantity: Math.max(0, remaining) } });
+  // batchKind 'kitchen' → InventoryItem kind 'kitchen'; 'product' → 'product'
+  const itemKind = batch.batchKind === 'product' ? 'product' : 'kitchen';
+  await InventoryItem.findOneAndUpdate({ kind: itemKind, refId: batch.refId }, { $set: { quantity: Math.max(0, remaining) } });
 
   return { batch, writeOff };
 }
@@ -212,12 +230,13 @@ async function cullExpired() {
     totalCulled += 1;
   }
 
-  // Collect unique refIds and recompute each from remaining active batches
-  const refIds = [...new Set(expired.map((b) => b.refId.toString()))];
-  for (const refId of refIds) {
-    const activeBatches = await InventoryBatch.find({ refId, status: 'active' });
+  // Collect unique (refId, batchKind) pairs and recompute each InventoryItem
+  const refKindPairs = [...new Map(expired.map((b) => [`${b.refId}:${b.batchKind}`, { refId: b.refId, batchKind: b.batchKind || 'kitchen' }])).values()];
+  for (const { refId, batchKind } of refKindPairs) {
+    const activeBatches = await InventoryBatch.find({ refId, batchKind, status: 'active' });
     const remaining = activeBatches.reduce((sum, b) => sum + b.remainingQty, 0);
-    await InventoryItem.findOneAndUpdate({ kind: 'product', refId }, { $set: { quantity: Math.max(0, remaining) } });
+    const itemKind = batchKind === 'product' ? 'product' : 'kitchen';
+    await InventoryItem.findOneAndUpdate({ kind: itemKind, refId }, { $set: { quantity: Math.max(0, remaining) } });
   }
 
   return { culled: totalCulled };
@@ -235,47 +254,23 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
     if (!claimed) return; // already processed
   }
 
-  if (order.type === 'sale') {
-    for (const item of order.items) {
-      const product = await catalog.getProductById(item.refId);
-      if (!product || !product.components || !product.components.length) continue;
-
-      for (const comp of product.components) {
-        const rawQty = comp.quantity * item.quantity;
-
-        if (comp.type === 'Recipe') {
-          const recipe = await catalog.getRecipeById(comp.ref);
-          const name = recipe ? recipe.name : 'Unknown recipe';
-          await adjustStock({ kind: 'product', refId: comp.ref, name, quantityDelta: -rawQty });
-          await consumeFromBatches(comp.ref, rawQty);
-        } else if (comp.type === 'Ingredient') {
-          const ingredient = await catalog.getIngredientById(comp.ref);
-          const name = ingredient ? ingredient.name : 'Unknown ingredient';
-          // Convert from component unit to ingredient's purchase unit before deducting
-          const deductQty = convertUnits(rawQty, comp.unit, ingredient && ingredient.purchaseUnit, name);
-          await adjustStock({ kind: 'ingredient', refId: comp.ref, name, quantityDelta: -deductQty });
-        } else if (comp.type === 'Supply') {
-          const supply = await catalog.getSupplyById(comp.ref);
-          const name = supply ? supply.name : 'Unknown supply';
-          await adjustStock({ kind: 'supply', refId: comp.ref, name, quantityDelta: -rawQty });
-        }
-      }
-    }
-  }
-
+  // ── Phase 1: Kitchen production ──────────────────────────────────────────
+  // Production orders run a Recipe N times, producing kitchen batches.
+  // Output goes to kind:'kitchen' inventory (NOT the display case).
+  // Raw ingredients are deducted.
   if (order.type === 'production') {
     for (const item of order.items) {
       const recipe = await catalog.getRecipeById(item.refId); // fully populated
       const recipeYield = (recipe && recipe.yield) || 1;
-      const batchCount = item.quantity; // number of batches being run
+      const batchCount = item.quantity; // number of recipe runs
       const totalProduced = batchCount * recipeYield;
       const name = recipe ? recipe.name : item.nameSnapshot;
       const shelfLifeDays = (recipe && recipe.shelfLifeDays) || 0;
 
-      // 1. Add finished product to inventory
-      await adjustStock({ kind: 'product', refId: item.refId, name, quantityDelta: totalProduced });
+      // 1. Add produced units to kitchen inventory
+      await adjustStock({ kind: 'kitchen', refId: item.refId, name, quantityDelta: totalProduced });
 
-      // 2. Create production batch record
+      // 2. Create kitchen batch record (for FIFO tracking + expiry)
       await createBatch({
         refId: item.refId,
         name,
@@ -283,11 +278,12 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
         producedQty: totalProduced,
         producedAt: order.createdAt || new Date(),
         shelfLifeDays,
+        batchKind: 'kitchen',
       });
 
       if (!recipe) continue;
 
-      // 3. Deduct each ingredient used in this recipe
+      // 3. Deduct raw ingredients consumed by this recipe run
       for (const line of recipe.ingredients || []) {
         const { ingredient } = line; // populated via getRecipeById
         if (!ingredient) continue;
@@ -302,15 +298,109 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
         });
       }
 
-      // 4. Deduct any sub-recipe components (e.g. pre-made donut base used in a recipe)
+      // 4. Deduct sub-recipe kitchen stock consumed by this recipe
+      // (e.g. a "Filled Donut" recipe that uses "Yeast Donut Base" as a sub-recipe)
       for (const sub of recipe.subRecipes || []) {
         const subRecipe = sub.recipe; // populated
         if (!subRecipe) continue;
         const subUsed = sub.quantity * batchCount;
         const subId = subRecipe._id || subRecipe;
         const subName = typeof subRecipe === 'object' ? subRecipe.name : 'Sub-recipe';
-        await adjustStock({ kind: 'product', refId: subId, name: subName, quantityDelta: -subUsed });
-        await consumeFromBatches(subId, subUsed);
+        await adjustStock({ kind: 'kitchen', refId: subId, name: subName, quantityDelta: -subUsed });
+        await consumeFromBatches(subId, subUsed, 'kitchen');
+      }
+    }
+  }
+
+  // ── Phase 2: Finishing / assembly ────────────────────────────────────────
+  // Assembly orders pull from kitchen stock, add finishing touches, and
+  // move finished products into the display-case (kind:'product') inventory.
+  if (order.type === 'assembly') {
+    for (const item of order.items) {
+      const product = await catalog.getProductById(item.refId);
+      if (!product) continue;
+
+      if (product.productType === 'bundle') {
+        // Bundles: deduct component products from display case, add bundle to display case
+        for (const bi of product.bundleItems || []) {
+          const compProduct = await catalog.getProductById(bi.product);
+          const deductQty = (bi.quantity || 1) * item.quantity;
+          const compName = compProduct ? compProduct.name : 'Unknown component';
+          await adjustStock({ kind: 'product', refId: bi.product, name: compName, quantityDelta: -deductQty });
+          await consumeFromBatches(bi.product, deductQty, 'product');
+        }
+        // Add assembled bundle units to display case
+        await adjustStock({ kind: 'product', refId: item.refId, name: product.name, quantityDelta: item.quantity });
+        await createBatch({
+          refId: item.refId,
+          name: product.name,
+          orderId: order._id,
+          producedQty: item.quantity,
+          producedAt: order.createdAt || new Date(),
+          batchKind: 'product',
+        });
+      } else {
+        // Simple product: pull from kitchen, add finishing components, add to display case
+        const recipeId = product.recipe;
+        if (recipeId) {
+          const baseQty = Number(product.baseQty) || 1;
+          const totalKitchenUnits = item.quantity * baseQty;
+          const recipe = await catalog.getRecipeById(recipeId);
+          const kitchenName = recipe ? recipe.name : 'Kitchen batch';
+          await adjustStock({ kind: 'kitchen', refId: recipeId, name: kitchenName, quantityDelta: -totalKitchenUnits });
+          await consumeFromBatches(recipeId, totalKitchenUnits, 'kitchen');
+        }
+
+        // Deduct finishing ingredients and supplies
+        for (const fc of product.finishingComponents || []) {
+          const qty = (fc.quantity || 0) * item.quantity;
+          if (fc.type === 'Ingredient') {
+            const ingredient = await catalog.getIngredientById(fc.ref);
+            const name = ingredient ? ingredient.name : 'Unknown ingredient';
+            const deductQty = convertUnits(qty, fc.unit, ingredient && ingredient.purchaseUnit, name);
+            await adjustStock({ kind: 'ingredient', refId: fc.ref, name, quantityDelta: -deductQty });
+          } else if (fc.type === 'Supply') {
+            const supply = await catalog.getSupplyById(fc.ref);
+            const name = supply ? supply.name : 'Unknown supply';
+            await adjustStock({ kind: 'supply', refId: fc.ref, name, quantityDelta: -qty });
+          }
+        }
+
+        // Add finished products to display-case inventory
+        await adjustStock({ kind: 'product', refId: item.refId, name: product.name, quantityDelta: item.quantity });
+        await createBatch({
+          refId: item.refId,
+          name: product.name,
+          orderId: order._id,
+          producedQty: item.quantity,
+          producedAt: order.createdAt || new Date(),
+          batchKind: 'product',
+        });
+      }
+    }
+  }
+
+  // ── Sales: deduct from display case ──────────────────────────────────────
+  // Sale orders simply remove finished products from the display-case inventory.
+  // Bundle sales deduct each component product instead of the bundle itself.
+  if (order.type === 'sale') {
+    for (const item of order.items) {
+      const product = await catalog.getProductById(item.refId);
+      if (!product) continue;
+
+      if (product.productType === 'bundle') {
+        // Bundle sold: deduct component products from display case
+        for (const bi of product.bundleItems || []) {
+          const compProduct = await catalog.getProductById(bi.product);
+          const deductQty = (bi.quantity || 1) * item.quantity;
+          const compName = compProduct ? compProduct.name : 'Unknown component';
+          await adjustStock({ kind: 'product', refId: bi.product, name: compName, quantityDelta: -deductQty });
+          await consumeFromBatches(bi.product, deductQty, 'product');
+        }
+      } else {
+        // Simple product: deduct from display-case inventory (FIFO)
+        await adjustStock({ kind: 'product', refId: item.refId, name: product.name, quantityDelta: -item.quantity });
+        await consumeFromBatches(item.refId, item.quantity, 'product');
       }
     }
   }
@@ -342,24 +432,19 @@ async function handleOrderRefunded(order) {
 
   for (const item of order.items) {
     const product = await catalog.getProductById(item.refId);
-    if (!product || !product.components || !product.components.length) continue;
+    if (!product) continue;
 
-    for (const comp of product.components) {
-      const delta = comp.quantity * item.quantity; // positive: restoring stock
-
-      if (comp.type === 'Recipe') {
-        const recipe = await catalog.getRecipeById(comp.ref);
-        const name = recipe ? recipe.name : 'Unknown recipe';
-        await adjustStock({ kind: 'product', refId: comp.ref, name, quantityDelta: delta });
-      } else if (comp.type === 'Ingredient') {
-        const ingredient = await catalog.getIngredientById(comp.ref);
-        const name = ingredient ? ingredient.name : 'Unknown ingredient';
-        await adjustStock({ kind: 'ingredient', refId: comp.ref, name, quantityDelta: delta });
-      } else if (comp.type === 'Supply') {
-        const supply = await catalog.getSupplyById(comp.ref);
-        const name = supply ? supply.name : 'Unknown supply';
-        await adjustStock({ kind: 'supply', refId: comp.ref, name, quantityDelta: delta });
+    if (product.productType === 'bundle') {
+      // Restore each component product's display-case stock
+      for (const bi of product.bundleItems || []) {
+        const compProduct = await catalog.getProductById(bi.product);
+        const restoreQty = (bi.quantity || 1) * item.quantity;
+        const compName = compProduct ? compProduct.name : 'Unknown component';
+        await adjustStock({ kind: 'product', refId: bi.product, name: compName, quantityDelta: restoreQty });
       }
+    } else {
+      // Simple product: restore display-case stock
+      await adjustStock({ kind: 'product', refId: item.refId, name: product.name, quantityDelta: item.quantity });
     }
   }
 

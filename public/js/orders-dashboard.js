@@ -1,4 +1,5 @@
 /* global $, document */
+/* eslint-disable no-alert */
 /* Orders Dashboard SPA – mirrors recipes-dashboard.js pattern */
 (function () {
   var currentSection = 'all';
@@ -229,6 +230,9 @@
     } else if (type === 'production') {
       items = catalog.recipes;
       kind = 'recipe';
+    } else if (type === 'assembly') {
+      items = catalog.products;
+      kind = 'product';
     } else {
       items = [];
       kind = '';
@@ -243,7 +247,8 @@
       items.forEach(function (item) {
         var selected = item._id === currentVal ? ' selected' : '';
         var label = item.name;
-        if (kind === 'product' && item.price) label += ` ($${item.price.toFixed(2)})`;
+        if (kind === 'product' && type === 'sale' && item.price) label += ` ($${item.price.toFixed(2)})`;
+        if (type === 'assembly' && item.kitchenQty != null) label += ` (${item.kitchenQty} in kitchen)`;
         html += `<option value="${item._id}" data-name="${item.name.replace(/"/g, '&quot;')}"${item.price != null ? ` data-price="${item.price}"` : ''}${selected}>${label}</option>`;
       });
       $select.html(html);
@@ -255,7 +260,7 @@
       $select.off('change.catalog').on('change.catalog', function () {
         var $opt = $(this).find('option:selected');
         $row.find('input[name$="[nameSnapshot]"]').val($opt.data('name') || '');
-        if (kind === 'product') {
+        if (kind === 'product' && type === 'sale') {
           $row.find('.item-price').val($opt.data('price') || '');
         }
         recalcTotals();
@@ -313,7 +318,7 @@
       var $row = $(this);
       var $opt = $row.find('.item-ref-select option:selected');
       $row.find('input[name$="[nameSnapshot]"]').val($opt.data('name') || '');
-      $row.find('input[name$="[kind]"]').val($('#order-type').val() === 'sale' ? 'product' : 'recipe');
+      $row.find('input[name$="[kind]"]').val($('#order-type').val() === 'sale' || $('#order-type').val() === 'assembly' ? 'product' : 'recipe');
       if ($('#order-type').val() === 'sale') {
         var price = $opt.data('price');
         if (price != null && !$row.find('.item-price').val()) {
@@ -361,6 +366,15 @@
 
     // Production orders: force source=internal, clear payment
     if (formData.type === 'production') {
+      formData.source = 'internal';
+      formData.paymentMethod = 'none';
+      delete formData.subtotal;
+      delete formData.tax;
+      delete formData.total;
+    }
+
+    // Assembly orders: force source=internal, clear payment
+    if (formData.type === 'assembly') {
       formData.source = 'internal';
       formData.paymentMethod = 'none';
       delete formData.subtotal;

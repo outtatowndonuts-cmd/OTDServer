@@ -12,10 +12,13 @@ if products && products.length
       thead.table-light
         tr
           th Name
+          th Type
+          th Base Recipe
           th SKU
           th COGS
           th Price
           th Margin
+          th.text-center Active
           th.text-end Actions
       tbody
         each item, idx in products
@@ -23,10 +26,22 @@ if products && products.length
           tr
             td
               strong= item.name
+            td
+              if item.productType === 'bundle'
+                span.badge.bg-info-subtle.text-info-emphasis Bundle
+              else
+                span.badge.bg-primary-subtle.text-primary-emphasis Simple
+            td
+              if item.productType === 'simple' && item.recipe
+                small= item.recipe.name || '—'
+              else if item.productType === 'bundle'
+                small.text-muted= (item.bundleItems && item.bundleItems.length) + ' component(s)'
+              else
+                span.text-muted —
             td= item.sku || '—'
             td
               if c.totalCOGS > 0
-                = '$' + c.totalCOGS.toFixed(2)
+                = '$' + c.totalCOGS.toFixed(3)
               else
                 span.text-muted —
             td= item.price ? '$' + item.price.toFixed(2) : '—'
@@ -36,6 +51,11 @@ if products && products.length
                 span(class=mc)= c.margin.toFixed(1) + '%'
               else
                 span.text-muted —
+            td.text-center
+              if item.isActive !== false
+                i.fas.fa-check-circle.text-success
+              else
+                i.fas.fa-times-circle.text-muted
             td.text-end
               button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='products', data-id=item._id.toString()) Edit
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='products', data-id=item._id.toString(), data-url=`/recipes/products/${item._id}/delete`) Delete
@@ -43,4 +63,4 @@ else
   .text-center.py-5.text-muted
     i.fas.fa-box-open.fa-3x.mb-3.d-block.opacity-25
     p.mb-0 No products yet.
-    p.small Products are sellable items built from recipes.
+    p.small Products are sellable items assembled from kitchen batches.

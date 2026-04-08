@@ -7,9 +7,16 @@
   .card-body
     form#order-form(
       data-products=JSON.stringify(
-        (products || []).map(function (p) {
-          return { _id: p._id, name: p.name, price: p.price || 0 };
-        }),
+        (function () {
+          var kitchenMap = {};
+          (kitchenItems || []).forEach(function (ki) {
+            kitchenMap[String(ki.refId)] = ki.quantity;
+          });
+          return (products || []).map(function (p) {
+            var recipeId = p.recipe && p.recipe._id ? String(p.recipe._id) : p.recipe ? String(p.recipe) : '';
+            return { _id: p._id, name: p.name, price: p.price || 0, kitchenQty: kitchenMap[recipeId] || 0 };
+          });
+        })(),
       ),
       data-recipes=JSON.stringify(
         (recipes || []).map(function (r) {
@@ -30,6 +37,7 @@
             option(value='') — Select —
             option(value='sale') Sale
             option(value='production') Production
+            option(value='assembly') Assembly
         #source-group.col-md-4(style='display: none')
           label.form-label Source
           select#order-source.form-select

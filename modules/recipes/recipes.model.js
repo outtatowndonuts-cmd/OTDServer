@@ -48,20 +48,44 @@ const RecipeSchema = new mongoose.Schema({
   notes: { type: String },
 });
 
-// Product
+// Product — what goes in the display case for sale.
+// Phase 1 (kitchen) produces batches of a Recipe.
+// Phase 2 (assembly/finishing) converts those batches into Products.
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  components: [
+  productType: { type: String, enum: ['simple', 'bundle'], default: 'simple' },
+
+  // ── Simple products ────────────────────────────────────────────────────────
+  // recipe: the kitchen Recipe that produces the base unit (e.g. "Yeast Donut Base")
+  recipe: { type: mongoose.Schema.Types.ObjectId, ref: 'Recipe' },
+  // baseQty: how many kitchen-batch units are consumed to make ONE of this product
+  baseQty: { type: Number, default: 1, min: 0.001 },
+  // finishingComponents: what gets added during front-of-house assembly
+  // (toppings, glazes, decorations, packaging supplies — NOT the base recipe)
+  finishingComponents: [
     {
-      type: { type: String, enum: ['Ingredient', 'Recipe', 'Supply'], required: true },
-      ref: { type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'components.type' },
-      quantity: { type: Number, required: true },
+      type: { type: String, enum: ['Ingredient', 'Supply'], required: true },
+      ref: { type: mongoose.Schema.Types.ObjectId, required: true },
+      quantity: { type: Number, required: true, min: 0 },
       unit: { type: String },
     },
   ],
+
+  // ── Bundle products ────────────────────────────────────────────────────────
+  // bundleItems: component Products (and quantities) that make up this bundle.
+  // Bundles are assembled on-demand at point-of-sale; stock is drawn from
+  // each component product's display-case inventory.
+  bundleItems: [
+    {
+      product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+      quantity: { type: Number, required: true, min: 1 },
+    },
+  ],
+
+  // ── Shared ─────────────────────────────────────────────────────────────────
   price: { type: Number },
   sku: { type: String },
-  inventoryQty: { type: Number, default: 0 },
+  isActive: { type: Boolean, default: true },
   notes: { type: String },
   // Costing fields
   laborCost: { type: Number, default: 0 }, // $ per unit of product

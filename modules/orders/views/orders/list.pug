@@ -6,6 +6,9 @@
     else if filterType === 'production'
       i.fas.fa-industry.me-2.text-primary
       | Production Orders
+    else if filterType === 'assembly'
+      i.fas.fa-boxes.me-2.text-primary
+      | Assembly Orders
     else
       i.fas.fa-list.me-2.text-primary
       | All Orders
@@ -36,6 +39,8 @@ if orders && orders.length
             td
               if order.type === 'sale'
                 span.badge.bg-success Sale
+              else if order.type === 'assembly'
+                span.badge.bg-warning.text-dark Assembly
               else
                 span.badge.bg-info Production
             td

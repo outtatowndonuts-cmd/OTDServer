@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 (function () {
   var app = document.getElementById('recipes-app');
   if (!app) return;

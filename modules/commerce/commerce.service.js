@@ -5,13 +5,14 @@ const inventoryService = require('../../shared/inventory.service');
 
 /**
  * Get products with real-time availability for storefront display.
- * Derives available quantity from inventory stock of each product's components.
+ * Availability is read directly from each product's display-case inventory.
+ * For bundles, availability is the minimum across all component products.
  */
 async function getStorefrontProducts() {
   const products = await catalogService.getProducts();
-  const inventory = await inventoryService.getInventory();
+  const inventory = await inventoryService.getInventory({ kind: 'product' });
 
-  // Build lookup: refId string → quantity
+  // Build lookup: refId string → quantity (display-case stock only)
   const stockMap = {};
   for (const item of inventory) {
     stockMap[item.refId.toString()] = item.quantity;
@@ -19,23 +20,27 @@ async function getStorefrontProducts() {
 
   return products
     .map((p) => {
-      const product = p.toObject();
-      let maxAvailable = Infinity;
+      const product = p.toObject ? p.toObject() : p;
+      let available = 0;
 
-      if (product.components && product.components.length) {
-        for (const comp of product.components) {
-          const stock = stockMap[comp.ref.toString()] || 0;
-          const canFulfill = Math.max(0, Math.floor(stock / comp.quantity));
-          maxAvailable = Math.min(maxAvailable, canFulfill);
+      if (product.productType === 'bundle') {
+        // Bundle availability = minimum component display-case stock (accounting for qty per bundle)
+        let minAvail = Infinity;
+        for (const bi of product.bundleItems || []) {
+          const stock = stockMap[bi.product ? bi.product.toString() : ''] || 0;
+          const canFulfill = Math.max(0, Math.floor(stock / (bi.quantity || 1)));
+          minAvail = Math.min(minAvail, canFulfill);
         }
+        available = minAvail === Infinity ? 0 : minAvail;
       } else {
-        maxAvailable = 0;
+        // Simple product: direct display-case stock lookup
+        available = stockMap[product._id.toString()] || 0;
       }
 
-      product.available = maxAvailable === Infinity ? 0 : maxAvailable;
+      product.available = available;
       return product;
     })
-    .filter((p) => p.price != null && p.price > 0);
+    .filter((p) => p.price != null && p.price > 0 && p.isActive !== false);
 }
 
 /**

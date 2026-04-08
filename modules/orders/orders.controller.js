@@ -1,6 +1,7 @@
 const path = require('path');
 const service = require('./orders.service');
 const catalog = require('../../shared/catalog.service');
+const inventoryService = require('../../shared/inventory.service');
 
 const VIEWS = path.join(__dirname, 'views');
 
@@ -47,11 +48,21 @@ exports.fragmentProductionOrders = async function (req, res) {
   }
 };
 
+// --- Fragment: Assembly list -------------------------------------------------
+exports.fragmentAssemblyOrders = async function (req, res) {
+  try {
+    const orders = await service.getOrders({ type: 'assembly' });
+    frag(res, 'orders/list.pug', { orders, filterType: 'assembly' }, csrf(req));
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
 // --- Fragment: New order form -------------------------------------------------
 exports.fragmentNewOrder = async function (req, res) {
   try {
-    const [products, recipes, settings] = await Promise.all([catalog.getProducts(), catalog.getRecipes(), service.getSettings()]);
-    frag(res, 'orders/form.pug', { item: null, products, recipes, settings }, csrf(req));
+    const [products, recipes, settings, kitchenItems] = await Promise.all([catalog.getProducts(), catalog.getRecipes(), service.getSettings(), inventoryService.getInventory({ kind: 'kitchen' })]);
+    frag(res, 'orders/form.pug', { item: null, products, recipes, settings, kitchenItems }, csrf(req));
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

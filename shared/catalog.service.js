@@ -10,6 +10,7 @@ const recipesService = require('../modules/recipes/recipes.service');
 module.exports = {
   getProducts: recipesService.getProducts,
   getProductById: recipesService.getProductById,
+  getProductsByRecipe: recipesService.getProductsByRecipe,
   getRecipes: recipesService.getRecipes,
   getRecipeById: recipesService.getRecipeById,
   getIngredients: recipesService.getIngredients,

@@ -76,22 +76,6 @@ exports.fragmentRecipesEdit = async function (req, res) {
   frag(res, 'recipes/form.pug', { item, allIngredients, allRecipes, ingCostData, subRecipeCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
 };
 
-// Build a cost-per-unit lookup map for all items, keyed 'Type:id'
-function buildCostData(allIngredients, allRecipes, allSupplies) {
-  const costData = {};
-  for (const r of allRecipes) {
-    const c = service.calculateRecipeCostSync(r);
-    costData[`Recipe:${r._id}`] = c.canCalculate ? c.costPerUnit : null;
-  }
-  for (const i of allIngredients) {
-    costData[`Ingredient:${i._id}`] = i.purchaseCost != null ? i.purchaseCost : null;
-  }
-  for (const s of allSupplies) {
-    costData[`Supply:${s._id}`] = s.costPerUnit != null ? s.costPerUnit : null;
-  }
-  return costData;
-}
-
 // --- Product Fragments --------------------------------------------------------
 exports.fragmentProductsList = async function (req, res) {
   const products = await service.getProducts();
@@ -100,16 +84,15 @@ exports.fragmentProductsList = async function (req, res) {
 };
 
 exports.fragmentProductsNew = async function (req, res) {
-  const [allIngredients, allRecipes, allSupplies, defaults] = await Promise.all([service.getIngredients(), service.getRecipes(), service.getSupplies(), service.getSettings()]);
-  const costData = buildCostData(allIngredients, allRecipes, allSupplies);
-  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, costData, costing: null, defaults }, csrf(req));
+  const [allIngredients, allRecipes, allSupplies, allProducts, defaults] = await Promise.all([service.getIngredients(), service.getRecipes(), service.getSupplies(), service.getProducts(), service.getSettings()]);
+  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, costing: null, defaults }, csrf(req));
 };
 
 exports.fragmentProductsEdit = async function (req, res) {
-  const [item, allIngredients, allRecipes, allSupplies] = await Promise.all([service.getProductById(req.params.id), service.getIngredients(), service.getRecipes(), service.getSupplies()]);
+  const [item, allIngredients, allRecipes, allSupplies, allProducts] = await Promise.all([service.getProductById(req.params.id), service.getIngredients(), service.getRecipes(), service.getSupplies(), service.getProducts()]);
   if (!item) return res.status(404).send('Not found');
-  const [costing, costData] = await Promise.all([service.calculateProductCosting(item), Promise.resolve(buildCostData(allIngredients, allRecipes, allSupplies))]);
-  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, costData, costing }, csrf(req));
+  const costing = await service.calculateProductCosting(item);
+  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, costing }, csrf(req));
 };
 
 // --- Supplier Fragments -------------------------------------------------------
@@ -235,10 +218,7 @@ exports.deleteRecipe = async function (req, res) {
 // --- Product CRUD -------------------------------------------------------------
 exports.createProduct = async function (req, res) {
   try {
-    const data = Object.assign({}, req.body);
-    data.components = parseLines(data.components).map(function (r) {
-      return { type: r.type || 'Recipe', ref: r.ref, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
-    });
+    const data = parseProductBody(req.body);
     const item = await service.createProduct(data);
     res.json({ ok: true, id: item._id });
   } catch (err) {
@@ -248,16 +228,38 @@ exports.createProduct = async function (req, res) {
 
 exports.updateProduct = async function (req, res) {
   try {
-    const data = Object.assign({}, req.body);
-    data.components = parseLines(data.components).map(function (r) {
-      return { type: r.type || 'Recipe', ref: r.ref, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
-    });
+    const data = parseProductBody(req.body);
     await service.updateProduct(req.params.id, data);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
   }
 };
+
+function parseProductBody(body) {
+  const data = Object.assign({}, body);
+  data.productType = data.productType || 'simple';
+  data.isActive = data.isActive === 'true' || data.isActive === true || data.isActive === '1';
+  data.baseQty = parseFloat(data.baseQty) || 1;
+  data.price = data.price ? parseFloat(data.price) : undefined;
+  data.laborCost = parseFloat(data.laborCost) || 0;
+  data.overheadCost = parseFloat(data.overheadCost) || 0;
+  data.targetMarginPct = parseFloat(data.targetMarginPct) || 30;
+
+  if (data.productType === 'bundle') {
+    data.finishingComponents = [];
+    data.recipe = undefined;
+    data.bundleItems = parseLines(data.bundleItems, 'product').map(function (r) {
+      return { product: r.product, quantity: parseFloat(r.quantity) || 1 };
+    });
+  } else {
+    data.bundleItems = [];
+    data.finishingComponents = parseLines(data.finishingComponents, 'ref').map(function (r) {
+      return { type: r.type || 'Ingredient', ref: r.ref, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
+    });
+  }
+  return data;
+}
 
 exports.deleteProduct = async function (req, res) {
   try {

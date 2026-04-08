@@ -55,6 +55,16 @@ async function createOrder(orderData) {
     orderData.paymentStatus = 'none';
   }
 
+  if (type === 'assembly') {
+    const hasProduct = items.some((i) => i.kind === 'product');
+    if (!hasProduct) {
+      throw new Error('Assembly orders must include at least one product reference');
+    }
+    // Assembly orders have no payment; they move kitchen stock → display case
+    orderData.paymentMethod = 'none';
+    orderData.paymentStatus = 'none';
+  }
+
   if (!orderData.status) orderData.status = 'pending';
 
   // Idempotency: if a key is provided, return existing order instead of creating duplicate

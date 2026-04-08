@@ -54,8 +54,8 @@ async function updateIngredient(id, data) {
 async function deleteIngredient(id) {
   const usedInRecipes = await Recipe.countDocuments({ 'ingredients.ingredient': id });
   if (usedInRecipes > 0) throw new Error(`Cannot delete: ingredient is used in ${usedInRecipes} recipe(s)`);
-  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Ingredient' });
-  if (usedInProducts > 0) throw new Error(`Cannot delete: ingredient is used in ${usedInProducts} product(s)`);
+  const usedInFinishing = await Product.countDocuments({ 'finishingComponents.ref': id, 'finishingComponents.type': 'Ingredient' });
+  if (usedInFinishing > 0) throw new Error(`Cannot delete: ingredient is used in ${usedInFinishing} product finishing component(s)`);
   return Ingredient.findByIdAndDelete(id);
 }
 
@@ -77,8 +77,8 @@ async function updateRecipe(id, data) {
   return Recipe.findByIdAndUpdate(id, data, { new: true });
 }
 async function deleteRecipe(id) {
-  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Recipe' });
-  if (usedInProducts > 0) throw new Error(`Cannot delete: recipe is used in ${usedInProducts} product(s)`);
+  const usedInProducts = await Product.countDocuments({ recipe: id });
+  if (usedInProducts > 0) throw new Error(`Cannot delete: recipe is the base for ${usedInProducts} product(s)`);
   const usedInRecipes = await Recipe.countDocuments({ 'subRecipes.recipe': id });
   if (usedInRecipes > 0) throw new Error(`Cannot delete: recipe is used as a sub-recipe in ${usedInRecipes} recipe(s)`);
   return Recipe.findByIdAndDelete(id);
@@ -89,15 +89,20 @@ async function createProduct(data) {
   return Product.create(data);
 }
 async function getProducts() {
-  return Product.find();
+  return Product.find().populate('recipe', 'name yield yieldUnit').populate('bundleItems.product', 'name price');
 }
 async function getProductById(id) {
-  return Product.findById(id);
+  return Product.findById(id).populate('recipe', 'name yield yieldUnit').populate('bundleItems.product', 'name price');
+}
+async function getProductsByRecipe(recipeId) {
+  return Product.find({ recipe: recipeId });
 }
 async function updateProduct(id, data) {
   return Product.findByIdAndUpdate(id, data, { new: true });
 }
 async function deleteProduct(id) {
+  const usedInBundles = await Product.countDocuments({ 'bundleItems.product': id });
+  if (usedInBundles > 0) throw new Error(`Cannot delete: product is used in ${usedInBundles} bundle(s)`);
   return Product.findByIdAndDelete(id);
 }
 
@@ -115,8 +120,8 @@ async function updateSupply(id, data) {
   return Supply.findByIdAndUpdate(id, deriveSupplyCost(data), { new: true });
 }
 async function deleteSupply(id) {
-  const usedInProducts = await Product.countDocuments({ 'components.ref': id, 'components.type': 'Supply' });
-  if (usedInProducts > 0) throw new Error(`Cannot delete: supply is used in ${usedInProducts} product(s)`);
+  const usedInFinishing = await Product.countDocuments({ 'finishingComponents.ref': id, 'finishingComponents.type': 'Supply' });
+  if (usedInFinishing > 0) throw new Error(`Cannot delete: supply is used in ${usedInFinishing} product finishing component(s)`);
   return Supply.findByIdAndDelete(id);
 }
 
@@ -183,28 +188,39 @@ async function calculateProductCosting(product) {
   let ingredientCost = 0;
   let canCalculate = true;
 
-  for (const comp of product.components || []) {
-    const typeNorm = (comp.type || '').toLowerCase();
-    if (typeNorm === 'recipe') {
-      const rc = await calculateRecipeCost(comp.ref);
+  if (product.productType === 'bundle') {
+    // Bundle COGS = sum of component product prices (placeholder — no production cost)
+    for (const bi of product.bundleItems || []) {
+      const comp = await Product.findById(bi.product).lean();
+      if (!comp || comp.price == null) {
+        canCalculate = false;
+        continue;
+      }
+      ingredientCost += comp.price * (Number(bi.quantity) || 1);
+    }
+  } else {
+    // Simple product: base recipe cost × baseQty + finishing components
+    if (product.recipe) {
+      const rc = await calculateRecipeCost(product.recipe);
       if (!rc.canCalculate) canCalculate = false;
-      // qty = number of output units (e.g. 12 donuts), not number of batches
-      ingredientCost += rc.costPerUnit * (Number(comp.quantity) || 1);
-    } else if (typeNorm === 'supply') {
-      const sup = await Supply.findById(comp.ref).lean();
-      if (!sup || sup.costPerUnit == null) {
-        canCalculate = false;
-        continue;
+      ingredientCost += rc.costPerUnit * (Number(product.baseQty) || 1);
+    }
+    for (const fc of product.finishingComponents || []) {
+      if (fc.type === 'Ingredient' || (fc.type || '').toLowerCase() === 'ingredient') {
+        const ing = await Ingredient.findById(fc.ref).lean();
+        if (!ing || ing.purchaseCost == null) {
+          canCalculate = false;
+          continue;
+        }
+        ingredientCost += (ing.purchaseCost || 0) * (Number(fc.quantity) || 0);
+      } else if (fc.type === 'Supply' || (fc.type || '').toLowerCase() === 'supply') {
+        const sup = await Supply.findById(fc.ref).lean();
+        if (!sup || sup.costPerUnit == null) {
+          canCalculate = false;
+          continue;
+        }
+        ingredientCost += (sup.costPerUnit || 0) * (Number(fc.quantity) || 0);
       }
-      ingredientCost += sup.costPerUnit * (Number(comp.quantity) || 1);
-    } else {
-      const ing = await Ingredient.findById(comp.ref).lean();
-      if (!ing || ing.purchaseCost == null) {
-        canCalculate = false;
-        continue;
-      }
-      // qty is in the ingredient's purchaseUnit — direct multiplication
-      ingredientCost += (ing.purchaseCost || 0) * (Number(comp.quantity) || 0);
     }
   }
 
@@ -269,6 +285,7 @@ module.exports = {
   createProduct,
   getProducts,
   getProductById,
+  getProductsByRecipe,
   updateProduct,
   deleteProduct,
   // Supply
