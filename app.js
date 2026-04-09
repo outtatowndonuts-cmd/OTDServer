@@ -30,7 +30,7 @@ try {
 /**
  * Set config values
  */
-const secureTransfer = process.env.BASE_URL.startsWith('https');
+const secureTransfer = (process.env.BASE_URL ?? '').startsWith('https');
 
 /**
  * Rate limiting configuration
@@ -195,7 +195,7 @@ const PUBLIC_PREFIXES = ['/shop', '/access', '/apply', '/pending-approval', '/lo
 app.use((req, res, next) => {
   if (req.user || req.method !== 'GET') return next();
   const isPublic = PUBLIC_PREFIXES.some((p) => req.path === p || req.path.startsWith(`${p}/`)) || req.path.includes('.');
-  if (!isPublic) return res.redirect('/access');
+  if (!isPublic) return res.redirect('/shop');
   next();
 });
 // Function to validate if the URL is a safe relative path

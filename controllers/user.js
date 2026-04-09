@@ -285,6 +285,10 @@ exports.postSignup = async (req, res, next) => {
       password,
     });
 
+    if (process.env.ADMIN_EMAIL && req.body.email === validator.normalizeEmail(process.env.ADMIN_EMAIL, { gmail_remove_dots: false })) {
+      user.role = 'admin';
+    }
+
     await user.save();
 
     if (req.body.passwordless) {

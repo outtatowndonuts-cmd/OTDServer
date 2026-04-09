@@ -124,6 +124,9 @@ async function handleAuthLogin(req, accessToken, refreshToken, providerName, par
 
   user.profile.location = providerProfile.location;
   user.profile.website = providerProfile.website;
+  if (process.env.ADMIN_EMAIL && normalizedEmail === validator.normalizeEmail(process.env.ADMIN_EMAIL, { gmail_remove_dots: false })) {
+    user.role = 'admin';
+  }
   await user.save();
   return user;
 }

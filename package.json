@@ -97,5 +97,10 @@
   "overrideReasons": {},
   "engines": {
     "node": ">=24.13.1"
+  },
+  "mongodbMemoryServer": {
+    "instance": {
+      "startupTimeout": 30000
+    }
   }
 }

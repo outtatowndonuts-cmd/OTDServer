@@ -726,11 +726,16 @@ describe('Passport Config', () => {
     let validatorStub;
     let UserSaveStub;
     let UserMarkModifiedStub;
+    let savedAdminEmail;
 
     beforeEach((done) => {
       req = {
         user: null,
       };
+
+      // Isolate from any ADMIN_EMAIL set by other test files loading .env
+      savedAdminEmail = process.env.ADMIN_EMAIL;
+      delete process.env.ADMIN_EMAIL;
 
       userFindOneStub = sinon.stub(User, 'findOne');
       userFindByIdStub = sinon.stub(User, 'findById');
@@ -740,6 +745,11 @@ describe('Passport Config', () => {
     });
 
     afterEach((done) => {
+      if (savedAdminEmail !== undefined) {
+        process.env.ADMIN_EMAIL = savedAdminEmail;
+      }
+      savedAdminEmail = undefined;
+
       userFindOneStub.restore();
       userFindByIdStub.restore();
       validatorStub.restore();
