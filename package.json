@@ -57,7 +57,7 @@
     "mongodb": "^7.1.1",
     "mongoose": "^9.3.3",
     "morgan": "^1.10.1",
-    "nodemailer": "^8.0.4",
+    "nodemailer": "^8.0.5",
     "otpauth": "^9.5.0",
     "passport": "^0.7.0",
     "passport-google-oauth": "^2.0.0",
@@ -96,6 +96,6 @@
   "overrides": {},
   "overrideReasons": {},
   "engines": {
-    "node": ">=24.14.1"
+    "node": ">=24.13.1"
   }
 }
