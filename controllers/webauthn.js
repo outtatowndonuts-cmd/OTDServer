@@ -1,4 +1,5 @@
-const crypto = require('node:crypto');
+﻿const crypto = require('node:crypto');
+const logger = require('../config/logger');
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const User = require('../models/User');
 
@@ -36,7 +37,7 @@ exports.postLoginStart = async (req, res) => {
       publicKey: JSON.stringify(options),
     });
   } catch (err) {
-    console.error('Error in postLoginStart:', err);
+    logger.error('Error in postLoginStart:', err);
     req.flash('errors', { msg: 'Passkey / Biometric Failure.' });
     res.redirect('/login');
   }
@@ -94,7 +95,7 @@ exports.postLoginVerify = async (req, res) => {
     await user.save();
     req.logIn(user, (err) => {
       if (err) {
-        console.error('Error in postLoginVerify - Login session error:', err);
+        logger.error('Error in postLoginVerify - Login session error:', err);
         req.flash('errors', { msg: 'Login failed. Please try again.' });
         return res.redirect('/login');
       }
@@ -102,7 +103,7 @@ exports.postLoginVerify = async (req, res) => {
       res.redirect(req.session.returnTo || '/');
     });
   } catch (err) {
-    console.error('Error in postLoginVerify:', err);
+    logger.error('Error in postLoginVerify:', err);
     delete req.session.loginChallenge;
     req.flash('errors', { msg: 'Passkey / Biometric authentication failed - system error.' });
     res.redirect('/login');
@@ -146,7 +147,7 @@ exports.postRegisterStart = async (req, res) => {
       publicKey: JSON.stringify(options),
     });
   } catch (err) {
-    console.error('Error in postRegisterStart:', err);
+    logger.error('Error in postRegisterStart:', err);
     req.flash('errors', { msg: 'Failed to start passkey registration. Please try again.' });
     res.redirect('/account');
   }
@@ -183,7 +184,7 @@ exports.postRegisterVerify = async (req, res) => {
     }
     const c = verification.registrationInfo.credential;
     if (!c.id || !c.publicKey) {
-      console.error('Error in postRegisterVerify - registrationInfo payload:', verification.registrationInfo);
+      logger.error('Error in postRegisterVerify - registrationInfo payload:', verification.registrationInfo);
       req.flash('errors', { msg: 'Registration failed. Please try again.' });
       return res.redirect('/account');
     }
@@ -219,7 +220,7 @@ exports.postRegisterVerify = async (req, res) => {
     req.flash('success', { msg: 'Biometric login has been enabled successfully.' });
     return res.redirect('/account');
   } catch (err) {
-    console.error('Error in postRegisterVerify:', err);
+    logger.error('Error in postRegisterVerify:', err);
     delete req.session.registerChallenge;
     req.flash('errors', { msg: 'Registration failed. Please try again.' });
     return res.redirect('/account');
@@ -237,7 +238,7 @@ exports.postRemove = async (req, res) => {
     req.flash('success', { msg: 'Biometric login has been removed successfully.' });
     res.redirect('/account');
   } catch (err) {
-    console.error('Error in postRemove:', err);
+    logger.error('Error in postRemove:', err);
     req.flash('errors', { msg: 'Failed to remove biometric login. Please try again.' });
     res.redirect('/account');
   }

@@ -1,4 +1,5 @@
-const crypto = require('node:crypto');
+﻿const crypto = require('node:crypto');
+const logger = require('../config/logger');
 const passport = require('passport');
 const validator = require('validator');
 const mailChecker = require('mailchecker');
@@ -7,7 +8,6 @@ const encodeQR = require('qr').default;
 const User = require('../models/User');
 const Session = require('../models/Session');
 const nodemailerConfig = require('../config/nodemailer');
-const aiAgentController = require('./ai-agent');
 const { revokeProviderTokens, revokeAllProviderTokens } = require('../config/token-revocation');
 
 /**
@@ -16,10 +16,10 @@ const { revokeProviderTokens, revokeAllProviderTokens } = require('../config/tok
  */
 exports.getLogin = (req, res) => {
   if (req.user) {
-    // Suspended/denied accounts cannot access the app — force logout to break the redirect loop
+    // Suspended/denied accounts cannot access the app â€” force logout to break the redirect loop
     if (req.user.status === 'suspended' || req.user.status === 'denied') {
       return req.logout((err) => {
-        if (err) console.log('Error : Failed to logout suspended/denied user.', err);
+        if (err) logger.error('Error : Failed to logout suspended/denied user.', err);
         req.session.destroy(() => {
           res.redirect('/login');
         });
@@ -54,7 +54,7 @@ exports.postLogin = async (req, res, next) => {
     try {
       const user = await User.findOne({ email: { $eq: req.body.email } });
       if (!user) {
-        console.log('Login by email link: User not found');
+        logger.info('Login by email link: User not found');
         // we need to show the same message as successfulMsg to avoid an enumeration vulnerability
         req.flash('info', { msg: 'We are sending further instructions to the email you provided, if there is an account with that email address in our system.' });
         return res.redirect('/login');
@@ -144,9 +144,9 @@ Thank you!\n`,
  */
 exports.logout = (req, res) => {
   req.logout((err) => {
-    if (err) console.log('Error : Failed to logout.', err);
+    if (err) logger.error('Error : Failed to logout.', err);
     req.session.destroy((err) => {
-      if (err) console.log('Error : Failed to destroy the session during logout.', err);
+      if (err) logger.error('Error : Failed to destroy the session during logout.', err);
       req.user = null;
       res.redirect('/');
     });
@@ -363,9 +363,9 @@ exports.postUpdateProfile = async (req, res, next) => {
     res.redirect('/account');
   } catch (err) {
     if (err.code === 11000) {
-      console.log('Duplicate email address when trying to update the profile email.');
+      logger.warn('Duplicate email address when trying to update the profile email.');
     } else {
-      console.log('Error updating profile', err);
+      logger.error('Error updating profile', err);
     }
     // Generic error message for the user. Do not reveal the cause of the error, such as
     // the new email being in the system, to the user to avoid enumeration vulnerability.
@@ -409,12 +409,11 @@ exports.postDeleteAccount = async (req, res, next) => {
     const userId = req.user.id;
     // Best-effort: revoke OAuth tokens at provider endpoints before deleting
     await revokeAllProviderTokens(req.user.tokens);
-    await aiAgentController.deleteUserAIAgentData(userId); // Delete user's AI agent chat history
     await User.deleteOne({ _id: userId });
     req.logout((err) => {
-      if (err) console.log('Error: Failed to logout.', err);
+      if (err) logger.error('Error: Failed to logout.', err);
       req.session.destroy((err) => {
-        if (err) console.log('Error: Failed to destroy the session during account deletion.', err);
+        if (err) logger.error('Error: Failed to destroy the session during account deletion.', err);
         req.user = null;
         res.redirect('/');
       });
@@ -581,7 +580,7 @@ exports.getVerifyEmailToken = async (req, res, next) => {
     req.flash('success', { msg: 'Thank you for verifying your email address.' });
     return res.redirect('/account');
   } catch (err) {
-    console.log('Error saving the user profile to the database after email verification', err);
+    logger.error('Error saving the user profile to the database after email verification', err);
     req.flash('errors', { msg: 'There was an error verifying your email. Please try again.' });
     return res.redirect('/account');
   }
@@ -721,7 +720,7 @@ exports.postForgot = async (req, res, next) => {
   try {
     const user = await User.findOne({ email: { $eq: req.body.email.toLowerCase() } });
     if (!user) {
-      console.log('Forgot password: User not found');
+      logger.info('Forgot password: User not found');
       // Generic message to avoid enumeration vunerability
       req.flash('info', { msg: 'If an account with that email exists, you will receive password reset instructions.' });
       return res.redirect('/forgot');
@@ -854,7 +853,7 @@ exports.resendTwoFactorCode = async (req, res, next) => {
  * GET /login/2fa
  * Two-factor authentication page.
  * This is the single place that ensures a code exists and sends the email
- * if needed — whether the user came from login, switched from TOTP, or
+ * if needed â€” whether the user came from login, switched from TOTP, or
  * is revisiting the page.
  */
 exports.getTwoFactor = async (req, res, next) => {

@@ -45,18 +45,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    discord: String,
-    facebook: String,
-    github: String,
     google: String,
-    linkedin: String,
-    microsoft: String,
-    quickbooks: String,
-    steam: String,
-    trakt: String,
-    tumblr: String,
-    twitch: String,
-    x: String,
 
     tokens: Array,
 

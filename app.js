@@ -2,6 +2,7 @@
  * Module dependencies.
  */
 const path = require('node:path');
+const logger = require('./config/logger');
 const express = require('express');
 const compression = require('compression');
 const session = require('express-session');
@@ -20,9 +21,9 @@ try {
   process.loadEnvFile('.env');
 } catch (err) {
   if (err && err.code === 'ENOENT') {
-    console.log('No .env.example file found. This is OK if the required environment variables are already set in your environment.');
+    logger.info('No .env file found. Using environment variables from the host.');
   } else {
-    console.error('Error loading .env.example file:', err);
+    logger.error('Error loading .env file:', err);
   }
 }
 
@@ -81,13 +82,14 @@ if (secureTransfer) numberOfProxies = 1;
 else numberOfProxies = 0;
 
 /**
+ * Logging configuration — loaded at the top of the file.
+ */
+
+/**
  * Controllers (route handlers).
  */
 const homeController = require('./controllers/home');
 const userController = require('./controllers/user');
-const apiController = require('./controllers/api');
-const aiController = require('./controllers/ai');
-const aiAgentController = require('./controllers/ai-agent');
 const applyController = require('./controllers/apply');
 
 const contactController = require('./controllers/contact');
@@ -108,27 +110,21 @@ const { morganLogger } = require('./config/morgan');
  * Create Express server.
  */
 const app = express();
-console.log('Run this app using "npm start" to include sass/scss/css builds.\n');
 
 /**
  * Connect to MongoDB.
  */
 mongoose.connect(process.env.MONGODB_URI);
 mongoose.connection.on('error', (err) => {
-  console.error(err);
-  console.log('MongoDB connection error. Please make sure MongoDB is running.');
+  logger.error('MongoDB connection error. Please make sure MongoDB is running.', { err });
   process.exit(1);
-});
-mongoose.connection.once('open', () => {
-  // Clean up orphaned temp AI agent sessions (Express sessions expired but chat checkpoint data remains)
-  aiAgentController.cleanupOrphanedTempSessions();
 });
 
 /**
  * Express configuration.
  */
-app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
-app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080);
+app.set('host', '0.0.0.0');
+app.set('port', process.env.PORT || 8080);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.set('trust proxy', numberOfProxies);
@@ -151,10 +147,11 @@ app.use(
     resave: false, // Only save session if modified
     saveUninitialized: false, // Do not save sessions until we have something to store
     secret: process.env.SESSION_SECRET,
-    name: 'startercookie', // change the cookie name for additional security in production
+    name: 'dsos',
     cookie: {
       maxAge: 1209600000, // Two weeks in milliseconds
       secure: secureTransfer,
+      sameSite: 'lax',
     },
     store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
   }),
@@ -163,12 +160,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash);
 app.use((req, res, next) => {
-  if (req.path === '/api/upload' || req.path === '/ai/llm-camera') {
-    // Multer multipart/form-data handling needs to occur before the Lusca CSRF check.
-    // WARN: Any path that is not protected by CSRF here should have lusca.csrf() chained
-    // in their route handler.
-    next();
-  } else if (req.originalUrl === '/shop/webhook/stripe') {
+  if (req.originalUrl === '/shop/webhook/stripe') {
     // Stripe webhooks are verified via signature, not CSRF
     next();
   } else {
@@ -304,57 +296,6 @@ app.post('/account/webauthn/verify', passportConfig.isAuthenticated, webauthnCon
 app.post('/account/webauthn/remove', passportConfig.isAuthenticated, webauthnController.postRemove);
 
 /**
- * API examples routes.
- */
-app.get('/api', apiController.getApi);
-app.get('/api/lastfm', apiController.getLastfm);
-app.get('/api/nyt', apiController.getNewYorkTimes);
-app.get('/api/steam', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getSteam);
-app.get('/api/stripe', apiController.getStripe);
-app.post('/api/stripe', apiController.postStripe);
-app.get('/api/scraping', apiController.getScraping);
-app.get('/api/twilio', apiController.getTwilio);
-app.post('/api/twilio', apiController.postTwilio);
-app.get('/api/foursquare', apiController.getFoursquare);
-app.get('/api/tumblr', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getTumblr);
-app.get('/api/facebook', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getFacebook);
-app.get('/api/github', apiController.getGithub);
-app.get('/api/twitch', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getTwitch);
-app.get('/api/paypal', apiController.getPayPal);
-app.get('/api/paypal/success', apiController.getPayPalSuccess);
-app.get('/api/paypal/cancel', apiController.getPayPalCancel);
-app.get('/api/lob', apiController.getLob);
-app.get('/api/upload', lusca({ csrf: true }), apiController.getFileUpload);
-app.post('/api/upload', strictLimiter, apiController.uploadMiddleware, lusca({ csrf: true }), apiController.postFileUpload);
-app.get('/api/here-maps', apiController.getHereMaps);
-app.get('/api/google-maps', apiController.getGoogleMaps);
-app.get('/api/google/drive', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getGoogleDrive);
-app.get('/api/chart', apiController.getChart);
-app.get('/api/google/sheets', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getGoogleSheets);
-app.get('/api/quickbooks', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getQuickbooks);
-app.get('/api/trakt', apiController.getTrakt);
-app.get('/api/pubchem', apiController.getPubChem);
-app.get('/api/wikipedia', apiController.getWikipedia);
-app.get('/api/giphy', apiController.getGiphy);
-
-/**
- * AI Integrations and Boilerplate example routes.
- */
-app.get('/ai', aiController.getAi);
-app.get('/ai/openai-moderation', aiController.getOpenAIModeration);
-app.post('/ai/openai-moderation', aiController.postOpenAIModeration);
-app.get('/ai/llm-classifier', aiController.getLLMClassifier);
-app.post('/ai/llm-classifier', aiController.postLLMClassifier);
-app.get('/ai/llm-camera', lusca({ csrf: true }), aiController.getLLMCamera);
-app.post('/ai/llm-camera', strictLimiter, aiController.imageUploadMiddleware, lusca({ csrf: true }), aiController.postLLMCamera);
-app.get('/ai/rag', aiController.getRag);
-app.post('/ai/rag/ingest', aiController.postRagIngest);
-app.post('/ai/rag/ask', aiController.postRagAsk);
-app.get('/ai/ai-agent', aiAgentController.getAIAgent);
-app.post('/ai/ai-agent/chat', aiAgentController.postAIAgentChat);
-app.post('/ai/ai-agent/reset', aiAgentController.postAIAgentReset);
-
-/**
  * OAuth authentication failure handler (common for all providers)
  * passport.js requires a static route for failureRedirect.
  * With this auth failure handler, we can decide where to redirect the user
@@ -382,56 +323,8 @@ app.get('/auth/failure', (req, res) => {
 /**
  * OAuth authentication routes. (Sign in)
  */
-app.get('/auth/facebook', passport.authenticate('facebook'));
-app.get('/auth/facebook/callback', passport.authenticate('facebook', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/github', passport.authenticate('github'));
-app.get('/auth/github/callback', passport.authenticate('github', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
 app.get('/auth/google', passport.authenticate('google'));
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/x', passport.authenticate('X'));
-app.get('/auth/x/callback', passport.authenticate('X', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/linkedin', passport.authenticate('linkedin'));
-app.get('/auth/linkedin/callback', passport.authenticate('linkedin', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/microsoft', passport.authenticate('microsoft'));
-app.get('/auth/microsoft/callback', passport.authenticate('microsoft', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/twitch', passport.authenticate('twitch'));
-app.get('/auth/twitch/callback', passport.authenticate('twitch', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-
-/**
- * OAuth authorization routes. (API examples)
- */
-app.get('/auth/tumblr', passport.authorize('tumblr'));
-app.get('/auth/tumblr/callback', passport.authorize('tumblr', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/steam', passport.authorize('steam-openid'));
-app.get('/auth/steam/callback', passport.authorize('steam-openid', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/trakt', passport.authorize('trakt'));
-app.get('/auth/trakt/callback', passport.authorize('trakt', { failureRedirect: '/auth/failure' }), (req, res) => {
-  res.redirect(req.session.returnTo || '/');
-});
-app.get('/auth/quickbooks', passport.authorize('quickbooks'));
-app.get('/auth/quickbooks/callback', passport.authorize('quickbooks', { failureRedirect: '/auth/failure' }), (req, res) => {
   res.redirect(req.session.returnTo || '/');
 });
 
@@ -449,7 +342,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(errorHandler());
 } else {
   app.use((err, req, res, next) => {
-    console.error(err);
+    logger.error(err);
     res.status(500).send('Server Error');
   });
 }
@@ -463,18 +356,12 @@ app.listen(app.get('port'), () => {
   const port = parseInt(BASE_URL.slice(colonIndex + 1), 10);
 
   if (!BASE_URL.startsWith('http://localhost')) {
-    console.log(
-      `The BASE_URL environment variable is set to ${BASE_URL}.
-If you open the app directly at http://localhost:${app.get('port')} instead of via your HTTPS-terminating endpoint (e.g., ngrok, Cloudflare, or similar), CSRF checks may fail and OAuth sign-in will be rejected due to a redirect mismatch.
-To avoid this, set BASE_URL to the HTTPS endpoint and always access the app through it in your browser.
-`,
-    );
+    logger.warn(`The BASE_URL environment variable is set to ${BASE_URL}. If you open the app directly at http://localhost:${app.get('port')} instead of via your HTTPS-terminating endpoint, CSRF checks may fail and OAuth sign-in will be rejected due to a redirect mismatch.`);
   } else if (app.get('port') !== port) {
-    console.warn(`WARNING: The BASE_URL environment variable and the App have a port mismatch. If you plan to view the app in your browser using the localhost address, you may need to adjust one of the ports to make them match. BASE_URL: ${BASE_URL}\n`);
+    logger.warn(`BASE_URL port mismatch. BASE_URL: ${BASE_URL}, app port: ${app.get('port')}`);
   }
 
-  console.log(`App is running on http://localhost:${app.get('port')} in ${app.get('env')} mode.`);
-  console.log('Press CTRL-C to stop.');
+  logger.info(`App is running on http://localhost:${app.get('port')} in ${app.get('env')} mode.`);
 });
 
 module.exports = app;
