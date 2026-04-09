@@ -27,7 +27,7 @@ if purchaseOrders && purchaseOrders.length
               a.po-detail-link(href='#', data-id=po._id)= po._id.toString().slice(-6).toUpperCase()
             td= po.supplierName
             td= po.items.length
-            td= '$' + po.subtotal.toFixed(2)
+            td= fmtCurrency(po.subtotal)
             td
               if po.status === 'draft'
                 span.badge.bg-secondary Draft

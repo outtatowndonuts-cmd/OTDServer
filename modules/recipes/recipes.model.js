@@ -64,7 +64,7 @@ const ProductSchema = new mongoose.Schema({
   // (toppings, glazes, decorations, packaging supplies — NOT the base recipe)
   finishingComponents: [
     {
-      type: { type: String, enum: ['Ingredient', 'Supply'], required: true },
+      type: { type: String, enum: ['Ingredient', 'Supply', 'Prep'], required: true },
       ref: { type: mongoose.Schema.Types.ObjectId, required: true },
       quantity: { type: Number, required: true, min: 0 },
       unit: { type: String },

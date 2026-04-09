@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+const fmt = (n) => {
+  const s = n.toFixed(3);
+  return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+};
+
 export default function Orders({ api }) {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState('');
@@ -81,7 +86,7 @@ export default function Orders({ api }) {
                     '—'
                   )}
                 </td>
-                <td>{o.total != null ? `$${o.total.toFixed(2)}` : '—'}</td>
+                <td>{o.total != null ? fmt(o.total) : '—'}</td>
                 <td>{o.items ? o.items.length : 0}</td>
                 <td>{new Date(o.createdAt).toLocaleString()}</td>
               </tr>

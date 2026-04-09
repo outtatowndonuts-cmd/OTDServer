@@ -69,11 +69,11 @@ async function adjustInventory({ kind, refId, name, quantityDelta }) {
  * Employee list (safe projection — no passwords/tokens).
  */
 async function getEmployees() {
-  return User.find({}).select('email role profile.name profile.picture createdAt').sort({ createdAt: -1 });
+  return User.find({}).select('email role status applicationNote profile.name profile.picture createdAt').sort({ createdAt: -1 });
 }
 
 /**
- * Update a user's role.
+ * Update a user's role. Assigning a role implicitly activates a pending account.
  */
 async function updateEmployeeRole(userId, newRole, { actor } = {}) {
   const validRoles = ['admin', 'manager', 'staff'];
@@ -83,16 +83,87 @@ async function updateEmployeeRole(userId, newRole, { actor } = {}) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
   const oldRole = user.role;
+  const oldStatus = user.status;
   user.role = newRole;
+  if (user.status === 'pending' || user.status === 'denied') {
+    user.status = 'active';
+  }
   await user.save();
 
   await audit.log('employee.roleChanged', actor, {
     targetType: 'User',
     targetId: user._id,
-    details: { email: user.email, oldRole, newRole },
+    details: { email: user.email, oldRole, newRole, oldStatus, newStatus: user.status },
   });
 
-  return { id: user._id, email: user.email, role: user.role };
+  return { id: user._id, email: user.email, role: user.role, status: user.status };
+}
+
+/**
+ * Explicitly set a user's account status (active / pending / denied).
+ */
+async function setEmployeeStatus(userId, newStatus, { actor } = {}) {
+  const validStatuses = ['active', 'pending', 'denied', 'suspended'];
+  if (!validStatuses.includes(newStatus)) throw new Error(`Invalid status: ${newStatus}`);
+  const user = await User.findById(userId);
+  if (!user) throw new Error('User not found');
+  const oldStatus = user.status;
+  user.status = newStatus;
+  await user.save();
+
+  await audit.log('employee.statusChanged', actor, {
+    targetType: 'User',
+    targetId: user._id,
+    details: { email: user.email, oldStatus, newStatus },
+  });
+
+  return { id: user._id, email: user.email, role: user.role, status: user.status };
+}
+
+/**
+ * List user applications filtered by status.
+ */
+async function getApplications(status = 'pending') {
+  const validStatuses = ['pending', 'active', 'denied'];
+  const filter = validStatuses.includes(status) ? { status: { $eq: status } } : { status: { $eq: 'pending' } };
+  return User.find(filter).select('email role status applicationNote profile.name createdAt').sort({ createdAt: -1 });
+}
+
+/**
+ * Approve an application: set status to 'active' and assign a role.
+ */
+async function approveApplication(userId, role, { actor } = {}) {
+  const validRoles = ['admin', 'manager', 'staff'];
+  if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
+  const user = await User.findById(userId);
+  if (!user) throw new Error('User not found');
+  if (user.status !== 'pending') throw new Error('User is not in pending status');
+  user.status = 'active';
+  user.role = role;
+  await user.save();
+  await audit.log('application.approved', actor, {
+    targetType: 'User',
+    targetId: user._id,
+    details: { email: user.email, role },
+  });
+  return { id: user._id, email: user.email, role: user.role, status: user.status };
+}
+
+/**
+ * Deny an application: set status to 'denied'.
+ */
+async function denyApplication(userId, { actor } = {}) {
+  const user = await User.findById(userId);
+  if (!user) throw new Error('User not found');
+  if (user.status !== 'pending') throw new Error('User is not in pending status');
+  user.status = 'denied';
+  await user.save();
+  await audit.log('application.denied', actor, {
+    targetType: 'User',
+    targetId: user._id,
+    details: { email: user.email },
+  });
+  return { id: user._id, email: user.email, status: user.status };
 }
 
 module.exports = {
@@ -102,4 +173,8 @@ module.exports = {
   adjustInventory,
   getEmployees,
   updateEmployeeRole,
+  setEmployeeStatus,
+  getApplications,
+  approveApplication,
+  denyApplication,
 };

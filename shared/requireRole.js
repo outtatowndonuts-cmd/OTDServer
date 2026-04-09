@@ -10,7 +10,7 @@
  */
 function requireRole(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.role) || req.user.status !== 'active') {
       // JSON response for API / AJAX calls
       if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json')) || req.path.startsWith('/api')) {
         return res.status(403).json({ ok: false, error: 'Forbidden: insufficient role' });

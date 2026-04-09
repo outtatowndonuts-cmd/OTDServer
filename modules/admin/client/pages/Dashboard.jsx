@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+const fmt = (n) => {
+  const s = n.toFixed(3);
+  return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+};
+
 export default function Dashboard({ api }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -22,7 +27,7 @@ export default function Dashboard({ api }) {
       <div className="stat-grid">
         <div className="stat-card">
           <div className="label">Sales Today</div>
-          <div className="value">${data.totalSalesToday.toFixed(2)}</div>
+          <div className="value">{fmt(data.totalSalesToday)}</div>
         </div>
         <div className="stat-card">
           <div className="label">Orders Today</div>
@@ -58,7 +63,7 @@ export default function Dashboard({ api }) {
                 <td>
                   <span className={`badge ${o.status === 'completed' ? 'badge-green' : 'badge-yellow'}`}>{o.status}</span>
                 </td>
-                <td>{o.total != null ? `$${o.total.toFixed(2)}` : '—'}</td>
+                <td>{o.total != null ? fmt(o.total) : '—'}</td>
                 <td>{new Date(o.createdAt).toLocaleDateString()}</td>
               </tr>
             ))}

@@ -3,10 +3,17 @@
 /* Inventory Dashboard SPA – mirrors orders-dashboard.js pattern */
 (function () {
   var currentSection = 'all';
-  var INVENTORY_KINDS = { all: 1, products: 1, ingredients: 1, supplies: 1 };
+
+  function fmtCurrency(n) {
+    var s = n.toFixed(3);
+    return `$${s.endsWith('0') ? n.toFixed(2) : s}`;
+  }
+
+  var INVENTORY_KINDS = { all: 1, products: 1, prep: 1, ingredients: 1, supplies: 1 };
   var KIND_META = {
     all: { icon: 'fa-boxes-stacked', label: 'All Inventory', kind: null },
     products: { icon: 'fa-cookie', label: 'Product Inventory', kind: 'product' },
+    prep: { icon: 'fa-fire-burner', label: 'Prep Inventory', kind: 'kitchen' },
     ingredients: { icon: 'fa-wheat-awn', label: 'Ingredient Inventory', kind: 'ingredient' },
     supplies: { icon: 'fa-box-open', label: 'Supply Inventory', kind: 'supply' },
   };
@@ -302,10 +309,10 @@
       var lineTotal = qty * cost;
       $(this)
         .find('.po-item-total')
-        .val(lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—');
+        .val(lineTotal > 0 ? fmtCurrency(lineTotal) : '—');
       subtotal += lineTotal;
     });
-    $('#po-subtotal').val(`$${subtotal.toFixed(2)}`);
+    $('#po-subtotal').val(fmtCurrency(subtotal));
   }
 
   function submitPO($form) {

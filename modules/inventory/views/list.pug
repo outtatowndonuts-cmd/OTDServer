@@ -19,6 +19,8 @@ if items && items.length
             td
               if item.kind === 'product'
                 span.badge.bg-success Product
+              else if item.kind === 'kitchen'
+                span.badge.bg-primary Prep
               else if item.kind === 'ingredient'
                 span.badge.bg-info Ingredient
               else if item.kind === 'supply'

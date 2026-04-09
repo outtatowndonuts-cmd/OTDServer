@@ -105,9 +105,34 @@
         reindexRows(container);
         recalcCosting();
         recalcRecipe();
+        recalcBundleCount();
       }
     });
   }
+
+  // Update bundle size counter and flag mismatches
+  function recalcBundleCount() {
+    var bundleSizeInput = mainContent.querySelector('#pr-bundlesize');
+    var countDisplay = mainContent.querySelector('#bundle-count-display');
+    var errorDiv = mainContent.querySelector('#bundle-size-error');
+    var errorMsg = mainContent.querySelector('#bundle-size-error-msg');
+    if (!bundleSizeInput || !countDisplay) return;
+    var target = parseInt(bundleSizeInput.value, 10) || 0;
+    var total = 0;
+    mainContent.querySelectorAll('#bundle-rows .item-row').forEach(function (row) {
+      var qty = row.querySelector('input[name*="[quantity]"]');
+      total += parseInt(qty && qty.value, 10) || 0;
+    });
+    var ok = target === 0 || total === target;
+    countDisplay.textContent = target > 0 ? `(${total} / ${target})` : `(${total})`;
+    countDisplay.className = ok ? 'fw-normal ms-2 text-muted' : 'fw-normal ms-2 text-danger';
+    if (errorDiv && errorMsg) {
+      errorDiv.style.display = ok ? 'none' : '';
+      errorMsg.textContent = `Quantities total ${total} but bundle size is ${target}. Adjust quantities or rows to match.`;
+    }
+    return ok;
+  }
+  window.recalcBundleCount = recalcBundleCount;
 
   // Filter the ref <select> to only show options matching the chosen type
   function syncCompType(typeSelect) {
@@ -130,6 +155,27 @@
       refSelect.value = firstVisible ? firstVisible.value : '';
     }
     updateRowCost(row);
+  }
+
+  // Filter the fc-ref <select> to only show options matching the chosen finishing type
+  function syncFcType(typeSelect) {
+    var row = typeSelect.closest('.item-row');
+    if (!row) return;
+    var kind = typeSelect.value; // 'Ingredient', 'Supply', or 'Prep'
+    var refSelect = row.querySelector('[data-role="fc-ref"]');
+    if (!refSelect) return;
+    var opts = refSelect.querySelectorAll('option');
+    var firstVisible = null;
+    opts.forEach(function (opt) {
+      var show = opt.getAttribute('data-kind') === kind;
+      opt.hidden = !show;
+      opt.disabled = !show;
+      if (show && !firstVisible) firstVisible = opt;
+    });
+    var current = refSelect.options[refSelect.selectedIndex];
+    if (current && (current.hidden || current.disabled)) {
+      refSelect.value = firstVisible ? firstVisible.value : '';
+    }
   }
 
   // Read the cost-per-unit map embedded by the server in a data attribute
@@ -202,7 +248,8 @@
     var suggestedPrice = totalCOGS > 0 && targetMargin < 100 ? totalCOGS / (1 - targetMargin / 100) : 0;
 
     function fmt(n) {
-      return `$${n.toFixed(2)}`;
+      var s = n.toFixed(3);
+      return `$${s.endsWith('0') ? n.toFixed(2) : s}`;
     }
     function setEl(id, text, cls) {
       var el = document.getElementById(id);
@@ -258,7 +305,8 @@
       return;
     }
     var total = info.cost * qty;
-    costDisplay.value = `$${total.toFixed(2)}`;
+    var _s = total.toFixed(3);
+    costDisplay.value = `$${_s.endsWith('0') ? total.toFixed(2) : _s}`;
   }
 
   // Live cost preview for the recipe form
@@ -290,7 +338,8 @@
       var cost = computeIngredientLineCost(qty, unit, info.cost, info.unit);
       if (cost != null) {
         totalCost += cost;
-        if (costCell) costCell.value = `$${cost.toFixed(2)}`;
+        var _cs = cost.toFixed(3);
+        if (costCell) costCell.value = `$${_cs.endsWith('0') ? cost.toFixed(2) : _cs}`;
       }
     });
 
@@ -316,7 +365,8 @@
     var batchEl = document.getElementById('rc-live-batch');
     var unitEl = document.getElementById('rc-live-unit');
     var yldEl = document.getElementById('rc-live-yield');
-    if (batchEl) batchEl.textContent = `$${totalCost.toFixed(2)}`;
+    var _bs = totalCost.toFixed(3);
+    if (batchEl) batchEl.textContent = `$${_bs.endsWith('0') ? totalCost.toFixed(2) : _bs}`;
     if (unitEl) {
       unitEl.textContent = `$${(totalCost / yieldQty)
         .toFixed(4)
@@ -420,12 +470,26 @@
         // Attach remove handler for the new row's button
         var removeBtn = clone.querySelector('[data-action="remove-row"]');
         if (removeBtn) attachRowBtn(removeBtn, container);
+        // Wire bundle qty input for count validation
+        if (targetId === 'bundle-rows') {
+          var bundleQtyInput = clone.querySelector('input[name*="[quantity]"]');
+          if (bundleQtyInput) bundleQtyInput.addEventListener('input', recalcBundleCount);
+          recalcBundleCount();
+        }
         // Attach type filter and sync initial state
         var typeSelect = clone.querySelector('[data-role="comp-type"]');
         if (typeSelect) {
           syncCompType(typeSelect);
           typeSelect.addEventListener('change', function () {
             syncCompType(typeSelect);
+          });
+        }
+        // Attach finishing component type filter
+        var fcTypeSelect = clone.querySelector('[data-role="fc-type"]');
+        if (fcTypeSelect) {
+          syncFcType(fcTypeSelect);
+          fcTypeSelect.addEventListener('change', function () {
+            syncFcType(fcTypeSelect);
           });
         }
         // Wire cost display for cloned row
@@ -462,7 +526,7 @@
 
     // Dynamic row: Remove Row buttons
     mainContent.querySelectorAll('[data-action="remove-row"]').forEach(function (btn) {
-      var container = btn.closest('#ingredient-rows, #component-rows, #subrecipe-rows');
+      var container = btn.closest('#ingredient-rows, #component-rows, #subrecipe-rows, #finishing-rows, #bundle-rows');
       if (container) attachRowBtn(btn, container);
     });
 
@@ -471,6 +535,14 @@
       syncCompType(typeSelect); // apply on load
       typeSelect.addEventListener('change', function () {
         syncCompType(typeSelect);
+      });
+    });
+
+    // Finishing component type filter: wire all existing fc-type selects
+    mainContent.querySelectorAll('[data-role="fc-type"]').forEach(function (typeSelect) {
+      syncFcType(typeSelect); // apply on load
+      typeSelect.addEventListener('change', function () {
+        syncFcType(typeSelect);
       });
     });
 
@@ -520,6 +592,14 @@
       if (unitInput) unitInput.addEventListener('change', recalcRecipe);
     });
 
+    // Bundle size field + existing bundle qty inputs
+    var bundleSizeInput = mainContent.querySelector('#pr-bundlesize');
+    if (bundleSizeInput) bundleSizeInput.addEventListener('input', recalcBundleCount);
+    mainContent.querySelectorAll('#bundle-rows .item-row input[name*="[quantity]"]').forEach(function (input) {
+      input.addEventListener('input', recalcBundleCount);
+    });
+    recalcBundleCount();
+
     // Costing panel inputs: labor, overhead, margin, price
     ['#pr-labor', '#pr-overhead', '#pr-margin', '#pr-price'].forEach(function (sel) {
       var el = mainContent.querySelector(sel);
@@ -540,6 +620,16 @@
     mainContent.querySelectorAll('#section-form').forEach(function (form) {
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+        // Bundle size validation
+        var typeChecked = form.querySelector('input[name="productType"]:checked');
+        if (typeChecked && typeChecked.value === 'bundle') {
+          var valid = recalcBundleCount();
+          if (!valid) {
+            var errEl = mainContent.querySelector('#bundle-size-error');
+            if (errEl) errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+          }
+        }
         var fd = new FormData(form);
         if (!fd.get('_csrf')) fd.append('_csrf', getCsrf());
         var params = new URLSearchParams(fd);

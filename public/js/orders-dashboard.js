@@ -4,6 +4,11 @@
 (function () {
   var currentSection = 'all';
 
+  function fmtCurrency(n) {
+    var s = n.toFixed(3);
+    return `$${s.endsWith('0') ? n.toFixed(2) : s}`;
+  }
+
   // ─── Section Loading ────────────────────────────────────────────────────────
   function loadSection(section) {
     currentSection = section;
@@ -247,7 +252,7 @@
       items.forEach(function (item) {
         var selected = item._id === currentVal ? ' selected' : '';
         var label = item.name;
-        if (kind === 'product' && type === 'sale' && item.price) label += ` ($${item.price.toFixed(2)})`;
+        if (kind === 'product' && type === 'sale' && item.price) label += ` (${fmtCurrency(item.price)})`;
         if (type === 'assembly' && item.kitchenQty != null) label += ` (${item.kitchenQty} in kitchen)`;
         html += `<option value="${item._id}" data-name="${item.name.replace(/"/g, '&quot;')}"${item.price != null ? ` data-price="${item.price}"` : ''}${selected}>${label}</option>`;
       });
@@ -278,7 +283,7 @@
       var qty = parseFloat($row.find('input[name$="[quantity]"]').val()) || 0;
       var price = parseFloat($row.find('.item-price').val()) || 0;
       var lineTotal = qty * price;
-      $row.find('.item-line-total').val(lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '\u2014');
+      $row.find('.item-line-total').val(lineTotal > 0 ? fmtCurrency(lineTotal) : '\u2014');
       subtotal += lineTotal;
     });
 
@@ -286,11 +291,11 @@
     var taxAmount = subtotal * (taxRate / 100);
     var total = subtotal + taxAmount;
 
-    $('#calc-subtotal').val(`$${subtotal.toFixed(2)}`);
+    $('#calc-subtotal').val(fmtCurrency(subtotal));
     $('input[name="subtotal"]').val(subtotal.toFixed(2));
-    $('#calc-tax').val(`$${taxAmount.toFixed(2)}`);
+    $('#calc-tax').val(fmtCurrency(taxAmount));
     $('input[name="tax"]').val(taxAmount.toFixed(2));
-    $('#calc-total').val(`$${total.toFixed(2)}`);
+    $('#calc-total').val(fmtCurrency(total));
     $('input[name="total"]').val(total.toFixed(2));
   }
 

@@ -17,7 +17,9 @@ exports.getDashboard = function (req, res) {
 // --- Fragment: Inventory list -------------------------------------------------
 exports.fragmentList = async function (req, res) {
   try {
-    const items = await service.getInventory();
+    const filters = {};
+    if (req.query.kind) filters.kind = req.query.kind;
+    const items = await service.getInventory(filters);
     frag(res, 'list.pug', { items });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

@@ -1,3 +1,8 @@
+const fmt = (n) => {
+  const s = n.toFixed(3);
+  return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+};
+
 export default function ReceiptModal({ order, onNewSale }) {
   if (!order) return null;
 
@@ -9,10 +14,10 @@ export default function ReceiptModal({ order, onNewSale }) {
         <div className="checkmark">✅</div>
         <h2>Payment Complete</h2>
         <div className="receipt-method">{isCash ? 'Cash' : 'Card'} Payment</div>
-        <div className="receipt-total">${(order.total || 0).toFixed(2)}</div>
+        <div className="receipt-total">{fmt(order.total || 0)}</div>
         {isCash && order.change != null && (
           <div className="receipt-change">
-            Received: ${(order.cashReceived || 0).toFixed(2)} &nbsp;|&nbsp; Change: ${order.change.toFixed(2)}
+            Received: {fmt(order.cashReceived || 0)} &nbsp;|&nbsp; Change: {fmt(order.change)}
           </div>
         )}
         <button className="btn-new-sale" onClick={onNewSale}>

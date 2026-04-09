@@ -18,7 +18,7 @@ router.get('/contact', controller.getContact);
 router.post('/contact', controller.postContact);
 router.get('/confirmation', controller.confirmation);
 
-// ─── API (CSRF-protected, no auth) ───────────────────────────────────────────
+// ─── API (CSRF-protected, no auth) ────────────────────────────────────────────
 router.post('/api/order', controller.createOrder);
 
 // ─── Stripe Webhook (no CSRF, no auth, raw body) ─────────────────────────────

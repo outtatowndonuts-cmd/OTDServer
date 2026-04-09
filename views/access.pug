@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  .row.justify-content-center.mt-5
+    .col-md-6.col-lg-5
+      .text-center.mb-5
+        h2.mb-1 Outta Town Donuts
+        p.text-muted Operations &amp; Administration
+
+      .card.shadow-sm.mb-3
+        .card-body.p-4
+          h5.card-title.mb-1 Already on the team?
+          p.card-text.text-muted.small.mb-3 Log in to access the operations dashboard.
+          a.btn.btn-primary.w-100(href='/login') Log In
+
+      .card.shadow-sm
+        .card-body.p-4
+          h5.card-title.mb-1 Want to join?
+          p.card-text.text-muted.small.mb-3 Submit an application. Once approved by an administrator you'll have access to your assigned tools.
+          a.btn.btn-outline-secondary.w-100(href='/apply') Apply for Access
+
+      .text-center.mt-4
+        a.text-muted.small(href='/shop') ← Back to shop

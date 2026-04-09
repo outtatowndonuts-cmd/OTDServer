@@ -88,6 +88,7 @@ const userController = require('./controllers/user');
 const apiController = require('./controllers/api');
 const aiController = require('./controllers/ai');
 const aiAgentController = require('./controllers/ai-agent');
+const applyController = require('./controllers/apply');
 
 const contactController = require('./controllers/contact');
 const webauthnController = require('./controllers/webauthn');
@@ -96,6 +97,7 @@ const webauthnController = require('./controllers/webauthn');
  * API keys and Passport configuration.
  */
 const passportConfig = require('./config/passport');
+const { requireRole } = require('./shared/requireRole');
 
 /**
  * Request logging configuration
@@ -180,6 +182,11 @@ app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.locals.user = req.user;
   res.locals._csrf = req.csrfToken ? req.csrfToken() : '';
+  res.locals.fmtCurrency = (n) => {
+    if (n == null || isNaN(n)) return '$0.00';
+    const s = n.toFixed(3);
+    return `$${s.endsWith('0') ? n.toFixed(2) : s}`;
+  };
   next();
 });
 
@@ -187,6 +194,17 @@ app.use((req, res, next) => {
 const modules = require('./config/modules');
 modules.forEach((moduleRoute) => {
   app.use(moduleRoute.basePath, moduleRoute.router);
+});
+
+// Redirect unauthenticated GET requests to /shop for all non-public routes.
+// Public paths: /shop and sub-routes, /apply, /pending-approval, auth/login/signup
+// flows, and anything containing a dot (static assets).
+const PUBLIC_PREFIXES = ['/shop', '/access', '/apply', '/pending-approval', '/login', '/logout', '/forgot', '/reset', '/signup', '/auth', '/contact'];
+app.use((req, res, next) => {
+  if (req.user || req.method !== 'GET') return next();
+  const isPublic = PUBLIC_PREFIXES.some((p) => req.path === p || req.path.startsWith(`${p}/`)) || req.path.includes('.');
+  if (!isPublic) return res.redirect('/access');
+  next();
 });
 // Function to validate if the URL is a safe relative path
 const isSafeRedirect = (url) => /^\/[a-zA-Z0-9/_-]*$/.test(url);
@@ -237,7 +255,16 @@ app.locals.FACEBOOK_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID ? process.env.FACEB
 /**
  * Primary app routes.
  */
-app.get('/', homeController.index);
+app.get('/', passportConfig.isApproved, requireRole('admin', 'manager', 'staff'), homeController.index);
+app.get('/access', (req, res) => {
+  if (req.user) return res.redirect('/');
+  res.render('access', { title: 'Get Access' });
+});
+app.get('/apply', applyController.getApply);
+app.post('/apply', strictLimiter, applyController.postApply);
+app.get('/pending-approval', passportConfig.isAuthenticated, (req, res) => {
+  res.render('pending-approval', { title: 'Application Pending' });
+});
 app.get('/login', userController.getLogin);
 app.post('/login', loginLimiter, userController.postLogin);
 app.get('/login/verify/:token', loginLimiter, userController.getLoginByEmail);

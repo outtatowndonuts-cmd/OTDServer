@@ -3,6 +3,11 @@
  * Reads CSRF token from meta tag, computes subtotal, submits order, redirects to Stripe.
  */
 (function () {
+  function fmtCurrency(n) {
+    var s = n.toFixed(3);
+    return `$${s.endsWith('0') ? n.toFixed(2) : s}`;
+  }
+
   const csrfMeta = document.querySelector('meta[name="csrf-token"]');
   const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
@@ -37,7 +42,7 @@
       total += price * qty;
     });
     if (subtotalEl) {
-      subtotalEl.textContent = `$${total.toFixed(2)}`;
+      subtotalEl.textContent = fmtCurrency(total);
     }
     checkoutBtn.disabled = total === 0;
   }

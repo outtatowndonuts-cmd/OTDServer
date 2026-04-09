@@ -63,13 +63,13 @@
                     span.badge.bg-warning.text-dark= order.paymentStatus
               tr
                 th Subtotal
-                td= order.subtotal != null ? '$' + order.subtotal.toFixed(2) : '—'
+                td= order.subtotal != null ? fmtCurrency(order.subtotal) : '—'
               tr
                 th Tax
-                td= order.tax != null ? '$' + order.tax.toFixed(2) : '—'
+                td= order.tax != null ? fmtCurrency(order.tax) : '—'
               tr.fw-bold
                 th Total
-                td= order.total != null ? '$' + order.total.toFixed(2) : '—'
+                td= order.total != null ? fmtCurrency(order.total) : '—'
 
 .card
   .card-header.fw-semibold Items
@@ -94,4 +94,4 @@
               td= item.nameSnapshot
               td= item.quantity
               if order.type === 'sale'
-                td= item.priceSnapshot != null ? '$' + item.priceSnapshot.toFixed(2) : '—'
+                td= item.priceSnapshot != null ? fmtCurrency(item.priceSnapshot) : '—'

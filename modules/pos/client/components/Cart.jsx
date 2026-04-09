@@ -1,3 +1,8 @@
+const fmt = (n) => {
+  const s = n.toFixed(3);
+  return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+};
+
 export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty, onClear, onPayCash, onPayCard }) {
   const hasItems = items.length > 0;
 
@@ -22,7 +27,7 @@ export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty
                 <span>{item.quantity}</span>
                 <button onClick={() => onUpdateQty(item.refId, 1)}>+</button>
               </div>
-              <span className="cart-item-price">${(item.priceSnapshot * item.quantity).toFixed(2)}</span>
+              <span className="cart-item-price">{fmt(item.priceSnapshot * item.quantity)}</span>
             </div>
           ))}
         </div>
@@ -33,15 +38,15 @@ export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty
       <div className="cart-totals">
         <div className="row">
           <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>{fmt(subtotal)}</span>
         </div>
         <div className="row">
           <span>Tax ({(taxRate * 100).toFixed(1)}%)</span>
-          <span>${tax.toFixed(2)}</span>
+          <span>{fmt(tax)}</span>
         </div>
         <div className="row total">
           <span>Total</span>
-          <span>${total.toFixed(2)}</span>
+          <span>{fmt(total)}</span>
         </div>
       </div>
 

@@ -27,6 +27,11 @@ function CardForm({ orderId, onSuccess, onCancel, total }) {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  const fmt = (n) => {
+    const s = n.toFixed(3);
+    return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) return;
@@ -51,7 +56,7 @@ function CardForm({ orderId, onSuccess, onCancel, total }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="card-total-display">Charge: ${total.toFixed(2)}</div>
+      <div className="card-total-display">Charge: {fmt(total)}</div>
       <div className="stripe-element-wrapper">
         <PaymentElement />
       </div>

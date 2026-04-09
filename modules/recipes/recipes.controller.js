@@ -1,6 +1,7 @@
 const path = require('path');
 const service = require('./recipes.service');
 const units = require('./units');
+const { InventoryItem } = require('../inventory/inventory.model');
 
 const VIEWS = path.join(__dirname, 'views');
 const UNIT_OPTIONS = { weight: units.COMMON_WEIGHT, volume: units.COMMON_VOLUME, count: units.COMMON_COUNT };
@@ -47,7 +48,9 @@ exports.fragmentIngredientsEdit = async function (req, res) {
 // --- Recipe Fragments ---------------------------------------------------------
 exports.fragmentRecipesList = async function (req, res) {
   const recipes = await service.getRecipes();
-  const costings = recipes.map((r) => service.calculateRecipeCostSync(r));
+  const recipeMap = {};
+  for (const r of recipes) recipeMap[r._id.toString()] = r;
+  const costings = recipes.map((r) => service.calculateRecipeCostSync(r, undefined, recipeMap));
   frag(res, 'recipes/list.pug', { recipes, costings }, csrf(req));
 };
 
@@ -55,9 +58,11 @@ exports.fragmentRecipesNew = async function (req, res) {
   const [allIngredients, allRecipes, settings] = await Promise.all([service.getIngredients(), service.getRecipes(), service.getSettings()]);
   const ingCostData = {};
   for (const i of allIngredients) ingCostData[i._id] = i.purchaseCost != null ? { cost: i.purchaseCost, unit: i.purchaseUnit || '' } : null;
+  const recipeMap = {};
+  for (const r of allRecipes) recipeMap[r._id.toString()] = r;
   const subRecipeCostData = {};
   for (const r of allRecipes) {
-    const c = service.calculateRecipeCostSync(r);
+    const c = service.calculateRecipeCostSync(r, undefined, recipeMap);
     subRecipeCostData[r._id] = { cost: c.canCalculate ? c.costPerUnit : null, unit: r.yieldUnit || 'each' };
   }
   frag(res, 'recipes/form.pug', { item: null, allIngredients, allRecipes, ingCostData, subRecipeCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
@@ -68,9 +73,11 @@ exports.fragmentRecipesEdit = async function (req, res) {
   if (!item) return res.status(404).send('Not found');
   const ingCostData = {};
   for (const i of allIngredients) ingCostData[i._id] = i.purchaseCost != null ? { cost: i.purchaseCost, unit: i.purchaseUnit || '' } : null;
+  const recipeMap = {};
+  for (const r of allRecipes) recipeMap[r._id.toString()] = r;
   const subRecipeCostData = {};
   for (const r of allRecipes) {
-    const c = service.calculateRecipeCostSync(r);
+    const c = service.calculateRecipeCostSync(r, undefined, recipeMap);
     subRecipeCostData[r._id] = { cost: c.canCalculate ? c.costPerUnit : null, unit: r.yieldUnit || 'each' };
   }
   frag(res, 'recipes/form.pug', { item, allIngredients, allRecipes, ingCostData, subRecipeCostData, unitOptions: UNIT_OPTIONS, settings }, csrf(req));
@@ -84,15 +91,37 @@ exports.fragmentProductsList = async function (req, res) {
 };
 
 exports.fragmentProductsNew = async function (req, res) {
-  const [allIngredients, allRecipes, allSupplies, allProducts, defaults] = await Promise.all([service.getIngredients(), service.getRecipes(), service.getSupplies(), service.getProducts(), service.getSettings()]);
-  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, costing: null, defaults }, csrf(req));
+  const [allIngredients, allRecipes, allSupplies, allProducts, defaults, inStockItems, prepItems] = await Promise.all([
+    service.getIngredients(),
+    service.getRecipes(),
+    service.getSupplies(),
+    service.getProducts(),
+    service.getSettings(),
+    InventoryItem.find({ kind: 'product', quantity: { $gt: 0 } }, { refId: 1 }),
+    InventoryItem.find({ kind: 'kitchen', quantity: { $gt: 0 } }, { refId: 1, name: 1 }),
+  ]);
+  const inStockIds = new Set(inStockItems.map((i) => i.refId.toString()));
+  const inStockProducts = allProducts.filter((p) => p.productType === 'simple' && inStockIds.has(p._id.toString()));
+  const prepProducts = prepItems.map((i) => ({ _id: i.refId, name: i.name }));
+  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing: null, defaults }, csrf(req));
 };
 
 exports.fragmentProductsEdit = async function (req, res) {
-  const [item, allIngredients, allRecipes, allSupplies, allProducts] = await Promise.all([service.getProductById(req.params.id), service.getIngredients(), service.getRecipes(), service.getSupplies(), service.getProducts()]);
+  const [item, allIngredients, allRecipes, allSupplies, allProducts, inStockItems, prepItems] = await Promise.all([
+    service.getProductById(req.params.id),
+    service.getIngredients(),
+    service.getRecipes(),
+    service.getSupplies(),
+    service.getProducts(),
+    InventoryItem.find({ kind: 'product', quantity: { $gt: 0 } }, { refId: 1 }),
+    InventoryItem.find({ kind: 'kitchen', quantity: { $gt: 0 } }, { refId: 1, name: 1 }),
+  ]);
   if (!item) return res.status(404).send('Not found');
+  const inStockIds = new Set(inStockItems.map((i) => i.refId.toString()));
+  const inStockProducts = allProducts.filter((p) => p.productType === 'simple' && inStockIds.has(p._id.toString()));
+  const prepProducts = prepItems.map((i) => ({ _id: i.refId, name: i.name }));
   const costing = await service.calculateProductCosting(item);
-  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, costing }, csrf(req));
+  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing }, csrf(req));
 };
 
 // --- Supplier Fragments -------------------------------------------------------

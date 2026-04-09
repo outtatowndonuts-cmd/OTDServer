@@ -1,0 +1,31 @@
+extends layout
+
+block content
+  .row.justify-content-center
+    .col-md-7.col-lg-6
+      .pb-2.mt-2.mb-4.border-bottom
+        h3 Apply to Work Here
+        p.text-muted.mb-0 Fill out this form to apply for a position at Outta Town Donuts. An administrator will review your application before granting access.
+
+      form(method='POST')
+        input(type='hidden', name='_csrf', value=_csrf)
+
+        .mb-3
+          label.form-label(for='name') Full Name
+          input#name.form-control(type='text', name='name', placeholder='Your full name', required, autocomplete='name', autofocus)
+
+        .mb-3
+          label.form-label(for='email') Email
+          input#email.form-control(type='email', name='email', placeholder='your@email.com', required, autocomplete='email')
+
+        .mb-3
+          label.form-label(for='password') Password
+          input#password.form-control(type='password', name='password', placeholder='At least 8 characters', required, autocomplete='new-password')
+
+        .mb-3
+          label.form-label(for='note') Why do you want to work here?
+          textarea#note.form-control(name='note', rows='4', placeholder='Tell us a bit about yourself and why you want to join the team.', required)
+
+        .d-flex.align-items-center.gap-3.mt-4
+          button.btn.btn-primary(type='submit') Submit Application
+          a(href='/login') Already have an account?

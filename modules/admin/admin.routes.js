@@ -23,10 +23,16 @@ router.get('/api/employees', passportConfig.isAuthenticated, requireRole('admin'
 
 // Write endpoints — admin only
 router.post('/api/employees/:id/role', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateEmployeeRole);
+router.post('/api/employees/:id/status', passportConfig.isAuthenticated, requireRole('admin'), adminController.setEmployeeStatus);
 router.post('/api/inventory/adjust', passportConfig.isAuthenticated, requireRole('admin'), adminController.adjustInventory);
 
 // Audit log — admin only
 router.get('/api/audit-logs', passportConfig.isAuthenticated, requireRole('admin'), adminController.getAuditLogs);
+
+// Application management — list: admin+manager / approve+deny: admin only
+router.get('/api/applications', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getApplications);
+router.post('/api/applications/:id/approve', passportConfig.isAuthenticated, requireRole('admin'), adminController.approveApplication);
+router.post('/api/applications/:id/deny', passportConfig.isAuthenticated, requireRole('admin'), adminController.denyApplication);
 
 module.exports = {
   basePath: '/admin',

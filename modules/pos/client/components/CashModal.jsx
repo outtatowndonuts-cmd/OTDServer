@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 
+const fmt = (n) => {
+  const s = n.toFixed(3);
+  return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
+};
+
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100];
 
 export default function CashModal({ total, onConfirm, onCancel }) {
@@ -42,7 +47,7 @@ export default function CashModal({ total, onConfirm, onCancel }) {
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <h2>💵 Cash Payment</h2>
 
-        <div className="card-total-display">Total: ${total.toFixed(2)}</div>
+        <div className="card-total-display">Total: {fmt(total)}</div>
 
         <div className="cash-input-group">
           <label>Cash Received</label>
@@ -74,7 +79,7 @@ export default function CashModal({ total, onConfirm, onCancel }) {
           </button>
         </div>
 
-        <div className={`change-display ${change > 0 ? 'positive' : change < 0 ? 'negative' : 'zero'}`}>{parsed === 0 ? 'Enter cash amount' : change >= 0 ? `Change: $${change.toFixed(2)}` : `Short: $${Math.abs(change).toFixed(2)}`}</div>
+        <div className={`change-display ${change > 0 ? 'positive' : change < 0 ? 'negative' : 'zero'}`}>{parsed === 0 ? 'Enter cash amount' : change >= 0 ? `Change: ${fmt(change)}` : `Short: ${fmt(Math.abs(change))}`}</div>
 
         {error && <div className="stripe-error">{error}</div>}
 

@@ -48,7 +48,7 @@ if orders && orders.length
             td= order.items.length + ' item' + (order.items.length !== 1 ? 's' : '')
             td
               if order.type === 'sale' && order.total != null
-                | $#{ order.total.toFixed(2) }
+                | #{ fmtCurrency(order.total) }
               else
                 span.text-muted —
             td

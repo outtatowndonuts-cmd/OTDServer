@@ -94,6 +94,21 @@ exports.updateEmployeeRole = async (req, res) => {
 };
 
 /**
+ * POST /admin/api/employees/:id/status
+ */
+exports.setEmployeeStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) return res.status(400).json({ ok: false, error: 'status is required' });
+    const result = await adminService.setEmployeeStatus(req.params.id, status, { actor: req.user });
+    res.json({ ok: true, employee: result });
+  } catch (err) {
+    const httpStatus = err.message === 'User not found' ? 404 : 400;
+    res.status(httpStatus).json({ ok: false, error: err.message });
+  }
+};
+
+/**
  * POST /admin/api/inventory/adjust
  */
 exports.adjustInventory = async (req, res) => {
@@ -123,5 +138,45 @@ exports.getAuditLogs = async (req, res) => {
     res.json({ ok: true, logs });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * GET /admin/api/applications
+ */
+exports.getApplications = async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const applications = await adminService.getApplications(status);
+    res.json({ ok: true, applications });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/applications/:id/approve
+ */
+exports.approveApplication = async (req, res) => {
+  try {
+    const role = req.body.role || 'staff';
+    const result = await adminService.approveApplication(req.params.id, role, { actor: req.user });
+    res.json({ ok: true, user: result });
+  } catch (err) {
+    const status = err.message === 'User not found' ? 404 : 400;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/applications/:id/deny
+ */
+exports.denyApplication = async (req, res) => {
+  try {
+    const result = await adminService.denyApplication(req.params.id, { actor: req.user });
+    res.json({ ok: true, user: result });
+  } catch (err) {
+    const status = err.message === 'User not found' ? 404 : 400;
+    res.status(status).json({ ok: false, error: err.message });
   }
 };

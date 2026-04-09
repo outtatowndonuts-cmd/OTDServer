@@ -71,9 +71,9 @@
                   span.badge.bg-info Ingredient
               td= item.name
               td= item.quantity
-              td= '$' + (item.unitCost || 0).toFixed(2)
-              td.fw-semibold= '$' + (item.totalCost || 0).toFixed(2)
+              td= fmtCurrency(item.unitCost || 0)
+              td.fw-semibold= fmtCurrency(item.totalCost || 0)
         tfoot
           tr
             td.text-end.fw-bold(colspan='4') Subtotal
-            td.fw-bold.fs-5= '$' + po.subtotal.toFixed(2)
+            td.fw-bold.fs-5= fmtCurrency(po.subtotal)

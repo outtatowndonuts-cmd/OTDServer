@@ -30,20 +30,20 @@ block content
                 tr
                   td= item.nameSnapshot
                   td.text-center= item.quantity
-                  td.text-end $#{ (item.priceSnapshot * item.quantity).toFixed(2) }
+                  td.text-end #{ fmtCurrency(item.priceSnapshot * item.quantity) }
             tfoot
               if order.subtotal != null
                 tr
                   td.text-end(colspan='2') Subtotal
-                  td.text-end $#{ order.subtotal.toFixed(2) }
+                  td.text-end #{ fmtCurrency(order.subtotal) }
               if order.tax != null && order.tax > 0
                 tr
                   td.text-end(colspan='2') Tax
-                  td.text-end $#{ order.tax.toFixed(2) }
+                  td.text-end #{ fmtCurrency(order.tax) }
               if order.total != null
                 tr
                   td.text-end(colspan='2') Total
-                  td.text-end $#{ order.total.toFixed(2) }
+                  td.text-end #{ fmtCurrency(order.total) }
 
         .otd-mt-4
           a.otd-btn.otd-btn-outline(href='/shop') Back to Storefront

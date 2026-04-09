@@ -38,7 +38,7 @@ if recipes && recipes.length
             td
               if c.hasIngredients
                 if c.costPerBatch > 0
-                  = '$' + c.costPerBatch.toFixed(2)
+                  = fmtCurrency(c.costPerBatch)
                   if c.missingCount
                     = ' '
                     span.badge.bg-warning.text-dark(title='Some ingredients are missing pricing') ⚠
@@ -49,7 +49,7 @@ if recipes && recipes.length
             td
               if c.hasIngredients
                 if c.costPerUnit > 0
-                  = '$' + c.costPerUnit.toFixed(4).replace(/\.?0+$/, '')
+                  = fmtCurrency(c.costPerUnit)
                   if c.missingCount && !c.costPerBatch
                     = ' '
                     span.badge.bg-warning.text-dark ⚠

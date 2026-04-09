@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  .row.justify-content-center.mt-5
+    .col-md-7.col-lg-5.text-center
+      h3.mb-3 Application Under Review
+      p.lead.mb-4
+        | Your application has been submitted and is waiting for administrator approval.
+        | You will be able to log in once your account has been activated.
+      p.text-muted
+        | If you believe this is an error or need assistance, contact your system administrator directly.
+      hr
+      a.btn.btn-outline-secondary(href='/logout') Sign Out

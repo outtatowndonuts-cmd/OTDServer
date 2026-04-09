@@ -16,6 +16,15 @@ const { revokeProviderTokens, revokeAllProviderTokens } = require('../config/tok
  */
 exports.getLogin = (req, res) => {
   if (req.user) {
+    // Suspended/denied accounts cannot access the app — force logout to break the redirect loop
+    if (req.user.status === 'suspended' || req.user.status === 'denied') {
+      return req.logout((err) => {
+        if (err) console.log('Error : Failed to logout suspended/denied user.', err);
+        req.session.destroy(() => {
+          res.redirect('/login');
+        });
+      });
+    }
     return res.redirect('/');
   }
   // Clear any pending 2FA state when returning to the login page

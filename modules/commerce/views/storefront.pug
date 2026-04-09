@@ -29,7 +29,7 @@ block content
             .otd-product-card
               .otd-product-name= product.name
               .d-flex.justify-content-between.align-items-center
-                span.otd-product-price $#{ product.price.toFixed(2) }
+                span.otd-product-price #{ fmtCurrency(product.price) }
                 .otd-product-stock
                   if product.available > 0
                     span.otd-badge.otd-badge-available #{ product.available } left

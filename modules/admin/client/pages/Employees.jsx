@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 
+const roleBadge = (role) => {
+  const cls = role === 'admin' ? 'badge-red' : role === 'manager' ? 'badge-blue' : 'badge-gray';
+  return <span className={`badge ${cls}`}>{role}</span>;
+};
+
+const statusBadge = (status) => {
+  const cls = status === 'active' ? 'badge-green' : status === 'denied' ? 'badge-red' : status === 'suspended' ? 'badge-orange' : 'badge-yellow';
+  return <span className={`badge ${cls}`}>{status ?? 'active'}</span>;
+};
+
 export default function Employees({ api }) {
   const [employees, setEmployees] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
 
-  const fetchEmployees = () => {
+  useEffect(() => {
     api('/admin/api/employees')
       .then((res) => {
         if (!res.ok) throw new Error(res.error || 'Failed to load');
@@ -14,14 +24,10 @@ export default function Employees({ api }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchEmployees();
   }, []);
 
   const handleRoleChange = async (id, newRole) => {
-    setSaving(id);
+    setSaving(id + '-role');
     setError('');
     try {
       const res = await api(`/admin/api/employees/${id}/role`, {
@@ -29,7 +35,8 @@ export default function Employees({ api }) {
         body: JSON.stringify({ role: newRole }),
       });
       if (!res.ok) throw new Error(res.error || 'Failed to update');
-      setEmployees((prev) => prev.map((emp) => (emp._id === id ? { ...emp, role: newRole } : emp)));
+      // role change may also flip status to active
+      setEmployees((prev) => prev.map((emp) => (emp._id === id ? { ...emp, role: res.employee.role, status: res.employee.status } : emp)));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -37,9 +44,21 @@ export default function Employees({ api }) {
     }
   };
 
-  const roleBadge = (role) => {
-    const cls = role === 'admin' ? 'badge-red' : role === 'manager' ? 'badge-blue' : 'badge-gray';
-    return <span className={`badge ${cls}`}>{role}</span>;
+  const handleStatusChange = async (id, newStatus) => {
+    setSaving(id + '-status');
+    setError('');
+    try {
+      const res = await api(`/admin/api/employees/${id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error(res.error || 'Failed to update');
+      setEmployees((prev) => prev.map((emp) => (emp._id === id ? { ...emp, status: res.employee.status } : emp)));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(null);
+    }
   };
 
   return (
@@ -56,8 +75,10 @@ export default function Employees({ api }) {
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Current Role</th>
+              <th>Role</th>
               <th>Change Role</th>
+              <th>Status</th>
+              <th>Change Status</th>
               <th>Joined</th>
             </tr>
           </thead>
@@ -68,12 +89,22 @@ export default function Employees({ api }) {
                 <td>{emp.email}</td>
                 <td>{roleBadge(emp.role || 'staff')}</td>
                 <td>
-                  <select className="role-select" value={emp.role || 'staff'} disabled={saving === emp._id} onChange={(e) => handleRoleChange(emp._id, e.target.value)}>
+                  <select className="role-select" value={emp.role || 'staff'} disabled={saving === emp._id + '-role'} onChange={(e) => handleRoleChange(emp._id, e.target.value)}>
                     <option value="admin">Admin</option>
                     <option value="manager">Manager</option>
                     <option value="staff">Staff</option>
                   </select>
-                  {saving === emp._id && <span style={{ marginLeft: 8, color: '#9ca3af' }}>…</span>}
+                  {saving === emp._id + '-role' && <span style={{ marginLeft: 6, color: '#9ca3af' }}>…</span>}
+                </td>
+                <td>{statusBadge(emp.status)}</td>
+                <td>
+                  <select className="role-select" value={emp.status || 'active'} disabled={saving === emp._id + '-status'} onChange={(e) => handleStatusChange(emp._id, e.target.value)}>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending">Pending</option>
+                    <option value="denied">Denied</option>
+                  </select>
+                  {saving === emp._id + '-status' && <span style={{ marginLeft: 6, color: '#9ca3af' }}>…</span>}
                 </td>
                 <td>{new Date(emp.createdAt).toLocaleDateString()}</td>
               </tr>

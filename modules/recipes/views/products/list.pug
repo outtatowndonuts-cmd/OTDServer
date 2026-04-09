@@ -41,10 +41,10 @@ if products && products.length
             td= item.sku || '—'
             td
               if c.totalCOGS > 0
-                = '$' + c.totalCOGS.toFixed(3)
+                = fmtCurrency(c.totalCOGS)
               else
                 span.text-muted —
-            td= item.price ? '$' + item.price.toFixed(2) : '—'
+            td= item.price ? fmtCurrency(item.price) : '—'
             td
               if c.margin !== null && c.margin !== undefined
                 - var mc = c.margin < 0 ? 'text-danger' : c.margin < 20 ? 'text-warning' : 'text-success';

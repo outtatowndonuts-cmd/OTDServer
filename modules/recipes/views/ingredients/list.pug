@@ -25,7 +25,7 @@ if ingredients && ingredients.length
                 small.text-muted.ms-2= item.sku
             td= item.supplier ? item.supplier.name : '—'
             td= item.purchaseUnit || '—'
-            td= item.purchaseCost ? '$' + item.purchaseCost.toFixed(2) : '—'
+            td= item.purchaseCost ? fmtCurrency(item.purchaseCost) : '—'
             td.text-end
               button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='ingredients', data-id=item._id.toString()) Edit
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='ingredients', data-id=item._id.toString(), data-url=`/recipes/ingredients/${item._id}/delete`) Delete

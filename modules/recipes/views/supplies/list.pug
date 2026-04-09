@@ -28,7 +28,7 @@ if supplies && supplies.length
               span.badge.bg-secondary= item.category || 'Other'
             td= item.supplier ? item.supplier.name : '—'
             td= item.unit || '—'
-            td= item.costPerUnit ? '$' + item.costPerUnit.toFixed(2) : '—'
+            td= item.costPerUnit ? fmtCurrency(item.costPerUnit) : '—'
             td.text-end
               button.btn.btn-sm.btn-outline-secondary.me-1(type='button', data-action='edit-form', data-section='supplies', data-id=item._id.toString()) Edit
               button.btn.btn-sm.btn-outline-danger(type='button', data-action='delete', data-section='supplies', data-id=item._id.toString(), data-url=`/recipes/supplies/${item._id}/delete`) Delete

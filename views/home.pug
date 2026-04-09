@@ -11,48 +11,138 @@ block head
   meta(name='twitter:title', content='Outta Town Donuts Business OS')
   meta(name='twitter:description', content='Admin dashboard for Outta Town Donuts business operations.')
   meta(name='twitter:image', content=`${siteURL}/bootstrap-logo.svg`)
+  style.
+    .pipeline-wrap {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    .pipeline-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .p-node-box {
+      fill: #0e0e0e;
+      stroke: #c24a1a;
+      stroke-width: 2;
+      transition: stroke 0.15s;
+    }
+    .p-link:hover .p-node-box {
+      stroke: #f4e9d8;
+    }
+    .p-node-title {
+      fill: #f4e9d8;
+      font-weight: bold;
+      font-family: inherit;
+      dominant-baseline: middle;
+    }
+    .p-node-sub {
+      fill: #6b4f3a;
+      font-family: inherit;
+      dominant-baseline: middle;
+    }
+    .p-stage-label {
+      fill: #6b4f3a;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .p-conn {
+      stroke: #c24a1a;
+      stroke-width: 2;
+      fill: none;
+    }
+    .p-node-plain {
+      fill: #1a1008;
+      stroke: #6b4f3a;
+      stroke-width: 1.5;
+      stroke-dasharray: 5 3;
+    }
+    .p-node-plain-title {
+      fill: #6b4f3a;
+      font-style: italic;
+      font-family: inherit;
+      dominant-baseline: middle;
+    }
 
 block content
-  h1 Outta Town Donuts — Admin Dashboard
-  p.lead Welcome, Administrator. Manage operations, sales, and production for Outta Town Donuts from this central hub.
-  hr
-  .row.row-cols-1.row-cols-md-3.g-4
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 POS
-          p.flex-grow-1 Access the Point of Sale system for in-person transactions.
-          a.btn.btn-primary.mt-auto(href='/pos', role='button') Launch POS
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 Shop
-          p.flex-grow-1 Visit the public online shop.
-          a.btn.btn-success.mt-auto(href='/shop', role='button') Shop
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 Orders
-          p.flex-grow-1 Review and manage all customer orders, both online and in-store.
-          a.btn.btn-primary.mt-auto(href='/orders', role='button') Orders
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 Recipes
-          p.flex-grow-1 Oversee recipes and production tracking for your kitchen.
-          a.btn.btn-primary.mt-auto(href='/recipes', role='button') Recipes
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 Inventory
-          p.flex-grow-1 Track inventory and supplies.
-          a.btn.btn-primary.mt-auto(href='/inventory', role='button') Inventory
-    .col.d-flex
-      .card.shadow-sm.w-100
-        .card-body.d-flex.flex-column
-          h3 Admin
-          p.flex-grow-1 Manage staff, roles, and system settings.
-          a.btn.btn-primary.mt-auto(href='/admin', role='button') Admin
-  hr
-  p.text-muted.text-center.mt-4
-    | For support or to add new modules, contact your system administrator.
+  .container.py-4
+    .d-flex.justify-content-between.align-items-baseline.mb-1
+      h1.mb-0 Outta Town Donuts
+      if user
+        span.text-muted.small #{ user.profile.name || user.email }&nbsp;
+          span.badge.bg-secondary #{ user.role }
+    p.text-muted.mb-4 Operations Pipeline — follow the flow from recipe to receipt.
+
+    .pipeline-wrap
+      svg.pipeline-svg(viewBox='0 0 580 540', xmlns='http://www.w3.org/2000/svg', role='img', aria-label='Operations pipeline flowchart')
+        defs
+          marker#arr(viewBox='0 0 10 10', refX='9', refY='5', markerWidth='6', markerHeight='6', orient='auto')
+            path(d='M 0 0 L 10 5 L 0 10 z', fill='#c24a1a')
+
+        //- ── Stage labels ──────────────────────────────────────────────────
+        text.p-stage-label(x='290', y='14', text-anchor='middle', font-size='10') INPUTS
+        text.p-stage-label(x='290', y='124', text-anchor='middle', font-size='10') PRODUCTION
+        text.p-stage-label(x='290', y='234', text-anchor='middle', font-size='10') SALES CHANNELS
+        text.p-stage-label(x='290', y='344', text-anchor='middle', font-size='10') FULFILLMENT
+        text.p-stage-label(x='290', y='454', text-anchor='middle', font-size='10') MANAGEMENT
+
+        //- ── Row 1: Recipes + Inventory ───────────────────────────────────
+        a.p-link(href='/recipes')
+          rect.p-node-box(x='48', y='22', width='152', height='52', rx='3')
+          text.p-node-title(x='124', y='43', text-anchor='middle', font-size='14') RECIPES
+          text.p-node-sub(x='124', y='62', text-anchor='middle', font-size='11') define &amp; batch plan
+
+        //- horizontal connector: recipes → inventory
+        path.p-conn(d='M 200 48 L 378 48', marker-end='url(#arr)')
+
+        a.p-link(href='/inventory')
+          rect.p-node-box(x='380', y='22', width='152', height='52', rx='3')
+          text.p-node-title(x='456', y='43', text-anchor='middle', font-size='14') INVENTORY
+          text.p-node-sub(x='456', y='62', text-anchor='middle', font-size='11') track stock &amp; usage
+
+        //- ── Connectors: row 1 → row 2 ────────────────────────────────────
+        path.p-conn(d='M 124 74 L 124 106 L 218 130', marker-end='url(#arr)')
+        path.p-conn(d='M 456 74 L 456 106 L 362 130', marker-end='url(#arr)')
+
+        //- ── Row 2: Make Batch (process node, no module route) ────────────
+        rect.p-node-plain(x='218', y='132', width='144', height='52', rx='3')
+        text.p-node-plain-title(x='290', y='153', text-anchor='middle', font-size='13') MAKE BATCH
+        text.p-node-sub(x='290', y='172', text-anchor='middle', font-size='11') recipes → donuts
+
+        //- ── Connectors: row 2 → row 3 ────────────────────────────────────
+        path.p-conn(d='M 290 184 L 290 214 L 164 240', marker-end='url(#arr)')
+        path.p-conn(d='M 290 184 L 290 214 L 416 240', marker-end='url(#arr)')
+
+        //- ── Row 3: POS + Shop ─────────────────────────────────────────────
+        a.p-link(href='/pos')
+          rect.p-node-box(x='80', y='242', width='168', height='52', rx='3')
+          text.p-node-title(x='164', y='263', text-anchor='middle', font-size='14') POS
+          text.p-node-sub(x='164', y='282', text-anchor='middle', font-size='11') flea market booth
+
+        a.p-link(href='/shop')
+          rect.p-node-box(x='332', y='242', width='168', height='52', rx='3')
+          text.p-node-title(x='416', y='263', text-anchor='middle', font-size='14') SHOP
+          text.p-node-sub(x='416', y='282', text-anchor='middle', font-size='11') online pre-orders
+
+        //- ── Connectors: row 3 → row 4 ────────────────────────────────────
+        path.p-conn(d='M 164 294 L 164 324 L 218 352', marker-end='url(#arr)')
+        path.p-conn(d='M 416 294 L 416 324 L 362 352', marker-end='url(#arr)')
+
+        //- ── Row 4: Orders ─────────────────────────────────────────────────
+        a.p-link(href='/orders')
+          rect.p-node-box(x='218', y='354', width='144', height='52', rx='3')
+          text.p-node-title(x='290', y='375', text-anchor='middle', font-size='14') ORDERS
+          text.p-node-sub(x='290', y='394', text-anchor='middle', font-size='11') track &amp; fulfill
+
+        //- ── Connector: row 4 → row 5 ─────────────────────────────────────
+        path.p-conn(d='M 290 406 L 290 460', marker-end='url(#arr)')
+
+        //- ── Row 5: Admin ──────────────────────────────────────────────────
+        a.p-link(href='/admin')
+          rect.p-node-box(x='208', y='462', width='164', height='52', rx='3')
+          text.p-node-title(x='290', y='483', text-anchor='middle', font-size='14') ADMIN
+          text.p-node-sub(x='290', y='502', text-anchor='middle', font-size='11') staff, reports, settings
+
+    p.text-muted.text-center.mt-3.small
+      | Dashed node = internal process (no direct module). Solid nodes are clickable links.

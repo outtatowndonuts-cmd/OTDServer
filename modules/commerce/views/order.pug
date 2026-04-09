@@ -29,7 +29,7 @@ block content
               each product in products
                 tr(data-product-id=product._id, data-available=product.available, data-price=product.price, data-name=product.name)
                   td= product.name
-                  td.text-end $#{ product.price.toFixed(2) }
+                  td.text-end #{ fmtCurrency(product.price) }
                   td.text-center
                     if product.available > 0
                       span= product.available

@@ -60,7 +60,7 @@ form#section-form(action=formAction, method='POST')
         .alert.alert-info.py-2.small.mb-0
           i.fas.fa-info-circle.me-1
           | Computed cost:&nbsp;
-          strong $#{ item.costPerUnit.toFixed(4) } per #{ item.unit || 'unit' }
+          strong #{ fmtCurrency(item.costPerUnit) } per #{ item.unit || 'unit' }
           |
           | — used for product costing
 

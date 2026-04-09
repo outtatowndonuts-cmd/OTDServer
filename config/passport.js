@@ -943,6 +943,31 @@ exports.isAuthenticated = (req, res, next) => {
 };
 
 /**
+ * Approved employee check middleware.
+ * Ensures the user is both authenticated and has an active (approved) account.
+ * Pending users are redirected to /pending-approval.
+ * Denied users are redirected to /login with an error message.
+ */
+exports.isApproved = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    req.flash('errors', { msg: 'You need to be logged in to access that page.' });
+    return res.redirect('/login');
+  }
+  if (req.user.status === 'pending') {
+    return res.redirect('/pending-approval');
+  }
+  if (req.user.status === 'suspended') {
+    req.flash('errors', { msg: 'Your account has been suspended. Contact the administrator for more information.' });
+    return res.redirect('/login');
+  }
+  if (req.user.status === 'denied') {
+    req.flash('errors', { msg: 'Your application has been denied. Contact the administrator for more information.' });
+    return res.redirect('/login');
+  }
+  return next();
+};
+
+/**
  * Authorization Required middleware.
  */
 exports.isAuthorized = async (req, res, next) => {
