@@ -43,6 +43,14 @@ async function createOrder(orderData) {
 
     // Defaults for sales
     if (orderData.paymentStatus == null) orderData.paymentStatus = 'pending';
+
+    // Donated orders are free — zero out all amounts and mark paid
+    if (orderData.paymentMethod === 'donation') {
+      orderData.subtotal = 0;
+      orderData.tax = 0;
+      orderData.total = 0;
+      orderData.paymentStatus = 'paid';
+    }
   }
 
   if (type === 'production') {
@@ -135,6 +143,7 @@ async function updateSettings(data) {
   if (data.taxRate != null) update.taxRate = parseFloat(data.taxRate) || 0;
   if (data.defaultPaymentMethod) update.defaultPaymentMethod = data.defaultPaymentMethod;
   if (data.defaultSource) update.defaultSource = data.defaultSource;
+  if (data.preordersEnabled != null) update.preordersEnabled = Boolean(data.preordersEnabled);
   return OrderSettings.findOneAndUpdate({}, update, { upsert: true, new: true, setDefaultsOnInsert: true });
 }
 

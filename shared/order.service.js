@@ -12,6 +12,7 @@ module.exports = {
   getOrderById: ordersService.getOrderById,
   completeOrder: ordersService.completeOrder,
   getSettings: ordersService.getSettings,
+  updateSettings: ordersService.updateSettings,
   markOrderPaid: ordersService.markOrderPaid,
   markPaidAndComplete: ordersService.markPaidAndComplete,
   cancelOrder: ordersService.cancelOrder,

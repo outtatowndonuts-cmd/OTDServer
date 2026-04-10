@@ -134,6 +134,22 @@ function App() {
     [submitOrder, completeOrder, total],
   );
 
+  /* ── Price override ── */
+  const overridePrice = useCallback((refId, newPrice) => {
+    setCart((prev) => prev.map((i) => (i.refId === refId ? { ...i, priceSnapshot: Math.max(0, newPrice) } : i)));
+  }, []);
+
+  /* ── Donate flow ── */
+  const handleDonate = useCallback(async () => {
+    const res = await submitOrder('donation');
+    if (!res.ok) return;
+    const comp = await completeOrder(res.order._id);
+    if (!comp.ok) return;
+    setLastOrder({ ...comp.order, paymentMethod: 'donation' });
+    setCart([]);
+    setModal('receipt');
+  }, [submitOrder, completeOrder]);
+
   /* ── Card flow ── */
   const handleCardPayment = useCallback(async () => {
     const res = await submitOrder('card');
@@ -182,7 +198,7 @@ function App() {
       </section>
 
       {/* ── Cart ── */}
-      <Cart items={cart} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={() => setModal('card')} />
+      <Cart items={cart} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={() => setModal('card')} onPayDonate={handleDonate} onOverridePrice={overridePrice} />
 
       {/* ── Modals ── */}
       {modal === 'cash' && <CashModal total={total} onConfirm={handleCashConfirm} onCancel={() => setModal(null)} />}

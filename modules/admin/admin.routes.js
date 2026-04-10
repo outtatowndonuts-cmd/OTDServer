@@ -34,6 +34,10 @@ router.get('/api/applications', passportConfig.isAuthenticated, requireRole('adm
 router.post('/api/applications/:id/approve', passportConfig.isAuthenticated, requireRole('admin'), adminController.approveApplication);
 router.post('/api/applications/:id/deny', passportConfig.isAuthenticated, requireRole('admin'), adminController.denyApplication);
 
+// Settings — read: admin+manager / write: admin only
+router.get('/api/settings', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getSettings);
+router.post('/api/settings', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateSettings);
+
 module.exports = {
   basePath: '/admin',
   router,

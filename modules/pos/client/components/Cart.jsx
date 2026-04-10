@@ -3,7 +3,7 @@ const fmt = (n) => {
   return '$' + (s.endsWith('0') ? n.toFixed(2) : s);
 };
 
-export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty, onClear, onPayCash, onPayCard }) {
+export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty, onClear, onPayCash, onPayCard, onPayDonate, onOverridePrice }) {
   const hasItems = items.length > 0;
 
   return (
@@ -27,7 +27,10 @@ export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty
                 <span>{item.quantity}</span>
                 <button onClick={() => onUpdateQty(item.refId, 1)}>+</button>
               </div>
-              <span className="cart-item-price">{fmt(item.priceSnapshot * item.quantity)}</span>
+              <div className="cart-item-price-wrap">
+                <input className="cart-item-price-input" type="number" min="0" step="0.01" value={item.priceSnapshot} onChange={(e) => onOverridePrice(item.refId, parseFloat(e.target.value) || 0)} aria-label={`Price for ${item.nameSnapshot}`} />
+                <span className="cart-item-line-total">{fmt(item.priceSnapshot * item.quantity)}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -56,6 +59,9 @@ export default function Cart({ items, subtotal, tax, total, taxRate, onUpdateQty
         </button>
         <button className="btn-pay card" disabled={!hasItems} onClick={onPayCard}>
           💳 Card
+        </button>
+        <button className="btn-pay donate" disabled={!hasItems} onClick={onPayDonate}>
+          🎁 Donate
         </button>
       </div>
     </aside>

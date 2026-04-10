@@ -4,6 +4,7 @@ import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
 import Employees from './pages/Employees';
 import Applications from './pages/Applications';
+import Settings from './pages/Settings';
 
 /* ── Simple hash-based router ─────────────────────────────────────── */
 const RouterContext = createContext('/');
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
   { path: '/inventory', label: 'Inventory', icon: '🏷️' },
   { path: '/employees', label: 'Employees', icon: '👥' },
   { path: '/applications', label: 'Applications', icon: '📋' },
+  { path: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 /* ── App ──────────────────────────────────────────────────────────── */
@@ -64,6 +66,8 @@ export default function App() {
         return <Employees api={api} />;
       case '/applications':
         return <Applications api={api} />;
+      case '/settings':
+        return <Settings api={api} />;
       default:
         return <Dashboard api={api} />;
     }

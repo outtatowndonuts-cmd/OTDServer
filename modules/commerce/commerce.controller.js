@@ -2,6 +2,7 @@ const path = require('node:path');
 const validator = require('validator');
 const commerceService = require('./commerce.service');
 const nodemailerConfig = require('../../config/nodemailer');
+const orderService = require('../../shared/order.service');
 
 /**
  * GET /shop — Public storefront homepage.
@@ -26,6 +27,16 @@ async function index(req, res, next) {
  */
 async function pickupPage(req, res, next) {
   try {
+    const settings = await orderService.getSettings();
+    if (!settings.preordersEnabled) {
+      return res.render(path.join(__dirname, 'views/order'), {
+        title: 'Pickup Orders — Outta Town Donuts',
+        currentPage: 'pickup',
+        products: [],
+        cancelled: false,
+        preordersDisabled: true,
+      });
+    }
     const products = await commerceService.getStorefrontProducts();
     res.render(path.join(__dirname, 'views/order'), {
       title: 'Pickup Orders — Outta Town Donuts',

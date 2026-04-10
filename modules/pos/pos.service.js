@@ -29,7 +29,7 @@ async function createSaleOrder({ items, subtotal, tax, total, paymentMethod }) {
     tax,
     total,
     paymentMethod,
-    paymentStatus: paymentMethod === 'cash' ? 'paid' : 'pending',
+    paymentStatus: ['cash', 'donation'].includes(paymentMethod) ? 'paid' : 'pending',
     status: 'pending',
   });
 }

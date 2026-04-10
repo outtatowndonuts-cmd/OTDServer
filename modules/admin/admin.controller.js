@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const adminService = require('./admin.service');
 const audit = require('../../shared/audit');
+const orderService = require('../../shared/order.service');
 
 let htmlTemplate = null;
 function getHtml() {
@@ -178,5 +179,29 @@ exports.denyApplication = async (req, res) => {
   } catch (err) {
     const status = err.message === 'User not found' ? 404 : 400;
     res.status(status).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * GET /admin/api/settings
+ */
+exports.getSettings = async (req, res) => {
+  try {
+    const settings = await orderService.getSettings();
+    res.json({ ok: true, settings });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/settings
+ */
+exports.updateSettings = async (req, res) => {
+  try {
+    const settings = await orderService.updateSettings(req.body);
+    res.json({ ok: true, settings });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
   }
 };

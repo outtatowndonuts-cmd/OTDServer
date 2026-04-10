@@ -7,13 +7,14 @@ export default function ReceiptModal({ order, onNewSale }) {
   if (!order) return null;
 
   const isCash = order.paymentMethod === 'cash';
+  const isDonation = order.paymentMethod === 'donation';
 
   return (
     <div className="modal-backdrop">
       <div className="modal-box receipt">
         <div className="checkmark">✅</div>
-        <h2>Payment Complete</h2>
-        <div className="receipt-method">{isCash ? 'Cash' : 'Card'} Payment</div>
+        <h2>{isDonation ? 'Donated' : 'Payment Complete'}</h2>
+        <div className="receipt-method">{isCash ? 'Cash' : isDonation ? 'Donation' : 'Card'} Payment</div>
         <div className="receipt-total">{fmt(order.total || 0)}</div>
         {isCash && order.change != null && (
           <div className="receipt-change">

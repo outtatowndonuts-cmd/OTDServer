@@ -32,7 +32,7 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number },
     paymentMethod: {
       type: String,
-      enum: ['cash', 'card', 'none'],
+      enum: ['cash', 'card', 'none', 'donation'],
       default: 'none',
     },
     paymentStatus: {
@@ -70,6 +70,7 @@ const orderSettingsSchema = new mongoose.Schema(
     taxRate: { type: Number, default: 0 },
     defaultPaymentMethod: { type: String, enum: ['cash', 'card', 'none'], default: 'none' },
     defaultSource: { type: String, enum: ['pos', 'online'], default: 'pos' },
+    preordersEnabled: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
