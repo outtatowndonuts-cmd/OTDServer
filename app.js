@@ -182,6 +182,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Redirect pending users to /pending-approval for any route outside the allowed set.
+const PENDING_ALLOWED_PREFIXES = ['/pending-approval', '/logout', '/account', '/login', '/auth'];
+app.use((req, res, next) => {
+  if (req.user && req.user.status === 'pending') {
+    const allowed = req.path === '/pending-approval' || PENDING_ALLOWED_PREFIXES.some((p) => req.path === p || req.path.startsWith(`${p}/`)) || req.path.includes('.');
+    if (!allowed) return res.redirect('/pending-approval');
+  }
+  next();
+});
+
 // --- Modular Business OS: Mount all modules ---
 const modules = require('./config/modules');
 modules.forEach((moduleRoute) => {
