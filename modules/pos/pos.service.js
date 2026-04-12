@@ -107,15 +107,79 @@ async function refundOrder(orderId, { user } = {}) {
   return orderService.refundOrder(orderId, { user, stripeRefundId });
 }
 
+/**
+ * Create a Stripe Checkout Session for QR-based card payments.
+ * The session hosts the payment page on Stripe's side — no card reader needed.
+ */
+async function createCheckoutSession({ lineItems, metadata, successUrl, cancelUrl }) {
+  if (!stripe) throw new Error('Stripe is not configured. Set STRIPE_SKEY in your environment.');
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: lineItems,
+    metadata,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+  });
+  return session;
+}
+
+/**
+ * Retrieve a Stripe Checkout Session to verify payment status.
+ */
+async function getCheckoutSession(sessionId) {
+  if (!stripe) throw new Error('Stripe is not configured');
+  return stripe.checkout.sessions.retrieve(sessionId);
+}
+
+/**
+ * Get a single order by ID.
+ */
+async function getOrderById(orderId) {
+  return orderService.getOrderById(orderId);
+}
+
+/**
+ * Get orders that need action at the counter, in two groups:
+ * - status 'completed' + paymentStatus 'paid'  → paid, needs to be bagged/filled
+ * - status 'filled'                            → bagged, waiting for customer pickup
+ * Both groups sorted oldest-first (FIFO).  Only last 24 h to avoid stale backlog.
+ */
+async function getPendingQueue() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [toFill, toDeliver] = await Promise.all([orderService.getOrders({ source: 'online', status: 'completed', paymentStatus: 'paid', dateFrom: cutoff }), orderService.getOrders({ source: 'online', status: 'filled', paymentStatus: 'paid', dateFrom: cutoff })]);
+  const sort = (arr) => arr.slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return [...sort(toFill), ...sort(toDeliver)];
+}
+
+/**
+ * Mark a completed order as filled (bagged, waiting for pickup).
+ */
+async function fillOrder(orderId) {
+  return orderService.fillOrder(orderId);
+}
+
+/**
+ * Mark a filled order as delivered (handed off, out of queue).
+ */
+async function deliverOrder(orderId) {
+  return orderService.deliverOrder(orderId);
+}
+
 module.exports = {
   getCatalog,
   getSettings,
   createSaleOrder,
   completeOrder,
+  fillOrder,
+  deliverOrder,
   createPaymentIntent,
   markOrderPaid,
   markPaidAndComplete,
   verifyPaymentIntent,
   cancelOrder,
   refundOrder,
+  createCheckoutSession,
+  getCheckoutSession,
+  getOrderById,
+  getPendingQueue,
 };

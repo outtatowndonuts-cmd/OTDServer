@@ -46,6 +46,9 @@ block content
                         span.otd-text-muted Sold out
 
             .otd-mt-3(style='border-top: 1px solid var(--otd-border); padding-top: 1rem')
+              .otd-mb-3
+                label.otd-label(for='pickup-name') Your name for pickup
+                input#pickup-name.otd-input(type='text', name='pickupName', maxlength='100', placeholder='e.g. Jane Smith', autocomplete='name')
               .d-flex.justify-content-between.align-items-center
                 div
                   span(style='font-weight: bold') Subtotal:&nbsp;

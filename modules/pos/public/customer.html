@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OTD — Customer Display</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body,
+      #customer-root {
+        height: 100%;
+        width: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f1117;
+        color: #e8e8e8;
+        overflow: hidden;
+      }
+
+      /* ── All states share centered flex column ── */
+      .display-idle,
+      .display-cart,
+      .display-awaiting,
+      .display-paid {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        padding: 40px;
+        text-align: center;
+      }
+
+      /* ── Idle ── */
+      .display-idle .store-logo {
+        font-size: 6rem;
+        margin-bottom: 24px;
+      }
+      .display-idle h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+      }
+      .display-idle p {
+        font-size: 1.5rem;
+        color: #888;
+      }
+
+      /* ── Cart ── */
+      .display-cart {
+        justify-content: flex-start;
+        padding-top: 60px;
+      }
+      .display-cart h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #4dabf7;
+        margin-bottom: 28px;
+      }
+      .order-items {
+        width: 100%;
+        max-width: 640px;
+        margin-bottom: 16px;
+      }
+      .order-item {
+        display: flex;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #2a2d3a;
+        font-size: 1.3rem;
+        align-items: center;
+      }
+      .item-qty {
+        color: #888;
+        min-width: 36px;
+        font-weight: 600;
+      }
+      .item-name {
+        flex: 1;
+        text-align: left;
+      }
+      .item-price {
+        color: #69db7c;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .order-totals {
+        width: 100%;
+        max-width: 640px;
+        border-top: 2px solid #2a2d3a;
+        padding-top: 16px;
+      }
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 20px;
+        font-size: 1.2rem;
+        color: #aaa;
+        font-variant-numeric: tabular-nums;
+      }
+      .total-row.grand {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #fff;
+        padding-top: 16px;
+        border-top: 1px solid #3a3d4a;
+        margin-top: 8px;
+      }
+
+      /* ── Awaiting payment ── */
+      .display-awaiting h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .total-big {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #4dabf7;
+        margin-bottom: 36px;
+        font-variant-numeric: tabular-nums;
+      }
+      .qr-code {
+        width: min(380px, 78vmin);
+        height: min(380px, 78vmin);
+        border-radius: 20px;
+        background: #fff;
+        padding: 14px;
+        margin-bottom: 28px;
+        display: block;
+        image-rendering: pixelated;
+      }
+      .hint {
+        font-size: 1.3rem;
+        color: #888;
+      }
+      .hint strong {
+        color: #e8e8e8;
+      }
+
+      /* ── Paid / thank-you ── */
+      .display-paid .big-check {
+        font-size: 6rem;
+        margin-bottom: 20px;
+      }
+      .display-paid h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: #69db7c;
+        margin-bottom: 8px;
+      }
+      .display-paid .total-big {
+        color: #fff;
+        margin-bottom: 36px;
+      }
+      .receipt-items {
+        width: 100%;
+        max-width: 520px;
+        border: 1px solid #2a2d3a;
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .receipt-item {
+        display: flex;
+        gap: 14px;
+        padding: 12px 18px;
+        font-size: 1.1rem;
+        border-bottom: 1px solid #2a2d3a;
+        align-items: center;
+      }
+      .receipt-item:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="customer-root"></div>
+    <script src="/pos/assets/customer.js"></script>
+  </body>
+</html>

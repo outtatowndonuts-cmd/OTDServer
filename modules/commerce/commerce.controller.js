@@ -138,9 +138,13 @@ async function postContact(req, res, next) {
  */
 async function createOrder(req, res, next) {
   try {
-    const { items, idempotencyKey } = req.body;
+    const { items, idempotencyKey, pickupName } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Order must have at least one item' });
+    }
+
+    if (!pickupName || !pickupName.trim()) {
+      return res.status(400).json({ error: 'Please enter a name for pickup' });
     }
 
     // Sanitize: only allow refId and positive integer quantity
@@ -152,6 +156,7 @@ async function createOrder(req, res, next) {
     const order = await commerceService.createOnlineOrder({
       items: sanitized,
       idempotencyKey,
+      pickupName: validator.escape(String(pickupName).trim()),
     });
 
     // Create Stripe Checkout Session

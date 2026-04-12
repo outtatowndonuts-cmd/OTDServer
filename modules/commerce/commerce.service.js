@@ -47,7 +47,7 @@ async function getStorefrontProducts() {
  * Create a pending online sale order.
  * Validates server-side availability before creation.
  */
-async function createOnlineOrder({ items, idempotencyKey }) {
+async function createOnlineOrder({ items, idempotencyKey, pickupName }) {
   // Validate availability at the component level
   const availability = await inventoryService.checkAvailability(items);
   if (!availability.available) {
@@ -84,6 +84,7 @@ async function createOnlineOrder({ items, idempotencyKey }) {
     paymentStatus: 'pending',
     status: 'pending',
     idempotencyKey,
+    pickupName: pickupName ? String(pickupName).trim().slice(0, 100) : undefined,
   });
 }
 

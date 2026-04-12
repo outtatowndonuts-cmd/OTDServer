@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'completed', 'cancelled'],
+      enum: ['pending', 'completed', 'filled', 'delivered', 'cancelled'],
       default: 'pending',
     },
     stripePaymentIntentId: { type: String },
@@ -59,6 +59,11 @@ const orderSchema = new mongoose.Schema(
     inventoryProcessed: {
       type: Boolean,
       default: false,
+    },
+    pickupName: {
+      type: String,
+      trim: true,
+      maxlength: 100,
     },
   },
   { timestamps: true },

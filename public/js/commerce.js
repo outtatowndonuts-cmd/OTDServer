@@ -67,6 +67,15 @@
     const items = getItems();
     if (items.length === 0) return;
 
+    const pickupNameInput = document.getElementById('pickup-name');
+    const pickupName = pickupNameInput ? pickupNameInput.value.trim() : '';
+    if (!pickupName) {
+      errorEl.textContent = 'Please enter your name for pickup.';
+      errorEl.style.display = 'block';
+      if (pickupNameInput) pickupNameInput.focus();
+      return;
+    }
+
     errorEl.style.display = 'none';
     checkoutBtn.disabled = true;
     loadingEl.style.display = 'block';
@@ -78,7 +87,7 @@
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items, pickupName }),
       });
 
       const data = await res.json();

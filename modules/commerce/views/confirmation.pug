@@ -6,7 +6,10 @@ block content
       .otd-confirmation
         if order.status === 'completed' && order.paymentStatus === 'paid'
           h1.otd-text-success &#10003; Order Confirmed
-          p.otd-text-muted Thank you. Your order has been placed.
+          if order.pickupName
+            p.otd-text-muted Thank you, #{ order.pickupName }. Your order has been placed.
+          else
+            p.otd-text-muted Thank you. Your order has been placed.
         else if order.status === 'pending'
           h1.otd-text-warning &#8987; Processing Payment
           p.otd-text-muted Your payment is being verified. This page will update shortly.
@@ -19,6 +22,10 @@ block content
 
         .otd-confirmation-card
           h3.otd-mb-2 Order Details
+          if order.pickupName
+            p.otd-mb-2
+              strong Pickup name:&nbsp;
+              span= order.pickupName
           table.otd-table
             thead
               tr

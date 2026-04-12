@@ -212,7 +212,7 @@ async function cancelOrder(orderId, { reason, user } = {}) {
  */
 async function refundOrder(orderId, { user, stripeRefundId } = {}) {
   const order = await Order.findOneAndUpdate(
-    { _id: orderId, status: 'completed', paymentStatus: 'paid' },
+    { _id: orderId, status: { $in: ['completed', 'filled'] }, paymentStatus: 'paid' },
     {
       paymentStatus: 'refunded',
       status: 'cancelled',
@@ -227,7 +227,7 @@ async function refundOrder(orderId, { user, stripeRefundId } = {}) {
     const exists = await Order.findById(orderId);
     if (!exists) throw new Error('Order not found');
     if (exists.paymentStatus === 'refunded') throw new Error('Order is already refunded');
-    if (exists.status !== 'completed') throw new Error('Only completed orders can be refunded');
+    if (!['completed', 'filled'].includes(exists.status)) throw new Error('Only completed or filled orders can be refunded');
     if (exists.paymentStatus !== 'paid') throw new Error('Only paid orders can be refunded');
     throw new Error('Order cannot be refunded');
   }
@@ -245,11 +245,41 @@ async function refundOrder(orderId, { user, stripeRefundId } = {}) {
   return order;
 }
 
+/**
+ * Mark a completed order as filled (bagged, ready for customer pickup).
+ */
+async function fillOrder(orderId) {
+  const order = await Order.findOneAndUpdate({ _id: orderId, status: 'completed' }, { status: 'filled' }, { new: true });
+  if (!order) {
+    const exists = await Order.findById(orderId);
+    if (!exists) throw new Error('Order not found');
+    throw new Error(`Order cannot be filled (current status: ${exists.status})`);
+  }
+  eventBus.emit('order.filled', order);
+  return order;
+}
+
+/**
+ * Mark a filled order as delivered (handed to customer, out of the queue).
+ */
+async function deliverOrder(orderId) {
+  const order = await Order.findOneAndUpdate({ _id: orderId, status: 'filled' }, { status: 'delivered' }, { new: true });
+  if (!order) {
+    const exists = await Order.findById(orderId);
+    if (!exists) throw new Error('Order not found');
+    throw new Error(`Order cannot be delivered (current status: ${exists.status})`);
+  }
+  eventBus.emit('order.delivered', order);
+  return order;
+}
+
 module.exports = {
   createOrder,
   getOrders,
   getOrderById,
   completeOrder,
+  fillOrder,
+  deliverOrder,
   getSettings,
   updateSettings,
   markOrderPaid,
