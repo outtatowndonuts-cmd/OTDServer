@@ -50,13 +50,25 @@ async function pickupPage(req, res, next) {
 }
 
 /**
- * GET /shop/custom-boxes — Coming soon page.
+ * GET /shop/custom-boxes — Custom box builder page.
+ * Fetches active box configs and available products to pass to the view.
  */
-function customBoxes(req, res) {
-  res.render(path.join(__dirname, 'views/custom-boxes'), {
-    title: 'Custom Boxes — Outta Town Donuts',
-    currentPage: 'custom-boxes',
-  });
+async function customBoxes(req, res, next) {
+  try {
+    const [boxConfigs, products] = await Promise.all([commerceService.getActiveCustomBoxConfigs(), commerceService.getStorefrontProducts()]);
+
+    const settings = await orderService.getSettings();
+
+    res.render(path.join(__dirname, 'views/custom-boxes'), {
+      title: 'Custom Boxes — Outta Town Donuts',
+      currentPage: 'custom-boxes',
+      boxConfigs: boxConfigs.map((c) => c.toObject()),
+      products,
+      preordersEnabled: settings.preordersEnabled !== false,
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 /**
@@ -218,6 +230,47 @@ async function stripeWebhook(req, res) {
   }
 }
 
+/**
+ * POST /shop/api/custom-box-order — Create a pending custom box order.
+ * Expects JSON: { boxConfigId, selections: [{ refId, quantity }], pickupName, idempotencyKey? }
+ */
+async function createCustomBoxOrder(req, res, next) {
+  try {
+    const { boxConfigId, selections, pickupName, idempotencyKey } = req.body;
+
+    if (!boxConfigId) {
+      return res.status(400).json({ error: 'boxConfigId is required' });
+    }
+    if (!selections || !Array.isArray(selections) || selections.length === 0) {
+      return res.status(400).json({ error: 'selections must be a non-empty array' });
+    }
+    if (!pickupName || !String(pickupName).trim()) {
+      return res.status(400).json({ error: 'Please enter a name for pickup' });
+    }
+
+    const sanitizedSelections = selections.map((s) => ({
+      refId: String(s.refId),
+      quantity: Math.max(1, Math.floor(Number(s.quantity) || 0)),
+    }));
+
+    const order = await commerceService.createCustomBoxOrder({
+      boxConfigId: String(boxConfigId),
+      selections: sanitizedSelections,
+      pickupName: validator.escape(String(pickupName).trim()),
+      idempotencyKey,
+    });
+
+    const session = await commerceService.createCheckoutSession(order);
+
+    return res.json({ orderId: order._id, checkoutUrl: session.url });
+  } catch (err) {
+    if (err.status === 409) {
+      return res.status(409).json({ error: err.message, shortages: err.shortages });
+    }
+    next(err);
+  }
+}
+
 module.exports = {
   index,
   pickupPage,
@@ -226,6 +279,7 @@ module.exports = {
   getContact,
   postContact,
   createOrder,
+  createCustomBoxOrder,
   confirmation,
   stripeWebhook,
 };

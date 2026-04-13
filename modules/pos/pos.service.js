@@ -1,6 +1,7 @@
 const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SKEY) : null;
 const catalogService = require('../../shared/catalog.service');
 const orderService = require('../../shared/order.service');
+const { CustomBoxConfig } = require('../commerce/custom-box.model');
 
 /**
  * Fetch all products for the POS product grid.
@@ -182,4 +183,12 @@ module.exports = {
   getCheckoutSession,
   getOrderById,
   getPendingQueue,
+  getCustomBoxConfigs,
 };
+
+/**
+ * Return active custom box configurations for the POS box builder.
+ */
+async function getCustomBoxConfigs() {
+  return CustomBoxConfig.find({ isActive: true }).sort({ size: 1 }).lean();
+}

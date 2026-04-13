@@ -4,6 +4,7 @@ import ProductGrid from './components/ProductGrid.jsx';
 import Cart from './components/Cart.jsx';
 import CashModal from './components/CashModal.jsx';
 import ReceiptModal from './components/ReceiptModal.jsx';
+import CustomBoxModal from './components/CustomBoxModal.jsx';
 import OrderQueue from './components/OrderQueue.jsx';
 
 /* ─── Helpers ──────────────────────────────────────────────── */
@@ -31,7 +32,8 @@ function App() {
   const [cart, setCart] = useState([]);
   const [taxRate, setTaxRate] = useState(0);
   const [csrfToken, setCsrfToken] = useState('');
-  const [modal, setModal] = useState(null); // null | 'cash' | 'awaiting' | 'receipt'
+  const [modal, setModal] = useState(null); // null | 'cash' | 'awaiting' | 'receipt' | 'customBox'
+  const [boxConfigs, setBoxConfigs] = useState([]);
   const [lastOrder, setLastOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [awaitingOrder, setAwaitingOrder] = useState(null); // { orderId, total }
@@ -49,9 +51,10 @@ function App() {
     const metaCsrf = document.querySelector('meta[name="csrf-token"]');
     if (metaCsrf) setCsrfToken(metaCsrf.content);
 
-    Promise.all([api('/api/catalog'), api('/api/settings')]).then(([catRes, setRes]) => {
+    Promise.all([api('/api/catalog'), api('/api/settings'), api('/api/custom-boxes')]).then(([catRes, setRes, boxRes]) => {
       if (catRes.ok) setProducts(catRes.products);
       if (setRes.ok) setTaxRate(setRes.settings.taxRate || 0);
+      if (boxRes.ok) setBoxConfigs(boxRes.configs || []);
       setLoading(false);
     });
   }, []);
@@ -120,6 +123,22 @@ function App() {
   }, []);
 
   const clearCart = useCallback(() => setCart([]), []);
+
+  /* ── Add custom-box items to cart (discounted, merged by refId) ── */
+  const addBoxToCart = useCallback((items) => {
+    setCart((prev) => {
+      let next = [...prev];
+      for (const item of items) {
+        const idx = next.findIndex((i) => i.refId === item.refId && i.nameSnapshot === item.nameSnapshot);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + item.quantity };
+        } else {
+          next = [...next, item];
+        }
+      }
+      return next;
+    });
+  }, []);
 
   /* ── Totals ── */
   const subtotal = cart.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
@@ -307,6 +326,26 @@ function App() {
 
       {/* ── Product Grid ── */}
       <section className="pos-grid-area">
+        {boxConfigs.length > 0 && (
+          <div style={{ padding: '8px 12px 0' }}>
+            <button
+              onClick={() => setModal('customBox')}
+              style={{
+                background: '#7c3aed',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px 18px',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginBottom: 8,
+              }}
+            >
+              📦 Build Custom Box
+            </button>
+          </div>
+        )}
         <ProductGrid products={products} onSelect={addToCart} />
       </section>
 
@@ -315,6 +354,8 @@ function App() {
 
       {/* ── Modals ── */}
       {modal === 'cash' && <CashModal total={total} onConfirm={handleCashConfirm} onCancel={() => setModal(null)} />}
+
+      {modal === 'customBox' && <CustomBoxModal configs={boxConfigs} products={products} onAddItems={addBoxToCart} onCancel={() => setModal(null)} />}
 
       {modal === 'awaiting' && <AwaitingModal total={awaitingOrder?.total || total} onCancel={cancelCardPayment} />}
 

@@ -2,6 +2,7 @@ const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SK
 const catalogService = require('../../shared/catalog.service');
 const orderService = require('../../shared/order.service');
 const inventoryService = require('../../shared/inventory.service');
+const { CustomBoxConfig } = require('./custom-box.model');
 
 /**
  * Get products with real-time availability for storefront display.
@@ -196,6 +197,92 @@ async function getOrderForConfirmation(orderId) {
   return orderService.getOrderById(orderId);
 }
 
+// ─── Custom Box Builder ───────────────────────────────────────────────────────
+
+/**
+ * Return active box configurations for the storefront.
+ */
+async function getActiveCustomBoxConfigs() {
+  return CustomBoxConfig.find({ isActive: true }).sort({ size: 1 });
+}
+
+/**
+ * Create an online order for a custom box selection.
+ *
+ * selections: [{ refId, quantity }]  — individual simple products the customer picked.
+ * boxConfigId: ObjectId of the CustomBoxConfig chosen.
+ * pickupName: string.
+ * idempotencyKey: optional string.
+ *
+ * The discount from the box config is applied as a single negative line item
+ * so the real product prices are preserved in order history.
+ */
+async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idempotencyKey }) {
+  const boxConfig = await CustomBoxConfig.findById(boxConfigId);
+  if (!boxConfig || !boxConfig.isActive) {
+    throw new Error('Box configuration not found or inactive');
+  }
+
+  const totalSelected = selections.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  if (totalSelected !== boxConfig.size) {
+    throw new Error(`A ${boxConfig.name} requires exactly ${boxConfig.size} items (you selected ${totalSelected})`);
+  }
+
+  // Validate each selection is a real, available, simple product
+  const orderItems = [];
+
+  for (const sel of selections) {
+    const qty = Math.max(1, Math.floor(Number(sel.quantity) || 0));
+    const product = await catalogService.getProductById(sel.refId);
+    if (!product) throw new Error(`Product not found: ${sel.refId}`);
+    if (product.productType !== 'simple') throw new Error(`Only individual products can be added to a custom box (${product.name})`);
+    if (!product.price || product.price <= 0) throw new Error(`Product not available for sale: ${product.name}`);
+    if (product.isActive === false) throw new Error(`Product is not active: ${product.name}`);
+
+    // Check display-case stock
+    const inv = await inventoryService.getInventoryItem(product._id);
+    const available = inv ? inv.quantity : 0;
+    if (available < qty) {
+      throw Object.assign(new Error(`Insufficient stock for ${product.name}`), {
+        status: 409,
+        shortages: [{ name: product.name, needed: qty, available }],
+      });
+    }
+
+    orderItems.push({
+      kind: 'product',
+      refId: product._id,
+      nameSnapshot: product.name,
+      quantity: qty,
+      priceSnapshot: product.price,
+    });
+  }
+
+  // Apply bundle discount: multiply each item's priceSnapshot by the discount factor.
+  // Prices are rounded to the nearest cent before being stored.
+  // Doing it per-item (rather than a single negative line) keeps all Stripe amounts positive
+  // and lets the server-side total calculation work without special cases.
+  if (boxConfig.discountPct > 0) {
+    const factor = 1 - boxConfig.discountPct / 100;
+    for (const item of orderItems) {
+      item.priceSnapshot = Math.round(item.priceSnapshot * factor * 100) / 100;
+    }
+  }
+
+  const order = await orderService.createOrder({
+    type: 'sale',
+    source: 'online',
+    items: orderItems,
+    paymentMethod: 'card',
+    paymentStatus: 'pending',
+    status: 'pending',
+    idempotencyKey,
+    pickupName: pickupName ? String(pickupName).trim().slice(0, 100) : undefined,
+  });
+
+  return order;
+}
+
 module.exports = {
   getStorefrontProducts,
   createOnlineOrder,
@@ -203,4 +290,6 @@ module.exports = {
   handleStripeWebhook,
   reconcileOrder,
   getOrderForConfirmation,
+  getActiveCustomBoxConfigs,
+  createCustomBoxOrder,
 };

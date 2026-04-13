@@ -205,3 +205,55 @@ exports.updateSettings = async (req, res) => {
     res.status(400).json({ ok: false, error: err.message });
   }
 };
+
+// ─── Custom Box Config ────────────────────────────────────────────────────────
+
+/**
+ * GET /admin/api/custom-boxes
+ */
+exports.getCustomBoxConfigs = async (req, res) => {
+  try {
+    const configs = await adminService.getCustomBoxConfigs();
+    res.json({ ok: true, configs });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/custom-boxes
+ */
+exports.createCustomBoxConfig = async (req, res) => {
+  try {
+    const config = await adminService.createCustomBoxConfig(req.body);
+    res.json({ ok: true, config });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/custom-boxes/:id
+ */
+exports.updateCustomBoxConfig = async (req, res) => {
+  try {
+    const config = await adminService.updateCustomBoxConfig(req.params.id, req.body);
+    res.json({ ok: true, config });
+  } catch (err) {
+    const status = err.message.includes('not found') ? 404 : 400;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * DELETE /admin/api/custom-boxes/:id
+ */
+exports.deleteCustomBoxConfig = async (req, res) => {
+  try {
+    await adminService.deleteCustomBoxConfig(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    const status = err.message.includes('not found') ? 404 : 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+};

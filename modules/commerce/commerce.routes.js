@@ -20,6 +20,7 @@ router.get('/confirmation', controller.confirmation);
 
 // ─── API (CSRF-protected, no auth) ────────────────────────────────────────────
 router.post('/api/order', controller.createOrder);
+router.post('/api/custom-box-order', controller.createCustomBoxOrder);
 
 // ─── Stripe Webhook (no CSRF, no auth, raw body) ─────────────────────────────
 // CSRF is explicitly skipped for this route in app.js.

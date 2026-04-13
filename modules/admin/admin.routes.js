@@ -38,6 +38,12 @@ router.post('/api/applications/:id/deny', passportConfig.isAuthenticated, requir
 router.get('/api/settings', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getSettings);
 router.post('/api/settings', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateSettings);
 
+// Custom Box Configs — read: admin+manager / write: admin only
+router.get('/api/custom-boxes', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getCustomBoxConfigs);
+router.post('/api/custom-boxes', passportConfig.isAuthenticated, requireRole('admin'), adminController.createCustomBoxConfig);
+router.post('/api/custom-boxes/:id', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateCustomBoxConfig);
+router.delete('/api/custom-boxes/:id', passportConfig.isAuthenticated, requireRole('admin'), adminController.deleteCustomBoxConfig);
+
 module.exports = {
   basePath: '/admin',
   router,

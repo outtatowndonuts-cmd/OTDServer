@@ -8,6 +8,7 @@ const orderService = require('../../shared/order.service');
 const inventoryService = require('../../shared/inventory.service');
 const audit = require('../../shared/audit');
 const User = require('../../models/User');
+const { CustomBoxConfig } = require('../commerce/custom-box.model');
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -166,6 +167,38 @@ async function denyApplication(userId, { actor } = {}) {
   return { id: user._id, email: user.email, status: user.status };
 }
 
+// ─── Custom Box Config ────────────────────────────────────────────────────────
+
+async function getCustomBoxConfigs() {
+  return CustomBoxConfig.find({}).sort({ createdAt: -1 });
+}
+
+async function createCustomBoxConfig({ name, size, discountPct, isActive }) {
+  const config = new CustomBoxConfig({
+    name: String(name).trim().slice(0, 100),
+    size: Math.max(1, Math.floor(Number(size))),
+    discountPct: Math.min(100, Math.max(0, Number(discountPct) || 0)),
+    isActive: isActive !== false,
+  });
+  return config.save();
+}
+
+async function updateCustomBoxConfig(id, { name, size, discountPct, isActive }) {
+  const config = await CustomBoxConfig.findById(id);
+  if (!config) throw new Error('Box config not found');
+  if (name !== undefined) config.name = String(name).trim().slice(0, 100);
+  if (size !== undefined) config.size = Math.max(1, Math.floor(Number(size)));
+  if (discountPct !== undefined) config.discountPct = Math.min(100, Math.max(0, Number(discountPct)));
+  if (isActive !== undefined) config.isActive = Boolean(isActive);
+  return config.save();
+}
+
+async function deleteCustomBoxConfig(id) {
+  const result = await CustomBoxConfig.findByIdAndDelete(id);
+  if (!result) throw new Error('Box config not found');
+  return result;
+}
+
 module.exports = {
   getDashboard,
   getOrders,
@@ -177,4 +210,8 @@ module.exports = {
   getApplications,
   approveApplication,
   denyApplication,
+  getCustomBoxConfigs,
+  createCustomBoxConfig,
+  updateCustomBoxConfig,
+  deleteCustomBoxConfig,
 };
