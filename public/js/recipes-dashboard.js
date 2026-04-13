@@ -238,6 +238,30 @@
       if (unitCost != null && qty > 0) ingredientCost += unitCost * qty;
     });
 
+    // Sum finishing component costs (product form)
+    form.querySelectorAll('#finishing-rows .item-row').forEach(function (row) {
+      if (!costs) return;
+      var typeSelect = row.querySelector('[data-role="fc-type"]');
+      var refSelect = row.querySelector('[data-role="fc-ref"]');
+      var qtyInput = row.querySelector('[name*="[quantity]"]');
+      var unitSelect = row.querySelector('select[name*="[unit]"]');
+      if (!typeSelect || !refSelect || !qtyInput) return;
+      var type = typeSelect.value;
+      var id = refSelect.value;
+      var qty = parseFloat(qtyInput.value) || 0;
+      if (!id || qty <= 0) return;
+      var key = `${type}:${id}`;
+      var info = costs[key];
+      if (!info) return;
+      if (type === 'Ingredient') {
+        var unit = unitSelect ? unitSelect.value : '';
+        var lineCost = computeIngredientLineCost(qty, unit, info.cost, info.unit);
+        if (lineCost != null) ingredientCost += lineCost;
+      } else {
+        ingredientCost += info.cost * qty;
+      }
+    });
+
     var laborCost = parseFloat(form.querySelector('#pr-labor') && form.querySelector('#pr-labor').value) || 0;
     var overheadCost = parseFloat(form.querySelector('#pr-overhead') && form.querySelector('#pr-overhead').value) || 0;
     var targetMargin = parseFloat(form.querySelector('#pr-margin') && form.querySelector('#pr-margin').value) || 30;
@@ -490,8 +514,14 @@
           syncFcType(fcTypeSelect);
           fcTypeSelect.addEventListener('change', function () {
             syncFcType(fcTypeSelect);
+            recalcCosting();
           });
         }
+        // Wire finishing component cost for cloned row
+        var fcRefSelect = clone.querySelector('[data-role="fc-ref"]');
+        var fcUnitSelect = clone.querySelector('select[name*="[unit]"]');
+        if (fcRefSelect) fcRefSelect.addEventListener('change', recalcCosting);
+        if (fcUnitSelect) fcUnitSelect.addEventListener('change', recalcCosting);
         // Wire cost display for cloned row
         var refSelect = clone.querySelector('[data-role="comp-ref"]');
         var ingSelect2 = clone.querySelector('select[name*="[ingredient]"]');
@@ -543,7 +573,18 @@
       syncFcType(typeSelect); // apply on load
       typeSelect.addEventListener('change', function () {
         syncFcType(typeSelect);
+        recalcCosting();
       });
+    });
+
+    // Finishing component cost: wire fc-ref + qty + unit changes for all existing rows
+    mainContent.querySelectorAll('#finishing-rows .item-row').forEach(function (row) {
+      var fcRef = row.querySelector('[data-role="fc-ref"]');
+      var qtyInput = row.querySelector('[name*="[quantity]"]');
+      var unitSelect = row.querySelector('select[name*="[unit]"]');
+      if (fcRef) fcRef.addEventListener('change', recalcCosting);
+      if (qtyInput) qtyInput.addEventListener('input', recalcCosting);
+      if (unitSelect) unitSelect.addEventListener('change', recalcCosting);
     });
 
     // Component cost display: wire qty + ref changes for all existing rows

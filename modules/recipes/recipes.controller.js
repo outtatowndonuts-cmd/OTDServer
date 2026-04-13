@@ -103,7 +103,14 @@ exports.fragmentProductsNew = async function (req, res) {
   const inStockIds = new Set(inStockItems.map((i) => i.refId.toString()));
   const inStockProducts = allProducts.filter((p) => p.productType === 'simple' && inStockIds.has(p._id.toString()));
   const prepProducts = prepItems.map((i) => ({ _id: i.refId, name: i.name }));
-  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing: null, defaults }, csrf(req));
+  const compCostData = {};
+  for (const ing of allIngredients) {
+    if (ing.purchaseCost != null) compCostData[`Ingredient:${ing._id}`] = { cost: ing.purchaseCost, unit: ing.purchaseUnit || '' };
+  }
+  for (const sup of allSupplies) {
+    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: 'each' };
+  }
+  frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing: null, defaults, compCostData, unitOptions: UNIT_OPTIONS }, csrf(req));
 };
 
 exports.fragmentProductsEdit = async function (req, res) {
@@ -121,7 +128,14 @@ exports.fragmentProductsEdit = async function (req, res) {
   const inStockProducts = allProducts.filter((p) => p.productType === 'simple' && inStockIds.has(p._id.toString()));
   const prepProducts = prepItems.map((i) => ({ _id: i.refId, name: i.name }));
   const costing = await service.calculateProductCosting(item);
-  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing }, csrf(req));
+  const compCostData = {};
+  for (const ing of allIngredients) {
+    if (ing.purchaseCost != null) compCostData[`Ingredient:${ing._id}`] = { cost: ing.purchaseCost, unit: ing.purchaseUnit || '' };
+  }
+  for (const sup of allSupplies) {
+    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: 'each' };
+  }
+  frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing, compCostData, unitOptions: UNIT_OPTIONS }, csrf(req));
 };
 
 // --- Supplier Fragments -------------------------------------------------------

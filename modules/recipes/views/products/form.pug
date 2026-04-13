@@ -3,6 +3,19 @@
 - var formAction = isEdit ? '/recipes/products/' + item._id : '/recipes/products';
 - var pType = isEdit ? item.productType || 'simple' : 'simple';
 
+mixin unitSel(fname, curVal)
+  select.form-select.form-select-sm(name=fname)
+    option(value='') — unit —
+    optgroup(label='Weight')
+      each u in unitOptions.weight
+        option(value=u, selected=curVal === u)= u
+    optgroup(label='Volume')
+      each u in unitOptions.volume
+        option(value=u, selected=curVal === u)= u
+    optgroup(label='Count')
+      each u in unitOptions.count
+        option(value=u, selected=curVal === u)= u
+
 .d-flex.justify-content-between.align-items-center.mb-4
   h5.mb-0= formTitle
   button.btn.btn-outline-secondary.btn-sm(type='button', data-action='cancel')
@@ -114,7 +127,7 @@ form#section-form(action=formAction, method='POST')
                 .col-2
                   input.form-control.form-control-sm(type='number', step='0.001', min='0', name=`finishingComponents[${idx}][quantity]`, value=fc.quantity || '')
                 .col-2
-                  input.form-control.form-control-sm(type='text', name=`finishingComponents[${idx}][unit]`, value=fc.unit || '', placeholder='oz, each...')
+                  +unitSel(`finishingComponents[${idx}][unit]`, fc.unit || '')
                 .col-1
                   button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
           else
@@ -135,9 +148,11 @@ form#section-form(action=formAction, method='POST')
               .col-2
                 input.form-control.form-control-sm(type='number', step='0.001', min='0', name='finishingComponents[0][quantity]')
               .col-2
-                input.form-control.form-control-sm(type='text', name='finishingComponents[0][unit]', placeholder='oz, each...')
+                +unitSel('finishingComponents[0][unit]', '')
               .col-1
                 button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
+
+  #comp-cost-data(data-costs=JSON.stringify(compCostData || {}), style='display: none')
 
   //- Bundle product fields
   #bundle-fields(style=pType === 'simple' ? 'display:none' : '')
@@ -242,31 +257,19 @@ form#section-form(action=formAction, method='POST')
               tr
                 td Component Cost
                 td.text-end
-                  if costing
-                    = fmtCurrency(costing.ingredientCost || 0)
-                  else
-                    span.text-muted --
+                  span#live-ingredient-cost= costing ? fmtCurrency(costing.ingredientCost || 0) : '—'
               tr
                 td Labor
                 td.text-end
-                  if costing
-                    = fmtCurrency(costing.laborCost || 0)
-                  else
-                    span.text-muted --
+                  span#live-labor-cost= costing ? fmtCurrency(costing.laborCost || 0) : '—'
               tr
                 td Overhead
                 td.text-end
-                  if costing
-                    = fmtCurrency(costing.overheadCost || 0)
-                  else
-                    span.text-muted --
+                  span#live-overhead-cost= costing ? fmtCurrency(costing.overheadCost || 0) : '—'
               tr.fw-bold.border-top
                 td Total COGS
                 td.text-end
-                  if costing
-                    = fmtCurrency(costing.totalCOGS || 0)
-                  else
-                    span.text-muted --
+                  span#live-total-cogs= costing ? fmtCurrency(costing.totalCOGS || 0) : '—'
         .col-md-6
           h6.text-muted.small.text-uppercase.fw-semibold.mb-2 Pricing Analysis
           table.table.table-sm.table-borderless.mb-0
@@ -274,27 +277,17 @@ form#section-form(action=formAction, method='POST')
               tr
                 td Selling Price
                 td.text-end
-                  if costing && costing.price > 0
-                    = fmtCurrency(costing.price)
-                  else
-                    span.text-muted --
+                  span#live-price= costing && costing.price > 0 ? fmtCurrency(costing.price) : '—'
               tr
                 td Gross Margin
                 td.text-end
-                  if costing && costing.margin !== null && costing.margin !== undefined
-                    - var mc = costing.margin < 0 ? 'text-danger' : costing.margin < 20 ? 'text-warning' : 'text-success';
-                    span(class=mc)= costing.margin.toFixed(1) + '%'
-                  else
-                    span.text-muted --
+                  - var initMarginClass = costing && costing.margin != null ? (costing.margin < 0 ? 'fw-bold text-danger' : costing.margin < 20 ? 'fw-bold text-warning' : 'fw-bold text-success') : '';
+                  span#live-margin(class=initMarginClass)= costing && costing.margin != null ? costing.margin.toFixed(1) + '%' : '—'
               tr.border-top
                 td Suggested Price
                 td.text-end
-                  if costing && costing.suggestedPrice > 0
-                    small.text-muted at&nbsp;
-                    = costing.targetMargin + '% margin: '
-                    strong= fmtCurrency(costing.suggestedPrice)
-                  else
-                    span.text-muted --
+                  span#live-target-pct.d-none= costing ? costing.targetMargin : ''
+                  span#live-suggested-price= costing && costing.suggestedPrice > 0 ? fmtCurrency(costing.suggestedPrice) : '—'
 
   .mt-4.d-flex.gap-2
     button.btn.btn-primary(type='submit')
