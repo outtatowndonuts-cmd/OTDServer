@@ -1,14 +1,28 @@
 const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SKEY) : null;
 const catalogService = require('../../shared/catalog.service');
 const orderService = require('../../shared/order.service');
+const inventoryService = require('../../shared/inventory.service');
 const { CustomBoxConfig } = require('../commerce/custom-box.model');
 
 /**
- * Fetch all products for the POS product grid.
+ * Fetch all products for the POS product grid, enriched with live display-case stock.
  */
 async function getCatalog() {
   const products = await catalogService.getProducts();
-  return products;
+
+  // Fetch all product-kind inventory items in one query and build a lookup map
+  const invItems = await inventoryService.getInventory({ kind: 'product' });
+  const stockMap = {};
+  for (const item of invItems) {
+    stockMap[item.refId.toString()] = item.quantity;
+  }
+
+  // Attach inventoryQty to each product (default 0 if not tracked yet)
+  return products.map((p) => {
+    const obj = p.toObject ? p.toObject() : { ...p };
+    obj.inventoryQty = stockMap[p._id.toString()] ?? 0;
+    return obj;
+  });
 }
 
 /**

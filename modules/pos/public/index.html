@@ -364,6 +364,14 @@
         transform: scale(0.95);
         border-color: #4dabf7;
       }
+      .product-card--oos {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .product-card--oos:active {
+        transform: none;
+        border-color: #2a2d3a;
+      }
       .product-card .product-name {
         font-size: 1rem;
         font-weight: 600;
@@ -373,6 +381,26 @@
         font-size: 0.9rem;
         color: #69db7c;
         font-weight: 500;
+      }
+      .product-stock {
+        font-size: 0.75rem;
+        margin-top: 5px;
+        color: #6c757d;
+      }
+      .product-stock--low {
+        color: #ffa94d;
+      }
+      .product-stock--oos {
+        color: #fa5252;
+        font-weight: 600;
+      }
+      .cart-item-max-label {
+        font-size: 0.7rem;
+        color: #fa5252;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: 4px;
+        align-self: center;
       }
 
       /* ── Cart Panel ────────────────────────────────────────── */

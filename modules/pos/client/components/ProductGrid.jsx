@@ -10,12 +10,17 @@ export default function ProductGrid({ products, onSelect }) {
 
   return (
     <div className="product-grid">
-      {products.map((p) => (
-        <div key={p._id} className="product-card" onClick={() => onSelect(p)}>
-          <div className="product-name">{p.name}</div>
-          <div className="product-price">{fmt(p.price || 0)}</div>
-        </div>
-      ))}
+      {products.map((p) => {
+        const stock = p.inventoryQty ?? 0;
+        const outOfStock = stock <= 0;
+        return (
+          <div key={p._id} className={`product-card${outOfStock ? ' product-card--oos' : ''}`} onClick={() => !outOfStock && onSelect(p)} title={outOfStock ? 'Out of stock' : `${stock} in stock`}>
+            <div className="product-name">{p.name}</div>
+            <div className="product-price">{fmt(p.price || 0)}</div>
+            <div className={`product-stock${outOfStock ? ' product-stock--oos' : stock <= 3 ? ' product-stock--low' : ''}`}>{outOfStock ? 'Out of stock' : `${stock} avail.`}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }

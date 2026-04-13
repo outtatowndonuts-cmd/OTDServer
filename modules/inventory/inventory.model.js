@@ -8,6 +8,7 @@ const inventoryItemSchema = new mongoose.Schema(
     refId: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     quantity: { type: Number, required: true, default: 0 },
+    unit: { type: String, default: '' },
   },
   { timestamps: true },
 );
@@ -21,6 +22,7 @@ const inventoryBatchSchema = new mongoose.Schema(
     orderId: { type: mongoose.Schema.Types.ObjectId },
     producedQty: { type: Number, required: true },
     remainingQty: { type: Number, required: true },
+    unit: { type: String, default: '' },
     producedAt: { type: Date, default: Date.now },
     expiresAt: { type: Date },
     status: { type: String, enum: ['active', 'depleted', 'culled'], default: 'active' },
@@ -44,6 +46,7 @@ const purchaseOrderItemSchema = new mongoose.Schema(
     refId: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0.001 },
+    unit: { type: String, default: '' },
     unitCost: { type: Number, default: 0 },
     totalCost: { type: Number, default: 0 },
   },

@@ -59,6 +59,7 @@
             th Kind
             th Item
             th Qty
+            th Unit
             th Unit Cost
             th Line Total
         tbody
@@ -71,9 +72,14 @@
                   span.badge.bg-info Ingredient
               td= item.name
               td= item.quantity
+              td
+                if item.unit
+                  = item.unit
+                else
+                  span.text-muted —
               td= fmtCurrency(item.unitCost || 0)
               td.fw-semibold= fmtCurrency(item.totalCost || 0)
         tfoot
           tr
-            td.text-end.fw-bold(colspan='4') Subtotal
+            td.text-end.fw-bold(colspan='5') Subtotal
             td.fw-bold.fs-5= fmtCurrency(po.subtotal)

@@ -44,6 +44,9 @@ form#po-form(data-suppliers=suppliers, data-supplies=supplies, data-ingredients=
       .col-md-2
         label.form-label Qty *
         input.form-control.po-item-qty(type='number', name='items[0][quantity]', step='any', min='0.001', required)
+      .col-md-1
+        label.form-label Unit
+        input.form-control-plaintext.po-item-unit.fw-semibold.text-muted(type='text', name='items[0][unit]', readonly, tabindex='-1', placeholder='—')
       .col-md-2
         label.form-label Unit Cost
         input.form-control-plaintext.po-item-cost.fw-semibold(type='number', name='items[0][unitCost]', readonly, tabindex='-1')

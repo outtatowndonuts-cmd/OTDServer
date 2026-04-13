@@ -82,6 +82,7 @@ export default function Dashboard({ api }) {
                 <th>Item</th>
                 <th>Kind</th>
                 <th>Quantity</th>
+                <th>Unit</th>
               </tr>
             </thead>
             <tbody>
@@ -92,6 +93,7 @@ export default function Dashboard({ api }) {
                   <td>
                     <span className={`badge ${item.quantity <= 0 ? 'badge-red' : 'badge-yellow'}`}>{item.quantity}</span>
                   </td>
+                  <td style={{ color: '#9ca3af' }}>{item.unit || '—'}</td>
                 </tr>
               ))}
             </tbody>

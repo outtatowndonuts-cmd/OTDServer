@@ -13,6 +13,7 @@ module.exports = {
   adjustStock: inventoryService.adjustStock,
   safeDeduct: inventoryService.safeDeduct,
   checkAvailability: inventoryService.checkAvailability,
+  checkOrderAvailability: inventoryService.checkOrderAvailability,
   getBatches: inventoryService.getBatches,
   getBatchById: inventoryService.getBatchById,
 };

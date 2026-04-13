@@ -59,6 +59,21 @@ function App() {
     });
   }, []);
 
+  /* ── Refresh catalog (inventory quantities) every 30 s ── */
+  const fetchCatalog = useCallback(async () => {
+    try {
+      const res = await api('/api/catalog');
+      if (res.ok) setProducts(res.products);
+    } catch {
+      /* ignore transient errors */
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(fetchCatalog, 30000);
+    return () => clearInterval(id);
+  }, [fetchCatalog]);
+
   /* ── Poll pending queue every 15 s ── */
   const fetchQueue = useCallback(async () => {
     try {
@@ -94,51 +109,82 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart, csrfToken, displayId]); // subtotal/tax/total derived, but captured at call time via closure
 
-  /* ── Cart helpers ── */
-  const addToCart = useCallback((product) => {
-    setCart((prev) => {
-      const idx = prev.findIndex((i) => i.refId === product._id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
-        return next;
-      }
-      return [
-        ...prev,
-        {
-          kind: 'product',
-          refId: product._id,
-          nameSnapshot: product.name,
-          priceSnapshot: product.price || 0,
-          quantity: 1,
-        },
-      ];
-    });
-  }, []);
+  /* ── Stock lookup helper ── */
+  const stockFor = useCallback(
+    (refId) => {
+      const p = products.find((x) => x._id === refId);
+      return p ? (p.inventoryQty ?? Infinity) : Infinity;
+    },
+    [products],
+  );
 
-  const updateQty = useCallback((refId, delta) => {
-    setCart((prev) => {
-      return prev.map((i) => (i.refId === refId ? { ...i, quantity: i.quantity + delta } : i)).filter((i) => i.quantity > 0);
-    });
-  }, []);
+  /* ── Cart helpers ── */
+  const addToCart = useCallback(
+    (product) => {
+      const max = product.inventoryQty ?? Infinity;
+      setCart((prev) => {
+        const idx = prev.findIndex((i) => i.refId === product._id);
+        if (idx >= 0) {
+          if (prev[idx].quantity >= max) return prev; // at stock limit
+          const next = [...prev];
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+          return next;
+        }
+        if (max <= 0) return prev; // nothing in stock
+        return [
+          ...prev,
+          {
+            kind: 'product',
+            refId: product._id,
+            nameSnapshot: product.name,
+            priceSnapshot: product.price || 0,
+            quantity: 1,
+          },
+        ];
+      });
+    },
+    [products],
+  );
+
+  const updateQty = useCallback(
+    (refId, delta) => {
+      setCart((prev) => {
+        return prev
+          .map((i) => {
+            if (i.refId !== refId) return i;
+            const newQty = i.quantity + delta;
+            if (delta > 0 && newQty > stockFor(refId)) return i; // cap at stock
+            return { ...i, quantity: newQty };
+          })
+          .filter((i) => i.quantity > 0);
+      });
+    },
+    [stockFor],
+  );
 
   const clearCart = useCallback(() => setCart([]), []);
 
   /* ── Add custom-box items to cart (discounted, merged by refId) ── */
-  const addBoxToCart = useCallback((items) => {
-    setCart((prev) => {
-      let next = [...prev];
-      for (const item of items) {
-        const idx = next.findIndex((i) => i.refId === item.refId && i.nameSnapshot === item.nameSnapshot);
-        if (idx >= 0) {
-          next[idx] = { ...next[idx], quantity: next[idx].quantity + item.quantity };
-        } else {
-          next = [...next, item];
+  const addBoxToCart = useCallback(
+    (items) => {
+      setCart((prev) => {
+        let next = [...prev];
+        for (const item of items) {
+          const product = products.find((p) => p._id === item.refId);
+          const maxQty = product ? (product.inventoryQty ?? Infinity) : Infinity;
+          const idx = next.findIndex((i) => i.refId === item.refId && i.nameSnapshot === item.nameSnapshot);
+          if (idx >= 0) {
+            const merged = next[idx].quantity + item.quantity;
+            next[idx] = { ...next[idx], quantity: Math.min(merged, maxQty) };
+          } else {
+            next = [...next, { ...item, quantity: Math.min(item.quantity, maxQty) }];
+          }
         }
-      }
-      return next;
-    });
-  }, []);
+        return next;
+      });
+    },
+    [products],
+  );
 
   /* ── Totals ── */
   const subtotal = cart.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
@@ -191,9 +237,10 @@ function App() {
       setLastOrder({ ...comp.order, paymentMethod: 'cash', cashReceived, change: cashReceived - total });
       setCart([]);
       setModal('receipt');
+      fetchCatalog();
       return { ok: true };
     },
-    [submitOrder, completeOrder, total],
+    [submitOrder, completeOrder, total, fetchCatalog],
   );
 
   /* ── Price override ── */
@@ -210,7 +257,8 @@ function App() {
     setLastOrder({ ...comp.order, paymentMethod: 'donation' });
     setCart([]);
     setModal('receipt');
-  }, [submitOrder, completeOrder]);
+    fetchCatalog();
+  }, [submitOrder, completeOrder, fetchCatalog]);
 
   /* ── Card flow — Stripe Checkout Session ── */
   const handleCardPayment = useCallback(async () => {
@@ -257,12 +305,13 @@ function App() {
           setAwaitingOrder(null);
           setCart([]);
           setModal('receipt');
+          fetchCatalog();
         }
       } catch {
         /* ignore transient errors */
       }
     }, 2000);
-  }, [cart, subtotal, tax, total, csrfToken, displayId]);
+  }, [cart, subtotal, tax, total, csrfToken, displayId, fetchCatalog]);
 
   /* ── Cancel a pending card checkout ── */
   const cancelCardPayment = useCallback(async () => {
@@ -350,12 +399,12 @@ function App() {
       </section>
 
       {/* ── Cart ── */}
-      <Cart items={cart} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={handleCardPayment} onPayDonate={handleDonate} onOverridePrice={overridePrice} />
+      <Cart items={cart} products={products} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={handleCardPayment} onPayDonate={handleDonate} onOverridePrice={overridePrice} />
 
       {/* ── Modals ── */}
       {modal === 'cash' && <CashModal total={total} onConfirm={handleCashConfirm} onCancel={() => setModal(null)} />}
 
-      {modal === 'customBox' && <CustomBoxModal configs={boxConfigs} products={products} onAddItems={addBoxToCart} onCancel={() => setModal(null)} />}
+      {modal === 'customBox' && <CustomBoxModal configs={boxConfigs} products={products} cart={cart} onAddItems={addBoxToCart} onCancel={() => setModal(null)} />}
 
       {modal === 'awaiting' && <AwaitingModal total={awaitingOrder?.total || total} onCancel={cancelCardPayment} />}
 

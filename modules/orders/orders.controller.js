@@ -117,8 +117,22 @@ exports.getOrder = async function (req, res) {
 // --- API: Complete order ------------------------------------------------------
 exports.completeOrder = async function (req, res) {
   try {
-    const order = await service.completeOrder(req.params.id);
-    res.json({ ok: true, order });
+    const order = await service.getOrderById(req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+
+    const avail = await inventoryService.checkOrderAvailability(order);
+    if (!avail.available) {
+      const lines = avail.shortages.map((s) => {
+        const u = s.unit ? ` ${s.unit}` : '';
+        const needed = Number.isInteger(s.needed) ? s.needed : +s.needed.toFixed(3);
+        const have = Number.isInteger(s.available) ? s.available : +s.available.toFixed(3);
+        return `- ${s.name} (${s.kind}): need ${needed}${u}, have ${have}${u}`;
+      });
+      return res.status(400).json({ ok: false, error: `Insufficient stock:\n${lines.join('\n')}` });
+    }
+
+    const completed = await service.completeOrder(req.params.id);
+    res.json({ ok: true, order: completed });
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message });
   }

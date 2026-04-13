@@ -212,6 +212,7 @@
         $row.find('.po-item-ref').val(ing._id.toString());
         $row.find('input[name$="[name]"]').val(ing.name);
         $row.find('.po-item-cost').val(ing.purchaseCost || '');
+        $row.find('.po-item-unit').val(ing.purchaseUnit || '');
         if (idx > 0) $container.append($row);
       });
 
@@ -229,6 +230,7 @@
       var $opt = $(this).find('option:selected');
       $row.find('input[name$="[name]"]').val($opt.data('name') || '');
       $row.find('.po-item-cost').val($opt.data('cost') || '');
+      $row.find('.po-item-unit').val($opt.data('unit') || '');
       recalcPO();
     });
 
@@ -280,11 +282,12 @@
       var unit = kind === 'supply' ? item.unit || '' : item.purchaseUnit || '';
       var lbl = item.name;
       if (unit) lbl += ` (${unit})`;
-      html += `<option value="${item._id}" data-name="${item.name.replace(/"/g, '&quot;')}" data-cost="${cost}">${lbl}</option>`;
+      html += `<option value="${item._id}" data-name="${item.name.replace(/"/g, '&quot;')}" data-cost="${cost}" data-unit="${unit}">${lbl}</option>`;
     });
     $select.html(html);
     $row.find('input[name$="[name]"]').val('');
     $row.find('.po-item-cost').val('');
+    $row.find('.po-item-unit').val('');
     recalcPO();
   }
 

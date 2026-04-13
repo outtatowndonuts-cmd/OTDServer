@@ -36,6 +36,7 @@ export default function Inventory({ api }) {
               <th>Item</th>
               <th>Kind</th>
               <th>Quantity</th>
+              <th>Unit</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -45,6 +46,7 @@ export default function Inventory({ api }) {
                 <td>{item.name}</td>
                 <td>{item.kind}</td>
                 <td style={{ fontWeight: 600 }}>{item.quantity}</td>
+                <td style={{ color: '#9ca3af' }}>{item.unit || '—'}</td>
                 <td>{statusBadge(item.quantity)}</td>
               </tr>
             ))}

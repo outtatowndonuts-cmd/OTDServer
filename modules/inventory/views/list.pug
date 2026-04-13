@@ -11,6 +11,7 @@ if items && items.length
           th Name
           th Kind
           th Quantity
+          th Unit
           th Last Updated
       tbody
         each item in items
@@ -32,6 +33,11 @@ if items && items.length
                 span.text-warning= item.quantity
               else
                 span= item.quantity
+            td
+              if item.unit
+                span.text-muted= item.unit
+              else
+                span.text-muted —
             td= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'
   #inventory-empty-filter.text-center.py-5.text-muted.d-none
     i.fas.fa-filter-circle-xmark.fa-3x.mb-3.d-block

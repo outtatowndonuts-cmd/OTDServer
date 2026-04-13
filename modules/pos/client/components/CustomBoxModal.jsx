@@ -63,9 +63,26 @@ function BoxTypePicker({ configs, onSelect, onCancel }) {
 }
 
 /* ─── Phase 2: Fill the box ────────────────────────────────── */
-function BoxFiller({ box, products, onConfirm, onBack }) {
+function BoxFiller({ box, products, cart, onConfirm, onBack }) {
   // qty map: productId -> qty
   const [qtys, setQtys] = useState({});
+
+  // How many of each product is already committed in the cart
+  const cartQty = useCallback(
+    (pid) => {
+      return cart.filter((i) => i.refId === pid).reduce((s, i) => s + i.quantity, 0);
+    },
+    [cart],
+  );
+
+  // Effective available stock for this product (accounting for what's already in the cart)
+  const availableFor = useCallback(
+    (p) => {
+      const stock = p.inventoryQty ?? Infinity;
+      return Math.max(0, stock - cartQty(p._id));
+    },
+    [cartQty],
+  );
 
   const totalSelected = Object.values(qtys).reduce((s, q) => s + q, 0);
   const remaining = box.size - totalSelected;
@@ -82,14 +99,14 @@ function BoxFiller({ box, products, onConfirm, onBack }) {
   const net = Math.max(0, Math.round((gross - discountAmt) * 100) / 100);
 
   const setQty = useCallback(
-    (pid, delta, max) => {
+    (pid, delta, maxStock) => {
       setQtys((prev) => {
         const cur = prev[pid] || 0;
         let next = cur + delta;
         if (next < 0) next = 0;
-        if (next > max) next = max;
+        if (next > maxStock) next = maxStock; // never exceed available stock
 
-        // Cap at remaining capacity when adding
+        // Cap at remaining box capacity when adding
         if (delta > 0) {
           const otherTotal = Object.entries(prev)
             .filter(([k]) => k !== pid)
@@ -201,16 +218,22 @@ function BoxFiller({ box, products, onConfirm, onBack }) {
                 .filter((p) => p.productType !== 'bundle')
                 .map((p) => {
                   const qty = qtys[p._id] || 0;
-                  const hasStock = (p.inventoryQty ?? Infinity) > 0;
+                  const maxStock = availableFor(p);
+                  const hasStock = maxStock > 0;
+                  const atMax = qty >= maxStock;
+                  const boxFull = remaining <= 0;
                   return (
-                    <tr key={p._id} style={{ borderTop: '1px solid #1e2130' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: qty > 0 ? 600 : 400 }}>{p.name}</td>
+                    <tr key={p._id} style={{ borderTop: '1px solid #1e2130', opacity: hasStock ? 1 : 0.45 }}>
+                      <td style={{ padding: '10px 8px', fontWeight: qty > 0 ? 600 : 400 }}>
+                        {p.name}
+                        {hasStock && maxStock < Infinity && <span style={{ marginLeft: 6, fontSize: '0.75rem', color: maxStock <= 3 ? '#ffa94d' : '#6b7280' }}>({maxStock} avail.)</span>}
+                      </td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', color: '#9ca3af' }}>{fmt(p.price || 0)}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                         {hasStock ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                             <button
-                              onClick={() => setQty(p._id, -1, Infinity)}
+                              onClick={() => setQty(p._id, -1, maxStock)}
                               disabled={qty === 0}
                               style={{
                                 width: 30,
@@ -237,16 +260,17 @@ function BoxFiller({ box, products, onConfirm, onBack }) {
                               {qty}
                             </span>
                             <button
-                              onClick={() => setQty(p._id, 1, Infinity)}
-                              disabled={remaining <= 0 && qty === 0}
+                              onClick={() => setQty(p._id, 1, maxStock)}
+                              disabled={(boxFull && qty === 0) || atMax}
+                              title={atMax ? `Only ${maxStock} available` : undefined}
                               style={{
                                 width: 30,
                                 height: 30,
                                 borderRadius: 6,
                                 border: 'none',
-                                background: remaining <= 0 && qty === 0 ? '#1e2130' : '#1d4ed8',
-                                color: remaining <= 0 && qty === 0 ? '#4b5563' : '#fff',
-                                cursor: remaining <= 0 && qty === 0 ? 'default' : 'pointer',
+                                background: (boxFull && qty === 0) || atMax ? '#1e2130' : '#1d4ed8',
+                                color: (boxFull && qty === 0) || atMax ? '#4b5563' : '#fff',
+                                cursor: (boxFull && qty === 0) || atMax ? 'default' : 'pointer',
                                 fontWeight: 700,
                                 fontSize: '1.1rem',
                               }}
@@ -299,7 +323,7 @@ function BoxFiller({ box, products, onConfirm, onBack }) {
 }
 
 /* ─── Main export: orchestrates phases ─────────────────────── */
-export default function CustomBoxModal({ configs, products, onAddItems, onCancel }) {
+export default function CustomBoxModal({ configs, products, cart, onAddItems, onCancel }) {
   const [selectedBox, setSelectedBox] = useState(null);
 
   if (!selectedBox) {
@@ -310,6 +334,7 @@ export default function CustomBoxModal({ configs, products, onAddItems, onCancel
     <BoxFiller
       box={selectedBox}
       products={products}
+      cart={cart}
       onConfirm={(items) => {
         onAddItems(items);
         onCancel(); // close modal after adding

@@ -25,12 +25,19 @@ if batches && batches.length
         each batch in batches
           tr(class=batch.status === 'culled' ? 'table-secondary' : batch.expiresAt && new Date(batch.expiresAt) < new Date() ? 'table-danger' : '')
             td= batch.name
-            td= batch.producedQty
+            td
+              = batch.producedQty
+              if batch.unit
+                small.text-muted.ms-1= batch.unit
             td
               if batch.remainingQty <= 0
                 span.text-muted 0
+                if batch.unit
+                  small.text-muted.ms-1= batch.unit
               else
                 span.fw-bold= batch.remainingQty
+                if batch.unit
+                  small.text-muted.ms-1= batch.unit
             td= batch.producedAt ? new Date(batch.producedAt).toLocaleDateString() : '—'
             td
               if batch.expiresAt
