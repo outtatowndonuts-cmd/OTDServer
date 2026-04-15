@@ -12,6 +12,7 @@ const customBoxConfigSchema = new mongoose.Schema(
     size: { type: Number, required: true, min: 1, max: 500 },
     discountPct: { type: Number, required: true, min: 0, max: 100, default: 0 },
     isActive: { type: Boolean, default: true },
+    packagingSupply: { type: mongoose.Schema.Types.ObjectId, ref: 'Supply', default: null },
   },
   { timestamps: true },
 );

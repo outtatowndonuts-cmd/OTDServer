@@ -39,6 +39,7 @@ router.get('/api/settings', passportConfig.isAuthenticated, requireRole('admin',
 router.post('/api/settings', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateSettings);
 
 // Custom Box Configs — read: admin+manager / write: admin only
+router.get('/api/supplies', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getSupplies);
 router.get('/api/custom-boxes', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getCustomBoxConfigs);
 router.post('/api/custom-boxes', passportConfig.isAuthenticated, requireRole('admin'), adminController.createCustomBoxConfig);
 router.post('/api/custom-boxes/:id', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateCustomBoxConfig);

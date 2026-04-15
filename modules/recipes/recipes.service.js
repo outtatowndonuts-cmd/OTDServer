@@ -90,10 +90,10 @@ async function createProduct(data) {
   return Product.create(data);
 }
 async function getProducts() {
-  return Product.find().populate('recipe', 'name yield yieldUnit').populate('bundleItems.product', 'name price');
+  return Product.find().populate('recipe', 'name yield yieldUnit');
 }
 async function getProductById(id) {
-  return Product.findById(id).populate('recipe', 'name yield yieldUnit').populate('bundleItems.product', 'name price');
+  return Product.findById(id).populate('recipe', 'name yield yieldUnit');
 }
 async function getProductsByRecipe(recipeId) {
   return Product.find({ recipe: recipeId });
@@ -102,8 +102,6 @@ async function updateProduct(id, data) {
   return Product.findByIdAndUpdate(id, data, { new: true });
 }
 async function deleteProduct(id) {
-  const usedInBundles = await Product.countDocuments({ 'bundleItems.product': id });
-  if (usedInBundles > 0) throw new Error(`Cannot delete: product is used in ${usedInBundles} bundle(s)`);
   return Product.findByIdAndDelete(id);
 }
 
@@ -172,8 +170,18 @@ function calculateRecipeCostSync(recipe, _visited, recipeMap) {
     if (!subCost.canCalculate) {
       missingCount += 1;
     }
-    // line.quantity is in the sub-recipe's yield units
-    costPerBatch += subCost.costPerUnit * (Number(line.quantity) || 0);
+    // Convert line.quantity from line.unit → sub-recipe yieldUnit before costing
+    const subLineUnit = line.unit && line.unit.trim() ? line.unit.trim() : subCost.yieldUnit;
+    let subLineQty = Number(line.quantity) || 0;
+    if (subLineUnit !== subCost.yieldUnit) {
+      const converted = units.convert(subLineQty, subLineUnit, subCost.yieldUnit);
+      if (converted === null) {
+        missingCount += 1;
+        continue;
+      }
+      subLineQty = converted;
+    }
+    costPerBatch += subCost.costPerUnit * subLineQty;
   }
   const canCalculate = hasIngredients && missingCount === 0;
   const yieldQty = Number(recipe.yield) || 1;
@@ -222,7 +230,18 @@ async function calculateRecipeCost(recipeId, _visited) {
     // so pass it directly — calculateRecipeCost accepts ObjectId or string.
     const subCost = await calculateRecipeCost(line.recipe, visited);
     if (!subCost.canCalculate) missingCount += 1;
-    costPerBatch += subCost.costPerUnit * (Number(line.quantity) || 0);
+    // Convert line.quantity from line.unit → sub-recipe yieldUnit before costing
+    const subLineUnit = line.unit && line.unit.trim() ? line.unit.trim() : subCost.yieldUnit;
+    let subLineQty = Number(line.quantity) || 0;
+    if (subLineUnit !== subCost.yieldUnit) {
+      const converted = units.convert(subLineQty, subLineUnit, subCost.yieldUnit);
+      if (converted === null) {
+        missingCount += 1;
+        continue;
+      }
+      subLineQty = converted;
+    }
+    costPerBatch += subCost.costPerUnit * subLineQty;
   }
 
   const canCalculate = hasIngredients && missingCount === 0;
@@ -237,44 +256,55 @@ async function calculateProductCosting(product) {
   let ingredientCost = 0;
   let canCalculate = true;
 
-  if (product.productType === 'bundle') {
-    // Bundle COGS = sum of component product prices (placeholder — no production cost)
-    for (const bi of product.bundleItems || []) {
-      const comp = await Product.findById(bi.product).lean();
-      if (!comp || comp.price == null) {
+  // Simple product: base recipe cost × baseQty + finishing components
+  if (product.recipe) {
+    const rc = await calculateRecipeCost(product.recipe);
+    if (!rc.canCalculate) canCalculate = false;
+    ingredientCost += rc.costPerUnit * (Number(product.baseQty) || 1);
+  }
+  for (const fc of product.finishingComponents || []) {
+    if (fc.type === 'Ingredient' || (fc.type || '').toLowerCase() === 'ingredient') {
+      const ing = await Ingredient.findById(fc.ref).lean();
+      if (!ing || ing.purchaseCost == null || !ing.purchaseUnit) {
         canCalculate = false;
         continue;
       }
-      ingredientCost += comp.price * (Number(bi.quantity) || 1);
-    }
-  } else {
-    // Simple product: base recipe cost × baseQty + finishing components
-    if (product.recipe) {
-      const rc = await calculateRecipeCost(product.recipe);
-      if (!rc.canCalculate) canCalculate = false;
-      ingredientCost += rc.costPerUnit * (Number(product.baseQty) || 1);
-    }
-    for (const fc of product.finishingComponents || []) {
-      if (fc.type === 'Ingredient' || (fc.type || '').toLowerCase() === 'ingredient') {
-        const ing = await Ingredient.findById(fc.ref).lean();
-        if (!ing || ing.purchaseCost == null || !ing.purchaseUnit) {
-          canCalculate = false;
-          continue;
+      const fcUnit = fc.unit && fc.unit.trim() ? fc.unit.trim() : ing.purchaseUnit;
+      const fcCost = units.lineCost(Number(fc.quantity) || 0, fcUnit, ing.purchaseCost, ing.purchaseUnit);
+      if (fcCost === null) {
+        canCalculate = false;
+      } else {
+        ingredientCost += fcCost;
+      }
+    } else if (fc.type === 'Supply' || (fc.type || '').toLowerCase() === 'supply') {
+      const sup = await Supply.findById(fc.ref).lean();
+      if (!sup || sup.costPerUnit == null) {
+        canCalculate = false;
+        continue;
+      }
+      const fcUnit = fc.unit && fc.unit.trim() ? fc.unit.trim() : sup.unit;
+      const supCost = units.lineCost(Number(fc.quantity) || 0, fcUnit, sup.costPerUnit, sup.unit);
+      if (supCost === null) {
+        canCalculate = false;
+      } else {
+        ingredientCost += supCost;
+      }
+    } else if (fc.type === 'Prep' || (fc.type || '').toLowerCase() === 'prep') {
+      const rc = await calculateRecipeCost(fc.ref);
+      if (!rc.canCalculate) {
+        canCalculate = false;
+      } else {
+        const fcUnit = fc.unit && fc.unit.trim() ? fc.unit.trim() : rc.yieldUnit;
+        let fcQty = Number(fc.quantity) || 0;
+        if (fcUnit !== rc.yieldUnit) {
+          const converted = units.convert(fcQty, fcUnit, rc.yieldUnit);
+          if (converted === null) {
+            canCalculate = false;
+            continue;
+          }
+          fcQty = converted;
         }
-        const fcUnit = fc.unit && fc.unit.trim() ? fc.unit.trim() : ing.purchaseUnit;
-        const fcCost = units.lineCost(Number(fc.quantity) || 0, fcUnit, ing.purchaseCost, ing.purchaseUnit);
-        if (fcCost === null) {
-          canCalculate = false;
-        } else {
-          ingredientCost += fcCost;
-        }
-      } else if (fc.type === 'Supply' || (fc.type || '').toLowerCase() === 'supply') {
-        const sup = await Supply.findById(fc.ref).lean();
-        if (!sup || sup.costPerUnit == null) {
-          canCalculate = false;
-          continue;
-        }
-        ingredientCost += (sup.costPerUnit || 0) * (Number(fc.quantity) || 0);
+        ingredientCost += rc.costPerUnit * fcQty;
       }
     }
   }

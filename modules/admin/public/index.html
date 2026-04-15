@@ -19,13 +19,13 @@
         height: 100%;
       }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        background: #0f1117;
-        color: #e4e6eb;
+        font-family: Georgia, 'Times New Roman', serif;
+        background: #0e0e0e;
+        color: #f4e9d8;
         line-height: 1.5;
       }
       a {
-        color: #4dabf7;
+        color: #c24a1a;
         text-decoration: none;
       }
       a:hover {
@@ -41,8 +41,8 @@
       }
       .admin-topbar {
         grid-column: 1 / -1;
-        background: #1a1d2e;
-        border-bottom: 1px solid #2a2d3a;
+        background: #0e0e0e;
+        border-bottom: 2px solid #3a3228;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -50,47 +50,57 @@
       }
       .admin-topbar h1 {
         font-size: 1.1rem;
-        font-weight: 600;
-        color: #fff;
+        font-weight: 700;
+        color: #f4e9d8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
       .admin-topbar .exit-btn {
-        background: #e74c3c;
-        color: #fff;
-        border: none;
+        background: #7f1d1d;
+        color: #fca5a5;
+        border: 1px solid #7f1d1d;
         padding: 8px 18px;
-        border-radius: 8px;
+        border-radius: 4px;
         font-size: 0.85rem;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
       .admin-topbar .exit-btn:hover {
-        background: #c0392b;
+        background: #991b1b;
+        color: #fff;
       }
 
       .admin-sidebar {
-        background: #161828;
-        border-right: 1px solid #2a2d3a;
+        background: #0e0e0e;
+        border-right: 1px solid #3a3228;
         padding: 16px 0;
         overflow-y: auto;
       }
       .admin-sidebar a {
         display: block;
         padding: 12px 24px;
-        color: #9ca3af;
+        color: #a89a88;
         font-size: 0.9rem;
         font-weight: 500;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         transition:
           background 0.15s,
           color 0.15s;
       }
       .admin-sidebar a:hover,
       .admin-sidebar a.active {
-        background: #1e2130;
-        color: #fff;
+        background: #1a1a1a;
+        color: #f4e9d8;
         text-decoration: none;
       }
       .admin-sidebar a.active {
-        border-left: 3px solid #4dabf7;
+        border-left: 3px solid #c24a1a;
+        color: #c24a1a;
       }
 
       .admin-content {
@@ -106,22 +116,24 @@
         margin-bottom: 28px;
       }
       .stat-card {
-        background: #1e2130;
-        border: 1px solid #2a2d3a;
-        border-radius: 12px;
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        border-top: 3px solid #c24a1a;
+        border-radius: 3px;
         padding: 20px;
       }
       .stat-card .label {
         font-size: 0.8rem;
-        color: #9ca3af;
+        color: #a89a88;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
         margin-bottom: 6px;
       }
       .stat-card .value {
         font-size: 1.6rem;
         font-weight: 700;
-        color: #fff;
+        color: #f4e9d8;
       }
 
       /* ── Tables ──────────────────────────────────────────────── */
@@ -134,18 +146,19 @@
       .admin-table td {
         text-align: left;
         padding: 10px 14px;
-        border-bottom: 1px solid #2a2d3a;
+        border-bottom: 1px solid #3a3228;
         font-size: 0.88rem;
       }
       .admin-table th {
-        color: #9ca3af;
+        color: #a89a88;
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.75rem;
         letter-spacing: 0.04em;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
       .admin-table tr:hover td {
-        background: #1a1d2e;
+        background: #1a1a1a;
       }
 
       /* ── Badges ──────────────────────────────────────────────── */
@@ -169,15 +182,15 @@
         color: #fca5a5;
       }
       .badge-blue {
-        background: #1e3a5f;
+        background: #1c3557;
         color: #93c5fd;
       }
       .badge-gray {
-        background: #374151;
-        color: #d1d5db;
+        background: #2a2318;
+        color: #a89a88;
       }
       .badge-orange {
-        background: #92400e;
+        background: #6b2d0e;
         color: #fde68a;
       }
 
@@ -219,34 +232,37 @@
       }
       .filter-bar select,
       .filter-bar input {
-        background: #1e2130;
-        border: 1px solid #3a3d4a;
-        color: #e4e6eb;
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        color: #f4e9d8;
         padding: 8px 12px;
-        border-radius: 8px;
+        border-radius: 4px;
         font-size: 0.85rem;
       }
       .filter-bar button {
-        background: #4dabf7;
-        color: #000;
+        background: #c24a1a;
+        color: #f4e9d8;
         border: none;
         padding: 8px 16px;
-        border-radius: 8px;
+        border-radius: 4px;
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
         cursor: pointer;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
       .filter-bar button:hover {
-        background: #339af0;
+        background: #a03916;
       }
 
       /* ── Role select ────────────────────────────────────────── */
       .role-select {
-        background: #1e2130;
-        border: 1px solid #3a3d4a;
-        color: #e4e6eb;
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        color: #f4e9d8;
         padding: 6px 10px;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 0.82rem;
         cursor: pointer;
       }
@@ -260,7 +276,7 @@
 
       /* ── Loading / Error ────────────────────────────────────── */
       .loading {
-        color: #9ca3af;
+        color: #a89a88;
         padding: 40px;
         text-align: center;
       }

@@ -49,10 +49,11 @@ const btnSecondary = {
   fontSize: '0.85rem',
 };
 
-const EMPTY_FORM = { name: '', size: '', discountPct: '', isActive: true };
+const EMPTY_FORM = { name: '', size: '', discountPct: '', isActive: true, packagingSupply: '' };
 
 export default function CustomBoxes({ api }) {
   const [configs, setConfigs] = useState([]);
+  const [supplies, setSupplies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -64,6 +65,7 @@ export default function CustomBoxes({ api }) {
 
   useEffect(() => {
     loadConfigs();
+    loadSupplies();
   }, []);
 
   async function loadConfigs() {
@@ -80,6 +82,15 @@ export default function CustomBoxes({ api }) {
     }
   }
 
+  async function loadSupplies() {
+    try {
+      const res = await api('/admin/api/supplies');
+      if (res.ok) setSupplies(res.supplies);
+    } catch {
+      // non-fatal: supply dropdown will just be empty
+    }
+  }
+
   function flash(msg) {
     setSuccess(msg);
     setTimeout(() => setSuccess(''), 3000);
@@ -91,7 +102,12 @@ export default function CustomBoxes({ api }) {
   }
 
   function openEdit(config) {
-    setFormData({ ...config, size: String(config.size), discountPct: String(config.discountPct) });
+    setFormData({
+      ...config,
+      size: String(config.size),
+      discountPct: String(config.discountPct),
+      packagingSupply: config.packagingSupply ? config.packagingSupply._id || config.packagingSupply : '',
+    });
     setFormError('');
   }
 
@@ -125,7 +141,13 @@ export default function CustomBoxes({ api }) {
       const url = _id ? `/admin/api/custom-boxes/${_id}` : '/admin/api/custom-boxes';
       const res = await api(url, {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), size: sizeNum, discountPct: discountNum, isActive }),
+        body: JSON.stringify({
+          name: name.trim(),
+          size: sizeNum,
+          discountPct: discountNum,
+          isActive,
+          packagingSupply: formData.packagingSupply || null,
+        }),
       });
       if (!res.ok) throw new Error(res.error || 'Save failed');
       flash(_id ? 'Box config updated.' : 'Box config created.');
@@ -203,11 +225,24 @@ export default function CustomBoxes({ api }) {
                 <input style={inputStyle} type="number" min={0} max={100} step={0.1} value={formData.discountPct} onChange={(e) => setFormData({ ...formData, discountPct: e.target.value })} placeholder="10" />
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
                 <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
                 Active (visible in the shop)
               </label>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#9ca3af', marginBottom: 6 }}>Packaging Supply</label>
+              <select style={inputStyle} value={formData.packagingSupply || ''} onChange={(e) => setFormData({ ...formData, packagingSupply: e.target.value })}>
+                <option value="">— none —</option>
+                {supplies.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
+                    {s.costPerUnit != null ? ` — $${s.costPerUnit.toFixed(2)}/${s.unit || 'each'}` : ''}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 4 }}>Added as a packaging fee line item on every box order, after the discount.</div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="submit" style={btnPrimary} disabled={saving}>
@@ -233,6 +268,7 @@ export default function CustomBoxes({ api }) {
               <th style={{ padding: '8px 12px', textAlign: 'left' }}>Name</th>
               <th style={{ padding: '8px 12px', textAlign: 'center' }}>Bundle Size</th>
               <th style={{ padding: '8px 12px', textAlign: 'center' }}>Discount</th>
+              <th style={{ padding: '8px 12px', textAlign: 'center' }}>Packaging</th>
               <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
               <th style={{ padding: '8px 12px', textAlign: 'right' }}>Actions</th>
             </tr>
@@ -243,6 +279,16 @@ export default function CustomBoxes({ api }) {
                 <td style={{ padding: '12px', fontWeight: 600 }}>{c.name}</td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>{c.size} items</td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>{c.discountPct}%</td>
+                <td style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem' }}>
+                  {c.packagingSupply ? (
+                    <span title={c.packagingSupply.name}>
+                      {c.packagingSupply.name}
+                      {c.packagingSupply.costPerUnit != null && <span style={{ color: '#6ee7b7', marginLeft: 6 }}>${c.packagingSupply.costPerUnit.toFixed(2)}</span>}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#4b5563' }}>—</span>
+                  )}
+                </td>
                 <td style={{ padding: '12px', textAlign: 'center' }}>
                   <span
                     onClick={() => handleToggleActive(c)}

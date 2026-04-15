@@ -18,10 +18,10 @@
       #pos-root {
         height: 100%;
         width: 100%;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: Georgia, 'Times New Roman', serif;
         overflow: hidden;
-        background: #0f1117;
-        color: #e8e8e8;
+        background: #0e0e0e;
+        color: #f4e9d8;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
       }
@@ -42,35 +42,40 @@
         align-items: center;
         justify-content: space-between;
         padding: 0 20px;
-        background: #1a1d27;
-        border-bottom: 1px solid #2a2d3a;
+        background: #0e0e0e;
+        border-bottom: 2px solid #3a3228;
       }
       .pos-topbar h1 {
         font-size: 1.2rem;
-        font-weight: 600;
-        letter-spacing: 0.5px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
       .pos-topbar .pos-clock {
         font-size: 0.9rem;
-        color: #888;
+        color: #a89a88;
         font-variant-numeric: tabular-nums;
       }
 
       /* ── Exit Button ───────────────────────────────────────── */
       .btn-exit {
-        background: #dc3545;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
+        background: #7f1d1d;
+        color: #fca5a5;
+        border: 1px solid #7f1d1d;
+        border-radius: 4px;
         padding: 8px 20px;
-        font-size: 0.95rem;
-        font-weight: 600;
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         cursor: pointer;
         transition: background 0.15s;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
       .btn-exit:hover,
       .btn-exit:active {
-        background: #bb2d3b;
+        background: #991b1b;
+        color: #fff;
       }
 
       /* ── Order Queue Bell ──────────────────────────────────── */
@@ -79,9 +84,9 @@
       }
       .order-queue-btn {
         position: relative;
-        background: #252838;
-        border: 1px solid #3a3d4a;
-        border-radius: 8px;
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        border-radius: 4px;
         width: 40px;
         height: 40px;
         font-size: 1.2rem;
@@ -92,7 +97,7 @@
         transition:
           background 0.15s,
           border-color 0.15s;
-        color: #888;
+        color: #a89a88;
       }
       /* red — orders still need to be made */
       .order-queue-btn.bell-urgent {
@@ -110,14 +115,14 @@
         color: #69db7c;
       }
       .order-queue-btn:active {
-        background: #3a3d4a;
+        background: #2a2318;
       }
       .order-queue-badge {
         position: absolute;
         top: -6px;
         right: -6px;
-        background: #f03e3e;
-        color: #fff;
+        background: #fca5a5;
+        color: #0e0e0e;
         font-size: 0.65rem;
         font-weight: 800;
         min-width: 18px;
@@ -130,12 +135,12 @@
         line-height: 1;
       }
       .bell-waiting .order-queue-badge {
-        background: #f59f00;
-        color: #0f1117;
+        background: #fcd34d;
+        color: #0e0e0e;
       }
       .bell-urgent .order-queue-badge {
-        background: #f03e3e;
-        color: #fff;
+        background: #fca5a5;
+        color: #0e0e0e;
       }
       @keyframes bell-pulse {
         0% {
@@ -171,10 +176,10 @@
         top: calc(100% + 8px);
         right: 0;
         width: 320px;
-        background: #1e2130;
-        border: 1px solid #3a3d4a;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
         z-index: 500;
         overflow: hidden;
       }
@@ -183,19 +188,22 @@
         align-items: center;
         justify-content: space-between;
         padding: 12px 16px;
-        border-bottom: 1px solid #2a2d3a;
+        border-bottom: 1px solid #3a3228;
         font-size: 0.9rem;
         font-weight: 600;
-        color: #e8e8e8;
+        color: #f4e9d8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
       .order-queue-count {
-        background: #f59f00;
-        color: #0f1117;
+        background: #c24a1a;
+        color: #f4e9d8;
         font-size: 0.75rem;
         font-weight: 800;
         min-width: 22px;
         height: 22px;
-        border-radius: 11px;
+        border-radius: 3px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -203,7 +211,7 @@
       }
       .order-queue-empty {
         padding: 20px 16px;
-        color: #69db7c;
+        color: #6ee7b7;
         font-size: 0.85rem;
         text-align: center;
       }
@@ -217,12 +225,12 @@
         width: 4px;
       }
       .order-queue-list::-webkit-scrollbar-thumb {
-        background: #3a3d4a;
+        background: #3a3228;
         border-radius: 2px;
       }
       .order-queue-item {
         padding: 10px 16px;
-        border-bottom: 1px solid #23263a;
+        border-bottom: 1px solid #2a2318;
       }
       .order-queue-item:last-child {
         border-bottom: none;
@@ -236,14 +244,14 @@
       .order-queue-item-id {
         font-size: 0.8rem;
         font-weight: 700;
-        color: #4dabf7;
+        color: #c24a1a;
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.5px;
       }
       .order-queue-item-total {
         font-size: 0.9rem;
         font-weight: 700;
-        color: #69db7c;
+        color: #6ee7b7;
       }
       .order-queue-item-bottom {
         display: flex;
@@ -253,13 +261,13 @@
       }
       .order-queue-item-items {
         font-size: 0.78rem;
-        color: #aaa;
+        color: #a89a88;
         line-height: 1.3;
         margin-bottom: 6px;
       }
       .order-queue-item-age {
         font-size: 0.72rem;
-        color: #666;
+        color: #6b4f3a;
         white-space: nowrap;
       }
       .order-queue-section-label {
@@ -270,23 +278,23 @@
         text-transform: uppercase;
       }
       .label-fill {
-        color: #fcc419;
-        background: rgba(252, 196, 25, 0.08);
+        color: #fcd34d;
+        background: rgba(252, 211, 77, 0.08);
       }
       .label-deliver {
-        color: #69db7c;
-        background: rgba(105, 219, 124, 0.08);
+        color: #6ee7b7;
+        background: rgba(110, 231, 183, 0.08);
       }
       .order-queue-item-source {
         display: inline-block;
         margin-left: 6px;
-        background: #4dabf7;
-        color: #0f1117;
+        background: #c24a1a;
+        color: #f4e9d8;
         font-size: 0.6rem;
         font-weight: 800;
         letter-spacing: 0.4px;
         padding: 1px 5px;
-        border-radius: 4px;
+        border-radius: 3px;
         vertical-align: middle;
       }
       .order-queue-item-footer {
@@ -334,7 +342,7 @@
         width: 6px;
       }
       .pos-grid-area::-webkit-scrollbar-thumb {
-        background: #3a3d4a;
+        background: #3a3228;
         border-radius: 3px;
       }
 
@@ -344,9 +352,9 @@
         gap: 12px;
       }
       .product-card {
-        background: #1e2130;
-        border: 2px solid #2a2d3a;
-        border-radius: 12px;
+        background: #1a1a1a;
+        border: 2px solid #3a3228;
+        border-radius: 4px;
         padding: 18px 12px;
         text-align: center;
         cursor: pointer;
@@ -362,7 +370,7 @@
       }
       .product-card:active {
         transform: scale(0.95);
-        border-color: #4dabf7;
+        border-color: #c24a1a;
       }
       .product-card--oos {
         opacity: 0.45;
@@ -370,7 +378,7 @@
       }
       .product-card--oos:active {
         transform: none;
-        border-color: #2a2d3a;
+        border-color: #3a3228;
       }
       .product-card .product-name {
         font-size: 1rem;
@@ -379,24 +387,24 @@
       }
       .product-card .product-price {
         font-size: 0.9rem;
-        color: #69db7c;
-        font-weight: 500;
+        color: #c24a1a;
+        font-weight: 600;
       }
       .product-stock {
         font-size: 0.75rem;
         margin-top: 5px;
-        color: #6c757d;
+        color: #6b4f3a;
       }
       .product-stock--low {
-        color: #ffa94d;
+        color: #fcd34d;
       }
       .product-stock--oos {
-        color: #fa5252;
+        color: #fca5a5;
         font-weight: 600;
       }
       .cart-item-max-label {
         font-size: 0.7rem;
-        color: #fa5252;
+        color: #fca5a5;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-left: 4px;
@@ -407,14 +415,18 @@
       .pos-cart {
         display: flex;
         flex-direction: column;
-        background: #1a1d27;
-        border-left: 1px solid #2a2d3a;
+        background: #141414;
+        border-left: 1px solid #3a3228;
       }
       .cart-header {
         padding: 14px 16px;
         font-size: 1.05rem;
-        font-weight: 600;
-        border-bottom: 1px solid #2a2d3a;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
+        border-bottom: 1px solid #3a3228;
+        color: #f4e9d8;
       }
       .cart-items {
         flex: 1;
@@ -426,7 +438,7 @@
         width: 4px;
       }
       .cart-items::-webkit-scrollbar-thumb {
-        background: #3a3d4a;
+        background: #3a3228;
         border-radius: 2px;
       }
 
@@ -436,7 +448,7 @@
         align-items: center;
         gap: 8px;
         padding: 10px 16px;
-        border-bottom: 1px solid #23263a;
+        border-bottom: 1px solid #2a2318;
       }
       .cart-item-name {
         font-size: 0.9rem;
@@ -449,10 +461,10 @@
       .cart-item-qty button {
         width: 32px;
         height: 32px;
-        border: 1px solid #3a3d4a;
-        border-radius: 6px;
-        background: #252838;
-        color: #e8e8e8;
+        border: 1px solid #3a3228;
+        border-radius: 3px;
+        background: #1a1a1a;
+        color: #f4e9d8;
         font-size: 1.1rem;
         font-weight: 700;
         cursor: pointer;
@@ -461,7 +473,8 @@
         justify-content: center;
       }
       .cart-item-qty button:active {
-        background: #4dabf7;
+        background: #c24a1a;
+        border-color: #c24a1a;
       }
       .cart-item-qty span {
         min-width: 20px;
@@ -470,7 +483,7 @@
       }
       .cart-item-price {
         font-size: 0.9rem;
-        color: #69db7c;
+        color: #c24a1a;
         font-weight: 600;
         min-width: 60px;
         text-align: right;
@@ -481,14 +494,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #555;
+        color: #6b4f3a;
         font-size: 0.95rem;
       }
 
       /* ── Cart Totals ───────────────────────────────────────── */
       .cart-totals {
         padding: 12px 16px;
-        border-top: 1px solid #2a2d3a;
+        border-top: 1px solid #3a3228;
         font-size: 0.9rem;
       }
       .cart-totals .row {
@@ -499,9 +512,9 @@
       .cart-totals .row.total {
         font-size: 1.15rem;
         font-weight: 700;
-        color: #fff;
+        color: #f4e9d8;
         padding-top: 8px;
-        border-top: 1px solid #3a3d4a;
+        border-top: 1px solid #3a3228;
         margin-top: 4px;
       }
 
@@ -526,18 +539,18 @@
         cursor: not-allowed;
       }
       .btn-pay.cash {
-        background: #37b24d;
+        background: #2f9e44;
         color: #fff;
       }
       .btn-pay.cash:active:not(:disabled) {
-        background: #2f9e44;
+        background: #2b8a3e;
       }
       .btn-pay.card {
-        background: #4dabf7;
-        color: #fff;
+        background: #c24a1a;
+        color: #f4e9d8;
       }
       .btn-pay.card:active:not(:disabled) {
-        background: #339af0;
+        background: #a03916;
       }
 
       /* ── Modals / Overlays ─────────────────────────────────── */
@@ -553,9 +566,9 @@
         padding: 20px 0;
       }
       .modal-box {
-        background: #1e2130;
-        border: 1px solid #3a3d4a;
-        border-radius: 16px;
+        background: #1a1a1a;
+        border: 1px solid #3a3228;
+        border-radius: 4px;
         padding: 28px 32px;
         min-width: 360px;
         max-width: 460px;
@@ -574,7 +587,7 @@
       .cash-input-group label {
         display: block;
         font-size: 0.85rem;
-        color: #aaa;
+        color: #a89a88;
         margin-bottom: 6px;
       }
       .cash-input-group input {
@@ -583,14 +596,14 @@
         font-size: 1.5rem;
         font-weight: 700;
         text-align: center;
-        background: #252838;
-        border: 2px solid #3a3d4a;
-        border-radius: 10px;
-        color: #fff;
+        background: #0e0e0e;
+        border: 2px solid #3a3228;
+        border-radius: 4px;
+        color: #f4e9d8;
         outline: none;
       }
       .cash-input-group input:focus {
-        border-color: #4dabf7;
+        border-color: #c24a1a;
       }
 
       .cash-quick-amounts {
@@ -603,15 +616,16 @@
         padding: 12px;
         font-size: 1rem;
         font-weight: 600;
-        border: 1px solid #3a3d4a;
-        border-radius: 8px;
-        background: #252838;
-        color: #e8e8e8;
+        border: 1px solid #3a3228;
+        border-radius: 4px;
+        background: #1a1a1a;
+        color: #f4e9d8;
         cursor: pointer;
+        font-family: Georgia, serif;
       }
       .cash-quick-amounts button:active {
-        background: #37b24d;
-        border-color: #37b24d;
+        background: #c24a1a;
+        border-color: #c24a1a;
       }
 
       .change-display {
@@ -623,16 +637,16 @@
         font-weight: 700;
       }
       .change-display.positive {
-        background: #2b3a2b;
-        color: #69db7c;
+        background: #1a2e1a;
+        color: #6ee7b7;
       }
       .change-display.negative {
-        background: #3a2b2b;
-        color: #ff6b6b;
+        background: #2e1a1a;
+        color: #fca5a5;
       }
       .change-display.zero {
-        background: #252838;
-        color: #aaa;
+        background: #1a1a1a;
+        color: #a89a88;
       }
 
       .modal-actions {
@@ -649,12 +663,13 @@
         cursor: pointer;
       }
       .modal-actions .btn-cancel {
-        background: #495057;
-        color: #fff;
+        background: #2a2318;
+        color: #a89a88;
+        border: 1px solid #3a3228;
       }
       .modal-actions .btn-confirm {
-        background: #37b24d;
-        color: #fff;
+        background: #c24a1a;
+        color: #f4e9d8;
       }
       .modal-actions .btn-confirm:disabled {
         opacity: 0.4;
@@ -670,21 +685,22 @@
         margin-bottom: 12px;
       }
       .receipt h2 {
-        color: #69db7c;
+        color: #6ee7b7;
         margin-bottom: 4px;
       }
       .receipt .receipt-total {
         font-size: 1.8rem;
         font-weight: 700;
         margin: 12px 0;
+        color: #f4e9d8;
       }
       .receipt .receipt-change {
         font-size: 1.1rem;
-        color: #4dabf7;
+        color: #c24a1a;
         margin-bottom: 20px;
       }
       .receipt .receipt-method {
-        color: #aaa;
+        color: #a89a88;
         margin-bottom: 20px;
       }
       .btn-new-sale {
@@ -692,18 +708,21 @@
         padding: 16px;
         font-size: 1.1rem;
         font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         border: none;
-        border-radius: 10px;
-        background: #4dabf7;
-        color: #fff;
+        border-radius: 4px;
+        background: #c24a1a;
+        color: #f4e9d8;
         cursor: pointer;
+        font-family: 'Trebuchet MS', Helvetica, sans-serif;
       }
 
       /* ── Card Payment ──────────────────────────────────────── */
       .stripe-element-wrapper {
-        background: #252838;
-        border: 2px solid #3a3d4a;
-        border-radius: 10px;
+        background: #0e0e0e;
+        border: 2px solid #3a3228;
+        border-radius: 4px;
         padding: 14px;
         margin-bottom: 16px;
       }
@@ -714,7 +733,7 @@
         margin-bottom: 16px;
       }
       .stripe-error {
-        color: #ff6b6b;
+        color: #fca5a5;
         font-size: 0.85rem;
         text-align: center;
         margin-bottom: 12px;
@@ -722,7 +741,7 @@
       .processing-spinner {
         text-align: center;
         padding: 20px;
-        color: #4dabf7;
+        color: #c24a1a;
         font-size: 1rem;
       }
 
@@ -730,7 +749,7 @@
       .clear-cart-btn {
         background: none;
         border: none;
-        color: #ff6b6b;
+        color: #fca5a5;
         cursor: pointer;
         font-size: 0.8rem;
         padding: 4px 8px;
@@ -744,7 +763,7 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #888;
+        color: #a89a88;
       }
 
       /* ── Cart price override (Cart.jsx) ───────────────────── */
@@ -760,28 +779,28 @@
         font-size: 0.85rem;
         font-weight: 600;
         text-align: right;
-        background: #1a1d27;
-        border: 1px solid #3a3d4a;
-        border-radius: 5px;
-        color: #69db7c;
+        background: #0e0e0e;
+        border: 1px solid #3a3228;
+        border-radius: 3px;
+        color: #c24a1a;
         outline: none;
       }
       .cart-item-price-input:focus {
-        border-color: #4dabf7;
+        border-color: #c24a1a;
       }
       .cart-item-line-total {
         font-size: 0.78rem;
-        color: #888;
+        color: #a89a88;
         font-variant-numeric: tabular-nums;
       }
 
       /* Donate button */
       .btn-pay.donate {
-        background: #7950f2;
-        color: #fff;
+        background: #6b4f3a;
+        color: #f4e9d8;
       }
       .btn-pay.donate:active:not(:disabled) {
-        background: #6741d9;
+        background: #5a3f2e;
       }
 
       /* ── Tablet / Responsive ─────────────────────────────── */
@@ -835,7 +854,7 @@
         /* Cart: bottom panel with capped height */
         .pos-cart {
           border-left: none;
-          border-top: 2px solid #2a2d3a;
+          border-top: 2px solid #3a3228;
           max-height: 44vh;
           overflow: hidden;
           display: flex;

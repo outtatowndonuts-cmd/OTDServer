@@ -41,7 +41,10 @@ block content
                         span.otd-text-muted &mdash;
                     td.text-center
                       if product.available > 0
-                        input.otd-input-qty.qty-input(type='number', min='0', max=product.available, value='0', data-ref-id=product._id, aria-label='Quantity for ' + product.name)
+                        .qty-stepper
+                          button.qty-btn.qty-dec(type='button', aria-label='Decrease quantity for ' + product.name) &minus;
+                          input.otd-input-qty.qty-input(type='number', min='0', max=product.available, value='0', data-ref-id=product._id, aria-label='Quantity for ' + product.name, readonly)
+                          button.qty-btn.qty-inc(type='button', aria-label='Increase quantity for ' + product.name) +
                       else
                         span.otd-text-muted Sold out
 

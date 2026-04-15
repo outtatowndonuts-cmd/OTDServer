@@ -105,34 +105,9 @@
         reindexRows(container);
         recalcCosting();
         recalcRecipe();
-        recalcBundleCount();
       }
     });
   }
-
-  // Update bundle size counter and flag mismatches
-  function recalcBundleCount() {
-    var bundleSizeInput = mainContent.querySelector('#pr-bundlesize');
-    var countDisplay = mainContent.querySelector('#bundle-count-display');
-    var errorDiv = mainContent.querySelector('#bundle-size-error');
-    var errorMsg = mainContent.querySelector('#bundle-size-error-msg');
-    if (!bundleSizeInput || !countDisplay) return;
-    var target = parseInt(bundleSizeInput.value, 10) || 0;
-    var total = 0;
-    mainContent.querySelectorAll('#bundle-rows .item-row').forEach(function (row) {
-      var qty = row.querySelector('input[name*="[quantity]"]');
-      total += parseInt(qty && qty.value, 10) || 0;
-    });
-    var ok = target === 0 || total === target;
-    countDisplay.textContent = target > 0 ? `(${total} / ${target})` : `(${total})`;
-    countDisplay.className = ok ? 'fw-normal ms-2 text-muted' : 'fw-normal ms-2 text-danger';
-    if (errorDiv && errorMsg) {
-      errorDiv.style.display = ok ? 'none' : '';
-      errorMsg.textContent = `Quantities total ${total} but bundle size is ${target}. Adjust quantities or rows to match.`;
-    }
-    return ok;
-  }
-  window.recalcBundleCount = recalcBundleCount;
 
   // Filter the ref <select> to only show options matching the chosen type
   function syncCompType(typeSelect) {
@@ -189,6 +164,62 @@
     }
   }
 
+  // Calculate and display per-row finishing component cost
+  function updateFcRowCost(row) {
+    var costs = getCompCosts();
+    var costDisplay = row.querySelector('[data-role="fc-cost"]');
+    if (!costDisplay) return;
+    if (!costs) {
+      costDisplay.value = '';
+      return;
+    }
+    var typeSelect = row.querySelector('[data-role="fc-type"]');
+    var refSelect = row.querySelector('[data-role="fc-ref"]');
+    var qtyInput = row.querySelector('[name*="[quantity]"]');
+    var unitSelect = row.querySelector('select[name*="[unit]"]');
+    if (!typeSelect || !refSelect || !qtyInput) {
+      costDisplay.value = '';
+      return;
+    }
+    var type = typeSelect.value;
+    var id = refSelect.value;
+    var qty = parseFloat(qtyInput.value);
+    if (!id || isNaN(qty) || qty <= 0) {
+      costDisplay.value = '';
+      return;
+    }
+    var key = `${type}:${id}`;
+    var info = costs[key];
+    if (!info) {
+      costDisplay.value = '?';
+      return;
+    }
+    var total;
+    if (type === 'Ingredient') {
+      var unit = unitSelect ? unitSelect.value : '';
+      total = computeIngredientLineCost(qty, unit, info.cost, info.unit);
+      if (total === null) {
+        costDisplay.value = '?';
+        return;
+      }
+    } else {
+      // Supply and Prep: cost × qty, with unit conversion when row unit differs from info.unit
+      var rowUnit = unitSelect ? unitSelect.value.trim() : '';
+      if (rowUnit && info.unit && rowUnit !== info.unit) {
+        var convertedQty = convertUnits(qty, rowUnit, info.unit);
+        if (convertedQty === null) {
+          costDisplay.value = '?';
+          return;
+        }
+        total = info.cost * convertedQty;
+      } else {
+        total = info.cost * qty;
+      }
+    }
+    var s = total.toFixed(3);
+    costDisplay.value = `$${s.endsWith('0') ? total.toFixed(2) : s}`;
+  }
+
   // Calculate and display per-row component cost using cost data embedded in form
   function updateRowCost(row) {
     var costs = getCompCosts();
@@ -240,6 +271,7 @@
 
     // Sum finishing component costs (product form)
     form.querySelectorAll('#finishing-rows .item-row').forEach(function (row) {
+      updateFcRowCost(row);
       if (!costs) return;
       var typeSelect = row.querySelector('[data-role="fc-type"]');
       var refSelect = row.querySelector('[data-role="fc-ref"]');
@@ -258,9 +290,25 @@
         var lineCost = computeIngredientLineCost(qty, unit, info.cost, info.unit);
         if (lineCost != null) ingredientCost += lineCost;
       } else {
-        ingredientCost += info.cost * qty;
+        // Supply and Prep: unit conversion when row unit differs from info.unit
+        var fcRowUnit = unitSelect ? unitSelect.value.trim() : '';
+        if (fcRowUnit && info.unit && fcRowUnit !== info.unit) {
+          var fcConverted = convertUnits(qty, fcRowUnit, info.unit);
+          if (fcConverted !== null) ingredientCost += info.cost * fcConverted;
+        } else {
+          ingredientCost += info.cost * qty;
+        }
       }
     });
+
+    // Base recipe cost (product form) — baseQty is always in the recipe's yieldUnit
+    var recipeSelect = form.querySelector('#pr-recipe');
+    var baseQtyInput = form.querySelector('#pr-baseqty');
+    if (recipeSelect && recipeSelect.value && costs) {
+      var baseQty = parseFloat(baseQtyInput && baseQtyInput.value) || 1;
+      var recipeInfo = costs[`Recipe:${recipeSelect.value}`];
+      if (recipeInfo && recipeInfo.cost != null) ingredientCost += recipeInfo.cost * baseQty;
+    }
 
     var laborCost = parseFloat(form.querySelector('#pr-labor') && form.querySelector('#pr-labor').value) || 0;
     var overheadCost = parseFloat(form.querySelector('#pr-overhead') && form.querySelector('#pr-overhead').value) || 0;
@@ -287,8 +335,7 @@
     setEl('live-overhead-cost', fmt(overheadCost));
     setEl('live-total-cogs', fmt(totalCOGS));
     setEl('live-price', priceVal > 0 ? fmt(priceVal) : '—');
-    setEl('live-target-pct', targetMargin.toFixed(0));
-    setEl('live-suggested-price', suggestedPrice > 0 ? fmt(suggestedPrice) : '—');
+    setEl('live-suggested-price', suggestedPrice > 0 ? `at ${targetMargin.toFixed(0)}% margin: ${fmt(suggestedPrice)}` : '—');
 
     if (margin !== null) {
       var mClass = margin < 0 ? 'fw-bold text-danger' : margin < 20 ? 'fw-bold text-warning' : 'fw-bold text-success';
@@ -328,7 +375,19 @@
       costDisplay.value = '?';
       return;
     }
-    var total = info.cost * qty;
+    var unitInput = row.querySelector('[name*="[unit]"]');
+    var subRowUnit = unitInput ? unitInput.value.trim() : '';
+    var total;
+    if (subRowUnit && info.unit && subRowUnit !== info.unit) {
+      var subConverted = convertUnits(qty, subRowUnit, info.unit);
+      if (subConverted === null) {
+        costDisplay.value = '?';
+        return;
+      }
+      total = info.cost * subConverted;
+    } else {
+      total = info.cost * qty;
+    }
     var _s = total.toFixed(3);
     costDisplay.value = `$${_s.endsWith('0') ? total.toFixed(2) : _s}`;
   }
@@ -379,7 +438,16 @@
         var qty = parseFloat(qtyInput.value) || 0;
         if (!id || qty <= 0) return;
         var info = subCosts[id];
-        if (info && info.cost != null) totalCost += info.cost * qty;
+        if (info && info.cost != null) {
+          var subUnit = row.querySelector('[name*="[unit]"]');
+          var subUnitVal = subUnit ? subUnit.value.trim() : '';
+          if (subUnitVal && info.unit && subUnitVal !== info.unit) {
+            var subConv = convertUnits(qty, subUnitVal, info.unit);
+            if (subConv !== null) totalCost += info.cost * subConv;
+          } else {
+            totalCost += info.cost * qty;
+          }
+        }
       });
     }
 
@@ -494,12 +562,6 @@
         // Attach remove handler for the new row's button
         var removeBtn = clone.querySelector('[data-action="remove-row"]');
         if (removeBtn) attachRowBtn(removeBtn, container);
-        // Wire bundle qty input for count validation
-        if (targetId === 'bundle-rows') {
-          var bundleQtyInput = clone.querySelector('input[name*="[quantity]"]');
-          if (bundleQtyInput) bundleQtyInput.addEventListener('input', recalcBundleCount);
-          recalcBundleCount();
-        }
         // Attach type filter and sync initial state
         var typeSelect = clone.querySelector('[data-role="comp-type"]');
         if (typeSelect) {
@@ -514,14 +576,23 @@
           syncFcType(fcTypeSelect);
           fcTypeSelect.addEventListener('change', function () {
             syncFcType(fcTypeSelect);
+            updateFcRowCost(clone);
             recalcCosting();
           });
         }
         // Wire finishing component cost for cloned row
         var fcRefSelect = clone.querySelector('[data-role="fc-ref"]');
         var fcUnitSelect = clone.querySelector('select[name*="[unit]"]');
-        if (fcRefSelect) fcRefSelect.addEventListener('change', recalcCosting);
-        if (fcUnitSelect) fcUnitSelect.addEventListener('change', recalcCosting);
+        if (fcRefSelect)
+          fcRefSelect.addEventListener('change', function () {
+            updateFcRowCost(clone);
+            recalcCosting();
+          });
+        if (fcUnitSelect)
+          fcUnitSelect.addEventListener('change', function () {
+            updateFcRowCost(clone);
+            recalcCosting();
+          });
         // Wire cost display for cloned row
         var refSelect = clone.querySelector('[data-role="comp-ref"]');
         var ingSelect2 = clone.querySelector('select[name*="[ingredient]"]');
@@ -546,6 +617,7 @@
           qtyInput.addEventListener('input', function () {
             updateRowCost(clone);
             updateSubRecipeRowCost(clone);
+            updateFcRowCost(clone);
             recalcCosting();
             recalcRecipe();
           });
@@ -556,7 +628,7 @@
 
     // Dynamic row: Remove Row buttons
     mainContent.querySelectorAll('[data-action="remove-row"]').forEach(function (btn) {
-      var container = btn.closest('#ingredient-rows, #component-rows, #subrecipe-rows, #finishing-rows, #bundle-rows');
+      var container = btn.closest('#ingredient-rows, #component-rows, #subrecipe-rows, #finishing-rows');
       if (container) attachRowBtn(btn, container);
     });
 
@@ -573,18 +645,32 @@
       syncFcType(typeSelect); // apply on load
       typeSelect.addEventListener('change', function () {
         syncFcType(typeSelect);
+        updateFcRowCost(typeSelect.closest('.item-row'));
         recalcCosting();
       });
     });
 
     // Finishing component cost: wire fc-ref + qty + unit changes for all existing rows
     mainContent.querySelectorAll('#finishing-rows .item-row').forEach(function (row) {
+      updateFcRowCost(row);
       var fcRef = row.querySelector('[data-role="fc-ref"]');
       var qtyInput = row.querySelector('[name*="[quantity]"]');
       var unitSelect = row.querySelector('select[name*="[unit]"]');
-      if (fcRef) fcRef.addEventListener('change', recalcCosting);
-      if (qtyInput) qtyInput.addEventListener('input', recalcCosting);
-      if (unitSelect) unitSelect.addEventListener('change', recalcCosting);
+      if (fcRef)
+        fcRef.addEventListener('change', function () {
+          updateFcRowCost(row);
+          recalcCosting();
+        });
+      if (qtyInput)
+        qtyInput.addEventListener('input', function () {
+          updateFcRowCost(row);
+          recalcCosting();
+        });
+      if (unitSelect)
+        unitSelect.addEventListener('change', function () {
+          updateFcRowCost(row);
+          recalcCosting();
+        });
     });
 
     // Component cost display: wire qty + ref changes for all existing rows
@@ -633,19 +719,17 @@
       if (unitInput) unitInput.addEventListener('change', recalcRecipe);
     });
 
-    // Bundle size field + existing bundle qty inputs
-    var bundleSizeInput = mainContent.querySelector('#pr-bundlesize');
-    if (bundleSizeInput) bundleSizeInput.addEventListener('input', recalcBundleCount);
-    mainContent.querySelectorAll('#bundle-rows .item-row input[name*="[quantity]"]').forEach(function (input) {
-      input.addEventListener('input', recalcBundleCount);
-    });
-    recalcBundleCount();
-
     // Costing panel inputs: labor, overhead, margin, price
     ['#pr-labor', '#pr-overhead', '#pr-margin', '#pr-price'].forEach(function (sel) {
       var el = mainContent.querySelector(sel);
       if (el) el.addEventListener('input', recalcCosting);
     });
+
+    // Base recipe and qty inputs (product form)
+    var baseRecipeSelect = mainContent.querySelector('#pr-recipe');
+    var baseQtyInput = mainContent.querySelector('#pr-baseqty');
+    if (baseRecipeSelect) baseRecipeSelect.addEventListener('change', recalcCosting);
+    if (baseQtyInput) baseQtyInput.addEventListener('input', recalcCosting);
 
     // Recipe yield input for per-unit cost
     var yieldInput = mainContent.querySelector('#rc-yield');
@@ -661,16 +745,6 @@
     mainContent.querySelectorAll('#section-form').forEach(function (form) {
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        // Bundle size validation
-        var typeChecked = form.querySelector('input[name="productType"]:checked');
-        if (typeChecked && typeChecked.value === 'bundle') {
-          var valid = recalcBundleCount();
-          if (!valid) {
-            var errEl = mainContent.querySelector('#bundle-size-error');
-            if (errEl) errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            return;
-          }
-        }
         var fd = new FormData(form);
         if (!fd.get('_csrf')) fd.append('_csrf', getCsrf());
         var params = new URLSearchParams(fd);

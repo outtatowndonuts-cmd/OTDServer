@@ -1,7 +1,6 @@
 ﻿- var isEdit = item != null;
 - var formTitle = isEdit ? 'Edit Product' : 'Add Product';
 - var formAction = isEdit ? '/recipes/products/' + item._id : '/recipes/products';
-- var pType = isEdit ? item.productType || 'simple' : 'simple';
 
 mixin unitSel(fname, curVal)
   select.form-select.form-select-sm(name=fname)
@@ -43,181 +42,90 @@ form#section-form(action=formAction, method='POST')
       .form-check.mb-2
         input#pr-active.form-check-input(type='checkbox', name='isActive', value='true', checked=isEdit ? item.isActive !== false : true)
         label.form-check-label(for='pr-active') For Sale
+  input(type='hidden', name='productType', value='simple')
 
-  //- Product Type
-  .mb-4
-    label.form-label.fw-semibold Product Type
-    .d-flex.gap-3
-      .form-check
-        input#pt-simple.form-check-input(type='radio', name='productType', value='simple', checked=pType === 'simple')
-        label.form-check-label(for='pt-simple')
-          strong Simple
-          small.text-muted.ms-1 - assembled from a kitchen batch + finishing
-      .form-check
-        input#pt-bundle.form-check-input(type='radio', name='productType', value='bundle', checked=pType === 'bundle')
-        label.form-check-label(for='pt-bundle')
-          strong Bundle
-          small.text-muted.ms-1 - grouped from other products (e.g. half-dozen box)
+  //- Recipe + Components
+  #simple-fields
+    .mb-4
+      .row.g-3.mb-3
+        .col-md-8
+          label.form-label.fw-semibold(for='pr-recipe') Base Recipe
+          select#pr-recipe.form-select(name='recipe')
+            option(value='') -- none --
+            each rec in allRecipes
+              - var sel = isEdit && item.recipe && (item.recipe._id || item.recipe).toString() === rec._id.toString();
+              option(value=rec._id, selected=sel)= rec.name + ' (yields ' + (rec.yield || '?') + ' ' + (rec.yieldUnit || 'each') + ')'
+        .col-md-4
+          label.form-label.fw-semibold(for='pr-baseqty') Batch units per product
+          input#pr-baseqty.form-control(type='number', name='baseQty', step='0.001', min='0.001', value=isEdit ? item.baseQty || 1 : 1, placeholder='1')
 
-  //- Simple product fields
-  #simple-fields(style=pType === 'bundle' ? 'display:none' : '')
-    .card.mb-4.border-primary-subtle
-      .card-header.bg-primary-subtle.fw-semibold.text-primary-emphasis
-        i.fas.fa-fire.me-2
-        | Back of House - Kitchen Base
-      .card-body
-        p.text-muted.small.mb-3
-          | Select the kitchen recipe that produces the base for this product.
-          | A production order will build batches of this recipe; the assembly
-          | step converts those batches into finished display-case products.
-        .row.g-3
-          .col-md-8
-            label.form-label(for='pr-recipe') Base Recipe
-            select#pr-recipe.form-select(name='recipe')
-              option(value='') -- none --
-              each rec in allRecipes
-                - var sel = isEdit && item.recipe && (item.recipe._id || item.recipe).toString() === rec._id.toString();
-                option(value=rec._id, selected=sel)= rec.name + ' (yields ' + (rec.yield || '?') + ' ' + (rec.yieldUnit || 'each') + ')'
-          .col-md-4
-            label.form-label(for='pr-baseqty') Kitchen units per product
-            input#pr-baseqty.form-control(type='number', name='baseQty', step='0.001', min='0.001', value=isEdit ? item.baseQty || 1 : 1, placeholder='1')
-            small.text-muted How many batch units make one of this product (usually 1).
+      .d-flex.justify-content-between.align-items-center.mb-2
+        span.fw-semibold Additional Components
+        button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-row', data-target='finishing-rows')
+          i.fas.fa-plus.me-1
+          | Add
 
-    .card.mb-4.border-warning-subtle
-      .card-header.bg-warning-subtle.fw-semibold.text-warning-emphasis
-        i.fas.fa-paint-brush.me-2
-        | Front of House - Finishing / Assembly
-      .card-body
-        p.text-muted.small.mb-3
-          | Ingredients and supplies added during front-of-house finishing
-          | (toppings, glazes, decorations, packaging, etc.).
-        .d-flex.justify-content-between.align-items-center.mb-2
-          span.fw-semibold.small.text-uppercase.text-muted Finishing Components
-          button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-row', data-target='finishing-rows')
-            i.fas.fa-plus.me-1
-            | Add
+      .row.gx-2.text-muted.small.mb-1
+        .col-2 Type
+        .col-3 Item
+        .col-2 Qty
+        .col-2 Unit
+        .col-2 Est. Cost
+        .col-1
 
-        .row.gx-2.text-muted.small.mb-1
-          .col-3 Type
-          .col-4 Item
-          .col-2 Qty
-          .col-2 Unit
-          .col-1
-
-        #finishing-rows
-          if isEdit && item.finishingComponents && item.finishingComponents.length
-            each fc, idx in item.finishingComponents
-              .row.gx-2.mb-2.item-row
-                .col-3
-                  select.form-select.form-select-sm(name=`finishingComponents[${idx}][type]`, data-role='fc-type')
-                    option(value='Ingredient', selected=fc.type === 'Ingredient') Ingredient
-                    option(value='Supply', selected=fc.type === 'Supply') Supply
-                    option(value='Prep', selected=fc.type === 'Prep') Prep
-                .col-4
-                  select.form-select.form-select-sm(name=`finishingComponents[${idx}][ref]`, data-role='fc-ref')
-                    each ing in allIngredients
-                      - var sel = fc.ref && fc.ref.toString() === ing._id.toString();
-                      option(value=ing._id, data-kind='Ingredient', selected=sel)= ing.name
-                    each sup in allSupplies
-                      - var sel = fc.ref && fc.ref.toString() === sup._id.toString();
-                      option(value=sup._id, data-kind='Supply', selected=sel)= sup.name
-                    each prep in prepProducts
-                      - var sel = fc.type === 'Prep' && fc.ref && fc.ref.toString() === prep._id.toString();
-                      option(value=prep._id, data-kind='Prep', selected=sel)= prep.name
-                .col-2
-                  input.form-control.form-control-sm(type='number', step='0.001', min='0', name=`finishingComponents[${idx}][quantity]`, value=fc.quantity || '')
-                .col-2
-                  +unitSel(`finishingComponents[${idx}][unit]`, fc.unit || '')
-                .col-1
-                  button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
-          else
+      #finishing-rows
+        if isEdit && item.finishingComponents && item.finishingComponents.length
+          each fc, idx in item.finishingComponents
             .row.gx-2.mb-2.item-row
+              .col-2
+                select.form-select.form-select-sm(name=`finishingComponents[${idx}][type]`, data-role='fc-type')
+                  option(value='Ingredient', selected=fc.type === 'Ingredient') Ingredient
+                  option(value='Supply', selected=fc.type === 'Supply') Supply
+                  option(value='Prep', selected=fc.type === 'Prep') Prep
               .col-3
-                select.form-select.form-select-sm(name='finishingComponents[0][type]', data-role='fc-type')
-                  option(value='Ingredient') Ingredient
-                  option(value='Supply') Supply
-                  option(value='Prep') Prep
-              .col-4
-                select.form-select.form-select-sm(name='finishingComponents[0][ref]', data-role='fc-ref')
+                select.form-select.form-select-sm(name=`finishingComponents[${idx}][ref]`, data-role='fc-ref')
                   each ing in allIngredients
-                    option(value=ing._id, data-kind='Ingredient')= ing.name
+                    - var sel = fc.ref && fc.ref.toString() === ing._id.toString();
+                    option(value=ing._id, data-kind='Ingredient', selected=sel)= ing.name
                   each sup in allSupplies
-                    option(value=sup._id, data-kind='Supply')= sup.name
+                    - var sel = fc.ref && fc.ref.toString() === sup._id.toString();
+                    option(value=sup._id, data-kind='Supply', selected=sel)= sup.name
                   each prep in prepProducts
-                    option(value=prep._id, data-kind='Prep')= prep.name
+                    - var sel = fc.type === 'Prep' && fc.ref && fc.ref.toString() === prep._id.toString();
+                    option(value=prep._id, data-kind='Prep', selected=sel)= prep.name
               .col-2
-                input.form-control.form-control-sm(type='number', step='0.001', min='0', name='finishingComponents[0][quantity]')
+                input.form-control.form-control-sm(type='number', step='0.001', min='0', name=`finishingComponents[${idx}][quantity]`, value=fc.quantity || '')
               .col-2
-                +unitSel('finishingComponents[0][unit]', '')
+                +unitSel(`finishingComponents[${idx}][unit]`, fc.unit || '')
+              .col-2
+                input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='fc-cost', tabindex='-1', placeholder='—')
               .col-1
                 button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
+        else
+          .row.gx-2.mb-2.item-row
+            .col-2
+              select.form-select.form-select-sm(name='finishingComponents[0][type]', data-role='fc-type')
+                option(value='Ingredient') Ingredient
+                option(value='Supply') Supply
+                option(value='Prep') Prep
+            .col-3
+              select.form-select.form-select-sm(name='finishingComponents[0][ref]', data-role='fc-ref')
+                each ing in allIngredients
+                  option(value=ing._id, data-kind='Ingredient')= ing.name
+                each sup in allSupplies
+                  option(value=sup._id, data-kind='Supply')= sup.name
+                each prep in prepProducts
+                  option(value=prep._id, data-kind='Prep')= prep.name
+            .col-2
+              input.form-control.form-control-sm(type='number', step='0.001', min='0', name='finishingComponents[0][quantity]')
+            .col-2
+              +unitSel('finishingComponents[0][unit]', '')
+            .col-2
+              input.form-control.form-control-sm.bg-light.text-end(type='text', readonly, data-role='fc-cost', tabindex='-1', placeholder='—')
+            .col-1
+              button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
 
   #comp-cost-data(data-costs=JSON.stringify(compCostData || {}), style='display: none')
-
-  //- Bundle product fields
-  #bundle-fields(style=pType === 'simple' ? 'display:none' : '')
-    .card.mb-4.border-info-subtle
-      .card-header.bg-info-subtle.fw-semibold.text-info-emphasis
-        i.fas.fa-boxes.me-2
-        | Bundle Components
-      .card-body
-        .row.g-3.mb-3
-          .col-md-4
-            label.form-label(for='pr-bundlesize') Bundle Size (total items)
-            input#pr-bundlesize.form-control(type='number', name='baseQty', step='1', min='1', value=isEdit ? item.baseQty || 1 : 1, placeholder='e.g. 6', disabled=pType === 'simple')
-            small.text-muted The total number of items included in this bundle.
-        p.text-muted.small.mb-3
-          | Select the simple products that make up this bundle.
-          | Product quantities must add up exactly to the bundle size above.
-          | When sold, each component product&rsquo;s display-case inventory will be decremented.
-        .d-flex.justify-content-between.align-items-center.mb-2
-          span.fw-semibold.small.text-uppercase.text-muted
-            | Component Products
-            span#bundle-count-display.fw-normal.ms-2
-          button.btn.btn-outline-secondary.btn-sm(type='button', data-action='add-row', data-target='bundle-rows')
-            i.fas.fa-plus.me-1
-            | Add
-        #bundle-size-error.alert.alert-danger.py-2.small.mb-2(style='display: none')
-          i.fas.fa-exclamation-circle.me-1
-          span#bundle-size-error-msg
-
-        .row.gx-2.text-muted.small.mb-1
-          .col-7 Product
-          .col-3 Quantity
-          .col-2
-
-        #bundle-rows
-          if isEdit && item.bundleItems && item.bundleItems.length
-            each bi, idx in item.bundleItems
-              .row.gx-2.mb-2.item-row
-                .col-7
-                  - var bpid = bi.product && (bi.product._id || bi.product).toString();
-                  - var bpName = bi.product && bi.product.name ? bi.product.name : null;
-                  - var bpInStock = inStockProducts.some(function(p){ return p._id.toString() === bpid; });
-                  select.form-select.form-select-sm(name=`bundleItems[${idx}][product]`)
-                    each prod in inStockProducts
-                      if prod._id.toString() !== item._id.toString()
-                        option(value=prod._id, selected=bpid === prod._id.toString())= prod.name
-                    if bpid && !bpInStock && bpName
-                      option(value=bpid, selected)= bpName + ' (out of stock)'
-                .col-3
-                  input.form-control.form-control-sm(type='number', step='1', min='1', name=`bundleItems[${idx}][quantity]`, value=bi.quantity || 1)
-                .col-2
-                  button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
-          else
-            .row.gx-2.mb-2.item-row
-              .col-7
-                select.form-select.form-select-sm(name='bundleItems[0][product]')
-                  if inStockProducts && inStockProducts.length
-                    each prod in inStockProducts
-                      if !isEdit || prod._id.toString() !== (item && item._id ? item._id.toString() : '')
-                        option(value=prod._id)= prod.name
-                  else
-                    option(value='', disabled) No simple products in stock
-              .col-3
-                input.form-control.form-control-sm(type='number', step='1', min='1', name='bundleItems[0][quantity]', value='1')
-              .col-2
-                button.btn.btn-sm.btn-outline-danger(type='button', data-action='remove-row') x
 
   //- Notes
   .row.g-3.mt-1
@@ -286,31 +194,10 @@ form#section-form(action=formAction, method='POST')
               tr.border-top
                 td Suggested Price
                 td.text-end
-                  span#live-target-pct.d-none= costing ? costing.targetMargin : ''
-                  span#live-suggested-price= costing && costing.suggestedPrice > 0 ? fmtCurrency(costing.suggestedPrice) : '—'
+                  span#live-suggested-price= costing && costing.suggestedPrice > 0 ? 'at ' + costing.targetMargin + '% margin: ' + fmtCurrency(costing.suggestedPrice) : '—'
 
   .mt-4.d-flex.gap-2
     button.btn.btn-primary(type='submit')
       i.fas.fa-save.me-1
       = isEdit ? 'Save Changes' : 'Add Product'
     button.btn.btn-outline-secondary(type='button', data-action='cancel') Cancel
-
-script.
-  (function () {
-    var radios = document.querySelectorAll('input[name="productType"]');
-    function toggleSections() {
-      var val = document.querySelector('input[name="productType"]:checked');
-      val = val ? val.value : 'simple';
-      document.getElementById('simple-fields').style.display = val === 'simple' ? '' : 'none';
-      document.getElementById('bundle-fields').style.display = val === 'bundle' ? '' : 'none';
-      var simpleQty = document.getElementById('pr-baseqty');
-      var bundleQty = document.getElementById('pr-bundlesize');
-      if (simpleQty) simpleQty.disabled = val === 'bundle';
-      if (bundleQty) bundleQty.disabled = val === 'simple';
-      if (window.recalcBundleCount) window.recalcBundleCount();
-    }
-    radios.forEach(function (r) {
-      r.addEventListener('change', toggleSections);
-    });
-    toggleSections();
-  })();

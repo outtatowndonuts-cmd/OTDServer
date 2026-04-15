@@ -68,10 +68,10 @@ export default function CashModal({ total, onConfirm, onCancel }) {
               padding: '10px 24px',
               fontSize: '.95rem',
               fontWeight: 600,
-              border: '1px solid #3a3d4a',
-              borderRadius: 8,
-              background: '#252838',
-              color: '#69db7c',
+              border: '1px solid #3a3228',
+              borderRadius: 4,
+              background: '#1a1a1a',
+              color: '#f4e9d8',
               cursor: 'pointer',
             }}
           >

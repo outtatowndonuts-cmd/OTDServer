@@ -206,6 +206,20 @@ exports.updateSettings = async (req, res) => {
   }
 };
 
+// ─── Supplies (for box config packaging dropdown) ─────────────────────────────────
+
+/**
+ * GET /admin/api/supplies
+ */
+exports.getSupplies = async (req, res) => {
+  try {
+    const supplies = await adminService.getSuppliesForAdmin();
+    res.json({ ok: true, supplies });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
 // ─── Custom Box Config ────────────────────────────────────────────────────────
 
 /**

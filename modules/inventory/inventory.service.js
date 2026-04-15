@@ -244,7 +244,15 @@ async function checkOrderAvailability(order) {
             need('ingredient', fc.ref, name, deductQty);
           } else if (fc.type === 'Supply') {
             const supply = await catalog.getSupplyById(fc.ref);
-            need('supply', fc.ref, supply ? supply.name : 'Unknown supply', qty);
+            const name = supply ? supply.name : 'Unknown supply';
+            const deductQty = convertUnits(qty, fc.unit, supply && supply.unit, name);
+            need('supply', fc.ref, name, deductQty);
+          } else if (fc.type === 'Prep') {
+            const recipe = await catalog.getRecipeById(fc.ref);
+            const name = recipe ? recipe.name : 'Unknown prep';
+            const yieldUnit = (recipe && recipe.yieldUnit) || 'each';
+            const deductQty = convertUnits(qty, fc.unit, yieldUnit, name);
+            need('kitchen', fc.ref, name, deductQty);
           }
         }
       }
@@ -525,7 +533,15 @@ async function handleOrderCompleted(order, { skipIdempotencyCheck = false } = {}
           } else if (fc.type === 'Supply') {
             const supply = await catalog.getSupplyById(fc.ref);
             const name = supply ? supply.name : 'Unknown supply';
-            await adjustStock({ kind: 'supply', refId: fc.ref, name, quantityDelta: -qty, unit: (supply && supply.unit) || '' });
+            const deductQty = convertUnits(qty, fc.unit, supply && supply.unit, name);
+            await adjustStock({ kind: 'supply', refId: fc.ref, name, quantityDelta: -deductQty, unit: (supply && supply.unit) || '' });
+          } else if (fc.type === 'Prep') {
+            const recipe = await catalog.getRecipeById(fc.ref);
+            const name = recipe ? recipe.name : 'Unknown prep';
+            const yieldUnit = (recipe && recipe.yieldUnit) || 'each';
+            const deductQty = convertUnits(qty, fc.unit, yieldUnit, name);
+            await adjustStock({ kind: 'kitchen', refId: fc.ref, name, quantityDelta: -deductQty, unit: yieldUnit });
+            await consumeFromBatches(fc.ref, deductQty, 'kitchen');
           }
         }
 

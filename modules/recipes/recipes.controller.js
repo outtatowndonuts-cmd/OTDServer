@@ -108,7 +108,16 @@ exports.fragmentProductsNew = async function (req, res) {
     if (ing.purchaseCost != null) compCostData[`Ingredient:${ing._id}`] = { cost: ing.purchaseCost, unit: ing.purchaseUnit || '' };
   }
   for (const sup of allSupplies) {
-    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: 'each' };
+    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: sup.unit || 'each' };
+  }
+  const recipeMap = {};
+  for (const r of allRecipes) recipeMap[r._id.toString()] = r;
+  for (const r of allRecipes) {
+    const c = service.calculateRecipeCostSync(r, undefined, recipeMap);
+    if (c.canCalculate) {
+      compCostData[`Prep:${r._id}`] = { cost: c.costPerUnit, unit: r.yieldUnit || 'each' };
+      compCostData[`Recipe:${r._id}`] = { cost: c.costPerUnit, unit: r.yieldUnit || 'each' };
+    }
   }
   frag(res, 'products/form.pug', { item: null, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing: null, defaults, compCostData, unitOptions: UNIT_OPTIONS }, csrf(req));
 };
@@ -133,7 +142,16 @@ exports.fragmentProductsEdit = async function (req, res) {
     if (ing.purchaseCost != null) compCostData[`Ingredient:${ing._id}`] = { cost: ing.purchaseCost, unit: ing.purchaseUnit || '' };
   }
   for (const sup of allSupplies) {
-    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: 'each' };
+    if (sup.costPerUnit != null) compCostData[`Supply:${sup._id}`] = { cost: sup.costPerUnit, unit: sup.unit || 'each' };
+  }
+  const recipeMap = {};
+  for (const r of allRecipes) recipeMap[r._id.toString()] = r;
+  for (const r of allRecipes) {
+    const c = service.calculateRecipeCostSync(r, undefined, recipeMap);
+    if (c.canCalculate) {
+      compCostData[`Prep:${r._id}`] = { cost: c.costPerUnit, unit: r.yieldUnit || 'each' };
+      compCostData[`Recipe:${r._id}`] = { cost: c.costPerUnit, unit: r.yieldUnit || 'each' };
+    }
   }
   frag(res, 'products/form.pug', { item, allIngredients, allRecipes, allSupplies, allProducts, inStockProducts, prepProducts, costing, compCostData, unitOptions: UNIT_OPTIONS }, csrf(req));
 };
@@ -289,18 +307,10 @@ function parseProductBody(body) {
   data.overheadCost = parseFloat(data.overheadCost) || 0;
   data.targetMarginPct = parseFloat(data.targetMarginPct) || 30;
 
-  if (data.productType === 'bundle') {
-    data.finishingComponents = [];
-    data.recipe = undefined;
-    data.bundleItems = parseLines(data.bundleItems, 'product').map(function (r) {
-      return { product: r.product, quantity: parseFloat(r.quantity) || 1 };
-    });
-  } else {
-    data.bundleItems = [];
-    data.finishingComponents = parseLines(data.finishingComponents, 'ref').map(function (r) {
-      return { type: r.type || 'Ingredient', ref: r.ref, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
-    });
-  }
+  data.bundleItems = [];
+  data.finishingComponents = parseLines(data.finishingComponents, 'ref').map(function (r) {
+    return { type: r.type || 'Ingredient', ref: r.ref, quantity: parseFloat(r.quantity) || 0, unit: r.unit || '' };
+  });
   return data;
 }
 

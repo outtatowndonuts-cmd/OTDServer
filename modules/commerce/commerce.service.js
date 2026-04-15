@@ -218,7 +218,7 @@ async function getActiveCustomBoxConfigs() {
  * so the real product prices are preserved in order history.
  */
 async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idempotencyKey }) {
-  const boxConfig = await CustomBoxConfig.findById(boxConfigId);
+  const boxConfig = await CustomBoxConfig.findById(boxConfigId).populate('packagingSupply');
   if (!boxConfig || !boxConfig.isActive) {
     throw new Error('Box configuration not found or inactive');
   }
@@ -267,6 +267,17 @@ async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idemp
     for (const item of orderItems) {
       item.priceSnapshot = Math.round(item.priceSnapshot * factor * 100) / 100;
     }
+  }
+
+  // After discount: add packaging fee as a separate line item if a supply is linked.
+  if (boxConfig.packagingSupply && boxConfig.packagingSupply.costPerUnit > 0) {
+    orderItems.push({
+      kind: 'fee',
+      refId: boxConfig.packagingSupply._id,
+      nameSnapshot: `${boxConfig.name} Packaging`,
+      quantity: 1,
+      priceSnapshot: Math.round(boxConfig.packagingSupply.costPerUnit * 100) / 100,
+    });
   }
 
   const order = await orderService.createOrder({

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema(
   {
-    kind: { type: String, enum: ['product', 'recipe'], required: true },
+    kind: { type: String, enum: ['product', 'recipe', 'fee'], required: true },
     refId: { type: mongoose.Schema.Types.ObjectId, required: true },
     nameSnapshot: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0.001 },

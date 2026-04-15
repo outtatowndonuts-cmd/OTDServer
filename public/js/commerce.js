@@ -63,6 +63,21 @@
       });
     });
 
+    document.querySelectorAll('.qty-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = btn.closest('.qty-stepper').querySelector('.qty-input');
+        const max = parseInt(input.getAttribute('max'), 10) || 0;
+        let val = parseInt(input.value, 10) || 0;
+        if (btn.classList.contains('qty-dec')) {
+          val = Math.max(0, val - 1);
+        } else {
+          val = Math.min(max, val + 1);
+        }
+        input.value = val;
+        updateSubtotal();
+      });
+    });
+
     checkoutBtn.addEventListener('click', async () => {
       const items = getItems();
       if (items.length === 0) return;
