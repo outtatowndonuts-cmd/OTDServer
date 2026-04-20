@@ -459,7 +459,74 @@
         } catch {
           /* ignore */
         }
-        alert(msg);
+
+        var isStockError = msg.indexOf('Insufficient stock') !== -1;
+
+        // Remove any existing bypass modal
+        $('#order-bypass-modal').remove();
+
+        var detailHtml = '';
+        if (isStockError) {
+          var lines = msg.replace('Insufficient stock:\n', '').split('\n').filter(Boolean);
+          detailHtml =
+            `<p class="text-danger fw-semibold mb-2">Insufficient stock:</p>` +
+            `<ul class="mb-3">${lines
+              .map(function (l) {
+                return `<li class="text-warning">${$('<span>').text(l.replace(/^- /, '')).html()}</li>`;
+              })
+              .join('')}</ul>`;
+        } else {
+          detailHtml = `<p class="text-danger">${$('<span>').text(msg).html()}</p>`;
+        }
+
+        var bypassBtn = isStockError ? '<button type="button" class="btn btn-danger" id="bypass-confirm-btn">' + '<i class="fas fa-exclamation-triangle me-1"></i>Admin Bypass</button>' : '';
+
+        var modal =
+          `<div class="modal fade" id="order-bypass-modal" tabindex="-1" aria-modal="true" role="dialog">` +
+          `  <div class="modal-dialog">` +
+          `    <div class="modal-content bg-dark text-light">` +
+          `      <div class="modal-header">` +
+          `        <h5 class="modal-title"><i class="fas fa-triangle-exclamation me-2 text-warning"></i>Cannot Complete Order</h5>` +
+          `        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>` +
+          `      </div>` +
+          `      <div class="modal-body">${detailHtml}</div>` +
+          `      <div class="modal-footer">` +
+          `        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>${bypassBtn}      </div>` +
+          `    </div>` +
+          `  </div>` +
+          `</div>`;
+
+        $('body').append(modal);
+        var $modal = $('#order-bypass-modal');
+        var bsModal = new bootstrap.Modal($modal[0]);
+        bsModal.show();
+
+        $modal.on('hidden.bs.modal', function () {
+          $modal.remove();
+        });
+
+        $('#bypass-confirm-btn').one('click', function () {
+          bsModal.hide();
+          $.ajax({
+            url: `/orders/${id}/force-complete`,
+            method: 'POST',
+            contentType: 'application/json',
+            headers: { 'X-CSRF-Token': csrfToken },
+            data: '{}',
+            success: function () {
+              loadSection(currentSection);
+            },
+            error: function (xhr2) {
+              var msg2 = 'Bypass failed';
+              try {
+                msg2 = JSON.parse(xhr2.responseText).error || msg2;
+              } catch {
+                /* ignore */
+              }
+              alert(msg2);
+            },
+          });
+        });
       },
     });
   }

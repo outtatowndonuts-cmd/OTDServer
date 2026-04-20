@@ -138,6 +138,19 @@ exports.completeOrder = async function (req, res) {
   }
 };
 
+// --- API: Force-complete order (admin bypass, skips inventory check) ----------
+exports.forceCompleteOrder = async function (req, res) {
+  try {
+    const order = await service.getOrderById(req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: 'Order not found' });
+
+    const completed = await service.completeOrder(req.params.id);
+    res.json({ ok: true, order: completed });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+};
+
 // --- API: Cancel order --------------------------------------------------------
 exports.cancelOrder = async function (req, res) {
   try {

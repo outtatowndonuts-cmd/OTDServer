@@ -22,6 +22,7 @@ router.post('/settings', isAuthenticated, requireRole('admin', 'manager'), contr
 router.get('/api', isAuthenticated, controller.listOrders);
 router.get('/api/:id', isAuthenticated, controller.getOrder);
 router.post('/:id/complete', isAuthenticated, controller.completeOrder);
+router.post('/:id/force-complete', isAuthenticated, requireRole('admin', 'manager'), controller.forceCompleteOrder);
 router.post('/:id/cancel', isAuthenticated, requireRole('admin', 'manager'), controller.cancelOrder);
 router.post('/:id/refund', isAuthenticated, requireRole('admin', 'manager'), controller.refundOrder);
 
