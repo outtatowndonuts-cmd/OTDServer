@@ -583,16 +583,18 @@
         // Wire finishing component cost for cloned row
         var fcRefSelect = clone.querySelector('[data-role="fc-ref"]');
         var fcUnitSelect = clone.querySelector('select[name*="[unit]"]');
-        if (fcRefSelect)
+        if (fcRefSelect) {
           fcRefSelect.addEventListener('change', function () {
             updateFcRowCost(clone);
             recalcCosting();
           });
-        if (fcUnitSelect)
+        }
+        if (fcUnitSelect) {
           fcUnitSelect.addEventListener('change', function () {
             updateFcRowCost(clone);
             recalcCosting();
           });
+        }
         // Wire cost display for cloned row
         var refSelect = clone.querySelector('[data-role="comp-ref"]');
         var ingSelect2 = clone.querySelector('select[name*="[ingredient]"]');
@@ -656,21 +658,24 @@
       var fcRef = row.querySelector('[data-role="fc-ref"]');
       var qtyInput = row.querySelector('[name*="[quantity]"]');
       var unitSelect = row.querySelector('select[name*="[unit]"]');
-      if (fcRef)
+      if (fcRef) {
         fcRef.addEventListener('change', function () {
           updateFcRowCost(row);
           recalcCosting();
         });
-      if (qtyInput)
+      }
+      if (qtyInput) {
         qtyInput.addEventListener('input', function () {
           updateFcRowCost(row);
           recalcCosting();
         });
-      if (unitSelect)
+      }
+      if (unitSelect) {
         unitSelect.addEventListener('change', function () {
           updateFcRowCost(row);
           recalcCosting();
         });
+      }
     });
 
     // Component cost display: wire qty + ref changes for all existing rows

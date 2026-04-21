@@ -479,7 +479,7 @@
           detailHtml = `<p class="text-danger">${$('<span>').text(msg).html()}</p>`;
         }
 
-        var bypassBtn = isStockError ? '<button type="button" class="btn btn-danger" id="bypass-confirm-btn">' + '<i class="fas fa-exclamation-triangle me-1"></i>Admin Bypass</button>' : '';
+        var bypassBtn = isStockError ? '<button type="button" class="btn btn-danger" id="bypass-confirm-btn"><i class="fas fa-exclamation-triangle me-1"></i>Admin Bypass</button>' : '';
 
         var modal =
           `<div class="modal fade" id="order-bypass-modal" tabindex="-1" aria-modal="true" role="dialog">` +
