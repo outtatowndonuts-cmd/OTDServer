@@ -1,67 +1,86 @@
+const fs = require('node:fs');
 const path = require('node:path');
+const nodemailer = require('nodemailer');
 const validator = require('validator');
 const commerceService = require('./commerce.service');
-const nodemailerConfig = require('../../config/nodemailer');
 const orderService = require('../../shared/order.service');
+const ContactMessage = require('../../models/ContactMessage');
+
+// ─── React Shell ──────────────────────────────────────────────────────────────
+
+const SHELL_PATH = path.join(__dirname, 'public', 'index.html');
+let _shellCache = null;
+
+async function _getShell() {
+  if (!_shellCache || process.env.NODE_ENV !== 'production') {
+    _shellCache = await fs.promises.readFile(SHELL_PATH, 'utf8');
+  }
+  return _shellCache;
+}
 
 /**
- * GET /shop — Public storefront homepage.
- * Displays available products with real inventory counts.
+ * Serve the React shell HTML with server-injected meta tags.
+ * Used by all commerce page routes.
  */
-async function index(req, res, next) {
+async function serveShell(req, res, next) {
+  try {
+    const html = await _getShell();
+    const csrf = res.locals._csrf || '';
+
+    const tags = [
+      `<meta name="csrf-token" content="${validator.escape(String(csrf))}">`,
+      process.env.FACEBOOK_ID ? `<meta property="fb:app_id" content="${validator.escape(String(process.env.FACEBOOK_ID))}">` : '',
+      process.env.GOOGLE_ANALYTICS_ID ? `<meta name="ga-id" content="${validator.escape(String(process.env.GOOGLE_ANALYTICS_ID))}">` : '',
+      process.env.GOOGLE_RECAPTCHA_SITE_KEY ? `<meta name="recaptcha-sitekey" content="${validator.escape(String(process.env.GOOGLE_RECAPTCHA_SITE_KEY))}">` : '',
+      req.user ? `<meta name="is-known-user" content="true">` : '',
+    ]
+      .filter(Boolean)
+      .join('\n    ');
+
+    const injected = html.replace('</head>', `    ${tags}\n  </head>`);
+    res.type('html').send(injected);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── Data API endpoints ───────────────────────────────────────────────────────
+
+/**
+ * GET /shop/api/storefront — Products for the homepage.
+ */
+async function apiStorefront(req, res, next) {
   try {
     const products = await commerceService.getStorefrontProducts();
-    res.render(path.join(__dirname, 'views/storefront'), {
-      title: 'Outta Town Donuts',
-      currentPage: 'home',
-      products,
-    });
+    res.json({ products });
   } catch (err) {
     next(err);
   }
 }
 
 /**
- * GET /shop/pickup — Public ordering page (pickup orders).
- * Shows available products with quantity selectors.
+ * GET /shop/api/pickup — Products + ordering status for the pickup page.
  */
-async function pickupPage(req, res, next) {
+async function apiPickup(req, res, next) {
   try {
     const settings = await orderService.getSettings();
     if (!settings.preordersEnabled) {
-      return res.render(path.join(__dirname, 'views/order'), {
-        title: 'Pickup Orders — Outta Town Donuts',
-        currentPage: 'pickup',
-        products: [],
-        cancelled: false,
-        preordersDisabled: true,
-      });
+      return res.json({ products: [], preordersEnabled: false });
     }
     const products = await commerceService.getStorefrontProducts();
-    res.render(path.join(__dirname, 'views/order'), {
-      title: 'Pickup Orders — Outta Town Donuts',
-      currentPage: 'pickup',
-      products,
-      cancelled: req.query.cancelled === 'true',
-    });
+    res.json({ products, preordersEnabled: true });
   } catch (err) {
     next(err);
   }
 }
 
 /**
- * GET /shop/custom-boxes — Custom box builder page.
- * Fetches active box configs and available products to pass to the view.
+ * GET /shop/api/custom-boxes — Box configs + products for the custom boxes page.
  */
-async function customBoxes(req, res, next) {
+async function apiCustomBoxes(req, res, next) {
   try {
-    const [boxConfigs, products] = await Promise.all([commerceService.getActiveCustomBoxConfigs(), commerceService.getStorefrontProducts()]);
-
-    const settings = await orderService.getSettings();
-
-    res.render(path.join(__dirname, 'views/custom-boxes'), {
-      title: 'Custom Boxes — Outta Town Donuts',
-      currentPage: 'custom-boxes',
+    const [boxConfigs, products, settings] = await Promise.all([commerceService.getActiveCustomBoxConfigs(), commerceService.getStorefrontProducts(), orderService.getSettings()]);
+    res.json({
       boxConfigs: boxConfigs.map((c) => c.toObject()),
       products,
       preordersEnabled: settings.preordersEnabled !== false,
@@ -72,76 +91,83 @@ async function customBoxes(req, res, next) {
 }
 
 /**
- * GET /shop/about — About Us page.
+ * GET /shop/api/order-status — Order detail for the confirmation page.
+ * Reconciles with Stripe if session_id is provided and order is still pending.
  */
-function about(req, res) {
-  res.render(path.join(__dirname, 'views/about'), {
-    title: 'About Us — Outta Town Donuts',
-    currentPage: 'about',
-  });
+async function apiOrderStatus(req, res, next) {
+  try {
+    const { orderId, session_id: sessionId } = req.query;
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId is required' });
+    }
+    const order = await commerceService.reconcileOrder(orderId, sessionId);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.json({ order: order.toObject() });
+  } catch (err) {
+    next(err);
+  }
 }
 
 /**
- * GET /shop/contact — Contact form page.
+ * POST /shop/api/contact — Contact form submission (returns JSON).
  */
-function getContact(req, res) {
-  const unknownUser = !req.user;
-  res.render(path.join(__dirname, 'views/contact'), {
-    title: 'Contact — Outta Town Donuts',
-    currentPage: 'contact',
-    sitekey: process.env.GOOGLE_RECAPTCHA_SITE_KEY || null,
-    unknownUser,
-  });
-}
-
-/**
- * POST /shop/contact — Handle contact form submission.
- */
-async function postContact(req, res, next) {
+async function apiContact(req, res, next) {
   const validationErrors = [];
   let fromName;
   let fromEmail;
 
   if (!req.user) {
-    if (validator.isEmpty(req.body.name || '')) validationErrors.push({ msg: 'Please enter your name' });
-    if (!validator.isEmail(req.body.email || '')) validationErrors.push({ msg: 'Please enter a valid email address.' });
+    if (validator.isEmpty(req.body.name || '')) {
+      validationErrors.push({ msg: 'Please enter your name' });
+    }
+    if (!validator.isEmail(req.body.email || '')) {
+      validationErrors.push({ msg: 'Please enter a valid email address.' });
+    }
   }
-  if (validator.isEmpty(req.body.message || '')) validationErrors.push({ msg: 'Please enter your message.' });
+  if (validator.isEmpty(req.body.message || '')) {
+    validationErrors.push({ msg: 'Please enter your message.' });
+  }
 
   if (validationErrors.length) {
-    req.flash('errors', validationErrors);
-    return res.redirect('/shop/contact');
+    return res.status(400).json({ errors: validationErrors });
   }
 
   if (req.user) {
     fromName = req.user.profile.name || 'No name supplied';
     fromEmail = req.user.email;
   } else {
-    fromName = validator.escape(req.body.name);
+    fromName = validator.escape(String(req.body.name).trim());
     fromEmail = req.body.email;
   }
 
   try {
-    const mailOptions = {
-      to: process.env.SITE_CONTACT_EMAIL,
-      from: `${fromName} <${fromEmail}>`,
-      subject: `[Outta Town Donuts] Contact from ${fromName}`,
-      text: req.body.message,
-    };
+    // Save to database first (non-blocking failure is OK)
+    ContactMessage.create({ name: fromName, email: fromEmail, message: String(req.body.message) }).catch((err) => console.error('[Commerce] Contact save error:', err.message));
 
-    await nodemailerConfig.sendMail({
-      successfulType: 'success',
-      successfulMsg: 'Your message has been sent. Thank you!',
-      loggingError: 'ERROR: Could not send commerce contact email after security downgrade.\n',
-      errorType: 'errors',
-      errorMsg: 'There was a problem sending your message. Please try again later.',
-      mailOptions,
-      req,
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: 465,
+      secure: true,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
     });
+
+    await transporter.sendMail({
+      to: process.env.SITE_CONTACT_EMAIL,
+      from: `Outta Town Donuts <${process.env.TRANSACTION_EMAIL || process.env.SITE_CONTACT_EMAIL}>`,
+      replyTo: `${fromName} <${fromEmail}>`,
+      subject: `[Outta Town Donuts] Contact from ${fromName}`,
+      text: String(req.body.message),
+    });
+
+    return res.json({ ok: true });
   } catch (err) {
     console.error('[Commerce] Contact email error:', err.message);
+    return res.status(500).json({
+      errors: [{ msg: 'There was a problem sending your message. Please try again later.' }],
+    });
   }
-  return res.redirect('/shop/contact');
 }
 
 /**
@@ -150,13 +176,22 @@ async function postContact(req, res, next) {
  */
 async function createOrder(req, res, next) {
   try {
-    const { items, idempotencyKey, pickupName } = req.body;
+    const { items, idempotencyKey, pickupName, customerEmail } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Order must have at least one item' });
     }
 
     if (!pickupName || !pickupName.trim()) {
       return res.status(400).json({ error: 'Please enter a name for pickup' });
+    }
+
+    // Validate email if provided (optional)
+    let sanitizedEmail;
+    if (customerEmail && customerEmail.trim()) {
+      if (!validator.isEmail(String(customerEmail).trim())) {
+        return res.status(400).json({ error: 'Please enter a valid email address' });
+      }
+      sanitizedEmail = String(customerEmail).trim().toLowerCase().slice(0, 254);
     }
 
     // Sanitize: only allow refId and positive integer quantity
@@ -169,6 +204,7 @@ async function createOrder(req, res, next) {
       items: sanitized,
       idempotencyKey,
       pickupName: validator.escape(String(pickupName).trim()),
+      customerEmail: sanitizedEmail,
     });
 
     // Create Stripe Checkout Session
@@ -179,33 +215,6 @@ async function createOrder(req, res, next) {
     if (err.status === 409) {
       return res.status(409).json({ error: err.message, shortages: err.shortages });
     }
-    next(err);
-  }
-}
-
-/**
- * GET /shop/confirmation — Order confirmation / status page.
- * Handles reconciliation if webhook hasn't fired yet.
- */
-async function confirmation(req, res, next) {
-  try {
-    const { orderId, session_id: sessionId } = req.query;
-    if (!orderId) {
-      return res.redirect('/shop');
-    }
-
-    // Reconcile: verify with Stripe if order is still pending
-    const order = await commerceService.reconcileOrder(orderId, sessionId);
-    if (!order) {
-      return res.redirect('/shop');
-    }
-
-    res.render(path.join(__dirname, 'views/confirmation'), {
-      title: 'Order Confirmation — Outta Town Donuts',
-      currentPage: 'pickup',
-      order: order.toObject(),
-    });
-  } catch (err) {
     next(err);
   }
 }
@@ -236,7 +245,7 @@ async function stripeWebhook(req, res) {
  */
 async function createCustomBoxOrder(req, res, next) {
   try {
-    const { boxConfigId, selections, pickupName, idempotencyKey } = req.body;
+    const { boxConfigId, selections, pickupName, idempotencyKey, customerEmail } = req.body;
 
     if (!boxConfigId) {
       return res.status(400).json({ error: 'boxConfigId is required' });
@@ -246,6 +255,15 @@ async function createCustomBoxOrder(req, res, next) {
     }
     if (!pickupName || !String(pickupName).trim()) {
       return res.status(400).json({ error: 'Please enter a name for pickup' });
+    }
+
+    // Validate email if provided (optional)
+    let sanitizedEmail;
+    if (customerEmail && customerEmail.trim()) {
+      if (!validator.isEmail(String(customerEmail).trim())) {
+        return res.status(400).json({ error: 'Please enter a valid email address' });
+      }
+      sanitizedEmail = String(customerEmail).trim().toLowerCase().slice(0, 254);
     }
 
     const sanitizedSelections = selections.map((s) => ({
@@ -258,6 +276,7 @@ async function createCustomBoxOrder(req, res, next) {
       selections: sanitizedSelections,
       pickupName: validator.escape(String(pickupName).trim()),
       idempotencyKey,
+      customerEmail: sanitizedEmail,
     });
 
     const session = await commerceService.createCheckoutSession(order);
@@ -271,15 +290,48 @@ async function createCustomBoxOrder(req, res, next) {
   }
 }
 
+/**
+ * GET /shop/api/order-lookup — Look up an order by confirmation number.
+ * Returns limited order info (no internal IDs exposed beyond confirmation number).
+ */
+async function apiOrderLookup(req, res, next) {
+  try {
+    const { confirmationNumber } = req.query;
+    if (!confirmationNumber || typeof confirmationNumber !== 'string') {
+      return res.status(400).json({ error: 'confirmationNumber is required' });
+    }
+    const order = await commerceService.getOrderByConfirmationNumber(confirmationNumber.toUpperCase().trim());
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const obj = order.toObject();
+    res.json({
+      order: {
+        confirmationNumber: obj.confirmationNumber,
+        status: obj.status,
+        paymentStatus: obj.paymentStatus,
+        pickupName: obj.pickupName,
+        items: obj.items,
+        subtotal: obj.subtotal,
+        tax: obj.tax,
+        total: obj.total,
+        createdAt: obj.createdAt,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
-  index,
-  pickupPage,
-  customBoxes,
-  about,
-  getContact,
-  postContact,
+  serveShell,
+  apiStorefront,
+  apiPickup,
+  apiCustomBoxes,
+  apiOrderStatus,
+  apiOrderLookup,
+  apiContact,
   createOrder,
   createCustomBoxOrder,
-  confirmation,
   stripeWebhook,
 };

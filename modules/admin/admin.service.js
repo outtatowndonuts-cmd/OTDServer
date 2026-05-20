@@ -10,6 +10,8 @@ const audit = require('../../shared/audit');
 const User = require('../../models/User');
 const { CustomBoxConfig } = require('../commerce/custom-box.model');
 const { Supply } = require('../recipes/recipes.model');
+const ContactMessage = require('../../models/ContactMessage');
+const nodemailer = require('nodemailer');
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -206,6 +208,51 @@ async function deleteCustomBoxConfig(id) {
   return result;
 }
 
+// ─── Contact Messages ─────────────────────────────────────────────────────────
+
+async function getContactMessages({ status } = {}) {
+  const filter = {};
+  if (status && ['new', 'read', 'replied'].includes(status)) filter.status = status;
+  return ContactMessage.find(filter).sort({ createdAt: -1 });
+}
+
+async function markContactRead(id) {
+  const msg = await ContactMessage.findById(id);
+  if (!msg) throw new Error('Message not found');
+  if (msg.status === 'new') {
+    msg.status = 'read';
+    await msg.save();
+  }
+  return msg;
+}
+
+async function replyToContact(id, replyText) {
+  const msg = await ContactMessage.findById(id);
+  if (!msg) throw new Error('Message not found');
+
+  const transport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '465', 10),
+    secure: (process.env.SMTP_PORT || '465') === '465',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+  });
+
+  const from = process.env.SITE_CONTACT_EMAIL || process.env.TRANSACTION_EMAIL;
+  await transport.sendMail({
+    from,
+    to: `${msg.name} <${msg.email}>`,
+    replyTo: from,
+    subject: `Re: Your message to Outta Town Donuts`,
+    text: `Hi ${msg.name},\n\n${replyText}\n\n---\nOutta Town Donuts\n${process.env.SITE_CONTACT_EMAIL || ''}`,
+  });
+
+  msg.reply = replyText;
+  msg.repliedAt = new Date();
+  msg.status = 'replied';
+  await msg.save();
+  return msg;
+}
+
 module.exports = {
   getDashboard,
   getOrders,
@@ -222,4 +269,7 @@ module.exports = {
   updateCustomBoxConfig,
   deleteCustomBoxConfig,
   getSuppliesForAdmin,
+  getContactMessages,
+  markContactRead,
+  replyToContact,
 };

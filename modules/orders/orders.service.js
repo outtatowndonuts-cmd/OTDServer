@@ -114,6 +114,13 @@ async function getOrderById(id) {
 }
 
 /**
+ * Get a single order by its human-readable confirmation number.
+ */
+async function getOrderByConfirmationNumber(confirmationNumber) {
+  return Order.findOne({ confirmationNumber: confirmationNumber.toUpperCase().trim() });
+}
+
+/**
  * Mark an order as completed and emit event.
  * Only pending orders can be completed — prevents duplicate event emission.
  */
@@ -277,6 +284,7 @@ module.exports = {
   createOrder,
   getOrders,
   getOrderById,
+  getOrderByConfirmationNumber,
   completeOrder,
   fillOrder,
   deliverOrder,

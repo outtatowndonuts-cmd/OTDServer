@@ -1,4 +1,15 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
+
+// 32 unambiguous characters (2^5 = 32 → no modulo bias with byte % 32)
+const CONF_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateConfirmationNumber() {
+  const bytes = crypto.randomBytes(6);
+  return `OTD-${Array.from(bytes)
+    .map((b) => CONF_CHARS[b % CONF_CHARS.length])
+    .join('')}`;
+}
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -65,9 +76,26 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       maxlength: 100,
     },
+    customerEmail: {
+      type: String,
+      trim: true,
+      maxlength: 254,
+    },
+    confirmationNumber: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
   },
   { timestamps: true },
 );
+
+orderSchema.pre('save', async function () {
+  if (!this.confirmationNumber) {
+    this.confirmationNumber = generateConfirmationNumber();
+  }
+});
 
 // ─── Order Settings (singleton) ───────────────────────────────────────────────
 const orderSettingsSchema = new mongoose.Schema(

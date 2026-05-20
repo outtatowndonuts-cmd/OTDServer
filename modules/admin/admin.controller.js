@@ -271,3 +271,45 @@ exports.deleteCustomBoxConfig = async (req, res) => {
     res.status(status).json({ ok: false, error: err.message });
   }
 };
+
+// ─── Contact Messages ─────────────────────────────────────────────────────────
+
+/**
+ * GET /admin/api/contacts
+ */
+exports.getContactMessages = async (req, res) => {
+  try {
+    const messages = await adminService.getContactMessages({ status: req.query.status });
+    res.json({ ok: true, messages });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/contacts/:id/read
+ */
+exports.markContactRead = async (req, res) => {
+  try {
+    const message = await adminService.markContactRead(req.params.id);
+    res.json({ ok: true, message });
+  } catch (err) {
+    const status = err.message === 'Message not found' ? 404 : 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+};
+
+/**
+ * POST /admin/api/contacts/:id/reply
+ */
+exports.replyToContact = async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply || !reply.trim()) return res.status(400).json({ ok: false, error: 'reply is required' });
+    const message = await adminService.replyToContact(req.params.id, reply.trim());
+    res.json({ ok: true, message });
+  } catch (err) {
+    const status = err.message === 'Message not found' ? 404 : 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+};

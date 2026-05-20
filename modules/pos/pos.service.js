@@ -17,12 +17,14 @@ async function getCatalog() {
     stockMap[item.refId.toString()] = item.quantity;
   }
 
-  // Attach inventoryQty to each product (default 0 if not tracked yet)
-  return products.map((p) => {
-    const obj = p.toObject ? p.toObject() : { ...p };
-    obj.inventoryQty = stockMap[p._id.toString()] ?? 0;
-    return obj;
-  });
+  // Attach inventoryQty and exclude products with no stock
+  return products
+    .map((p) => {
+      const obj = p.toObject ? p.toObject() : { ...p };
+      obj.inventoryQty = stockMap[p._id.toString()] ?? 0;
+      return obj;
+    })
+    .filter((p) => p.inventoryQty > 0);
 }
 
 /**

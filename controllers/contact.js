@@ -1,5 +1,6 @@
 const validator = require('validator');
 const nodemailerConfig = require('../config/nodemailer');
+const ContactMessage = require('../models/ContactMessage');
 
 async function validateReCAPTCHA(token) {
   const projectId = process.env.GOOGLE_PROJECT_ID;
@@ -87,31 +88,43 @@ exports.postContact = async (req, res, next) => {
     fromEmail = req.user.email;
   }
 
-  const sendContactEmail = async () => {
+  // Save to database
+  try {
+    await ContactMessage.create({
+      name: fromName,
+      email: fromEmail,
+      message: req.body.message,
+    });
+  } catch (err) {
+    console.error('Failed to save contact message:', err);
+    req.flash('errors', [{ msg: 'Error saving your message. Please try again shortly.' }]);
+    return res.redirect('/contact');
+  }
+
+  // Notify admin via email (non-blocking)
+  const adminNotifyEmail = async () => {
+    const adminUrl = `${process.env.BASE_URL || ''}/admin#/contacts`;
     const mailOptions = {
       to: process.env.SITE_CONTACT_EMAIL,
-      from: `${fromName} <${fromEmail}>`,
-      subject: 'Contact Form | Hackathon Starter',
-      text: req.body.message,
+      from: process.env.SITE_CONTACT_EMAIL,
+      replyTo: `${fromName} <${fromEmail}>`,
+      subject: `New Contact Message from ${fromName}`,
+      text: `You have a new contact message.\n\nFrom: ${fromName} <${fromEmail}>\n\n${req.body.message}\n\n---\nReply via the admin panel: ${adminUrl}`,
     };
-
     const mailSettings = {
       successfulType: 'info',
-      successfulMsg: 'Email has been sent successfully!',
-      loggingError: 'ERROR: Could not send contact email after security downgrade.\n',
+      successfulMsg: '',
+      loggingError: 'ERROR: Could not send admin contact notification.\n',
       errorType: 'errors',
-      errorMsg: 'Error sending the message. Please try again shortly.',
+      errorMsg: '',
       mailOptions,
       req,
     };
-
     return nodemailerConfig.sendMail(mailSettings);
   };
 
-  try {
-    await sendContactEmail();
-    res.redirect('/contact');
-  } catch (error) {
-    next(error);
-  }
+  adminNotifyEmail().catch((err) => console.error('Admin contact notify failed:', err));
+
+  req.flash('success', { msg: 'Your message has been sent!' });
+  res.redirect('/contact');
 };

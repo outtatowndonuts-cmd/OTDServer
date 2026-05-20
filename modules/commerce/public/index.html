@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="h-100">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outta Town Donuts</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/commerce.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+  </head>
+  <body class="otd-commerce d-flex flex-column h-100">
+    <div id="commerce-root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
+    <script>
+      window.cookieconsent.initialise({
+        palette: {
+          popup: { background: '#0E0E0E', text: '#F4E9D8' },
+          button: { background: '#C24A1A', text: '#F4E9D8' },
+        },
+        position: 'bottom-right',
+        content: { href: '/privacy-policy.html' },
+      });
+    </script>
+    <script src="/shop/assets/commerce.js"></script>
+  </body>
+</html>

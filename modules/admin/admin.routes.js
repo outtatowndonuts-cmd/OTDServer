@@ -45,6 +45,11 @@ router.post('/api/custom-boxes', passportConfig.isAuthenticated, requireRole('ad
 router.post('/api/custom-boxes/:id', passportConfig.isAuthenticated, requireRole('admin'), adminController.updateCustomBoxConfig);
 router.delete('/api/custom-boxes/:id', passportConfig.isAuthenticated, requireRole('admin'), adminController.deleteCustomBoxConfig);
 
+// Contact messages — read/reply: admin+manager
+router.get('/api/contacts', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.getContactMessages);
+router.post('/api/contacts/:id/read', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.markContactRead);
+router.post('/api/contacts/:id/reply', passportConfig.isAuthenticated, requireRole('admin', 'manager'), adminController.replyToContact);
+
 module.exports = {
   basePath: '/admin',
   router,

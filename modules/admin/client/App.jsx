@@ -6,6 +6,7 @@ import Employees from './pages/Employees';
 import Applications from './pages/Applications';
 import Settings from './pages/Settings';
 import CustomBoxes from './pages/CustomBoxes';
+import ContactMessages from './pages/ContactMessages';
 
 /* ── Simple hash-based router ─────────────────────────────────────── */
 const RouterContext = createContext('/');
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { path: '/custom-boxes', label: 'Custom Boxes', icon: '📦' },
   { path: '/employees', label: 'Employees', icon: '👥' },
   { path: '/applications', label: 'Applications', icon: '📋' },
+  { path: '/contacts', label: 'Messages', icon: '✉️' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
@@ -70,6 +72,8 @@ export default function App() {
         return <Applications api={api} />;
       case '/custom-boxes':
         return <CustomBoxes api={api} />;
+      case '/contacts':
+        return <ContactMessages api={api} />;
       case '/settings':
         return <Settings api={api} />;
       default:

@@ -1,7 +1,11 @@
 const express = require('express');
+const path = require('path');
 const controller = require('./commerce.controller');
 
 const router = express.Router();
+
+// ─── Static assets for the React bundle ───────────────────────────────────────
+router.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), { maxAge: 31557600000 }));
 
 // Prevent browser from caching dynamic storefront pages (live inventory data)
 router.use((req, res, next) => {
@@ -9,16 +13,22 @@ router.use((req, res, next) => {
   next();
 });
 
-// ─── Public Pages (no auth required) ──────────────────────────────────────────
-router.get('/', controller.index);
-router.get('/pickup', controller.pickupPage);
-router.get('/custom-boxes', controller.customBoxes);
-router.get('/about', controller.about);
-router.get('/contact', controller.getContact);
-router.post('/contact', controller.postContact);
-router.get('/confirmation', controller.confirmation);
+// ─── Public Pages → serve React shell ─────────────────────────────────────────
+router.get('/', controller.serveShell);
+router.get('/pickup', controller.serveShell);
+router.get('/custom-boxes', controller.serveShell);
+router.get('/about', controller.serveShell);
+router.get('/contact', controller.serveShell);
+router.get('/confirmation', controller.serveShell);
+router.get('/order-lookup', controller.serveShell);
 
-// ─── API (CSRF-protected, no auth) ────────────────────────────────────────────
+// ─── Data API (CSRF-protected, no auth) ───────────────────────────────────────
+router.get('/api/storefront', controller.apiStorefront);
+router.get('/api/pickup', controller.apiPickup);
+router.get('/api/custom-boxes', controller.apiCustomBoxes);
+router.get('/api/order-status', controller.apiOrderStatus);
+router.get('/api/order-lookup', controller.apiOrderLookup);
+router.post('/api/contact', controller.apiContact);
 router.post('/api/order', controller.createOrder);
 router.post('/api/custom-box-order', controller.createCustomBoxOrder);
 

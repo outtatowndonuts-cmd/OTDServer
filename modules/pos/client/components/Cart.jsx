@@ -28,7 +28,7 @@ export default function Cart({ items, products, subtotal, tax, total, taxRate, o
             const max = stockFor(item.refId);
             const atMax = item.quantity >= max;
             return (
-              <div key={item.refId} className="cart-item">
+              <div key={`${item.refId}|${item.nameSnapshot}`} className="cart-item">
                 <span className="cart-item-name">{item.nameSnapshot}</span>
                 <div className="cart-item-qty">
                   <button onClick={() => onUpdateQty(item.refId, -1)}>−</button>

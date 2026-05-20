@@ -1,8 +1,10 @@
+const nodemailer = require('nodemailer');
 const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SKEY) : null;
 const catalogService = require('../../shared/catalog.service');
 const orderService = require('../../shared/order.service');
 const inventoryService = require('../../shared/inventory.service');
 const { CustomBoxConfig } = require('./custom-box.model');
+const eventBus = require('../../shared/eventBus');
 
 /**
  * Get products with real-time availability for storefront display.
@@ -41,14 +43,14 @@ async function getStorefrontProducts() {
       product.available = available;
       return product;
     })
-    .filter((p) => p.price != null && p.price > 0 && p.isActive !== false);
+    .filter((p) => p.price != null && p.price > 0 && p.isActive !== false && p.available > 0);
 }
 
 /**
  * Create a pending online sale order.
  * Validates server-side availability before creation.
  */
-async function createOnlineOrder({ items, idempotencyKey, pickupName }) {
+async function createOnlineOrder({ items, idempotencyKey, pickupName, customerEmail }) {
   // Validate availability at the component level
   const availability = await inventoryService.checkAvailability(items);
   if (!availability.available) {
@@ -86,6 +88,7 @@ async function createOnlineOrder({ items, idempotencyKey, pickupName }) {
     status: 'pending',
     idempotencyKey,
     pickupName: pickupName ? String(pickupName).trim().slice(0, 100) : undefined,
+    customerEmail: customerEmail || undefined,
   });
 }
 
@@ -217,7 +220,7 @@ async function getActiveCustomBoxConfigs() {
  * The discount from the box config is applied as a single negative line item
  * so the real product prices are preserved in order history.
  */
-async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idempotencyKey }) {
+async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idempotencyKey, customerEmail }) {
   const boxConfig = await CustomBoxConfig.findById(boxConfigId).populate('packagingSupply');
   if (!boxConfig || !boxConfig.isActive) {
     throw new Error('Box configuration not found or inactive');
@@ -289,10 +292,87 @@ async function createCustomBoxOrder({ boxConfigId, selections, pickupName, idemp
     status: 'pending',
     idempotencyKey,
     pickupName: pickupName ? String(pickupName).trim().slice(0, 100) : undefined,
+    customerEmail: customerEmail || undefined,
   });
 
   return order;
 }
+
+/**
+ * Get an online order by its human-readable confirmation number.
+ */
+async function getOrderByConfirmationNumber(confirmationNumber) {
+  return orderService.getOrderByConfirmationNumber(confirmationNumber);
+}
+
+/**
+ * Send a receipt email to the customer after payment is confirmed.
+ * Silently skips if SMTP is not configured or no customer email on the order.
+ */
+async function sendReceiptEmail(order) {
+  if (!order.customerEmail) return;
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.warn('[Commerce] SMTP not configured — skipping receipt email for order', order.confirmationNumber);
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: 465,
+    secure: true,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+  });
+
+  const itemLines = (order.items || [])
+    .map((item) => {
+      const lineTotal = ((item.priceSnapshot || 0) * item.quantity).toFixed(2);
+      return `  ${item.nameSnapshot} x${item.quantity}  $${lineTotal}`;
+    })
+    .join('\n');
+
+  const statusUrl = `${process.env.BASE_URL || ''}/shop/order-lookup?confirmationNumber=${encodeURIComponent(order.confirmationNumber)}`;
+
+  const text = [
+    `Hi ${order.pickupName || 'there'},`,
+    '',
+    'Your order has been confirmed and payment received. Here are your details:',
+    '',
+    `Confirmation Number: ${order.confirmationNumber}`,
+    '',
+    'Items:',
+    itemLines,
+    '',
+    `Subtotal: $${(order.subtotal || 0).toFixed(2)}`,
+    order.tax > 0 ? `Tax:      $${(order.tax || 0).toFixed(2)}` : null,
+    `Total:    $${(order.total || 0).toFixed(2)}`,
+    '',
+    'You can check your order status at any time:',
+    statusUrl,
+    '',
+    'Thank you for your order!',
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
+
+  try {
+    await transporter.sendMail({
+      from: `Outta Town Donuts <${process.env.TRANSACTION_EMAIL || process.env.SMTP_USER}>`,
+      to: order.customerEmail,
+      subject: `Your Order Confirmation — ${order.confirmationNumber}`,
+      text,
+    });
+    console.log('[Commerce] Receipt email sent for order', order.confirmationNumber);
+  } catch (err) {
+    console.error('[Commerce] Receipt email error for order', order.confirmationNumber, ':', err.message);
+  }
+}
+
+// Send receipt email whenever an online order is completed.
+eventBus.on('order.completed', (order) => {
+  if (order && order.source === 'online') {
+    sendReceiptEmail(order).catch((err) => console.error('[Commerce] Unhandled receipt email error:', err.message));
+  }
+});
 
 module.exports = {
   getStorefrontProducts,
@@ -303,4 +383,5 @@ module.exports = {
   getOrderForConfirmation,
   getActiveCustomBoxConfigs,
   createCustomBoxOrder,
+  getOrderByConfirmationNumber,
 };

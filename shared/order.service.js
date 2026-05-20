@@ -10,6 +10,7 @@ module.exports = {
   createOrder: ordersService.createOrder,
   getOrders: ordersService.getOrders,
   getOrderById: ordersService.getOrderById,
+  getOrderByConfirmationNumber: ordersService.getOrderByConfirmationNumber,
   completeOrder: ordersService.completeOrder,
   fillOrder: ordersService.fillOrder,
   deliverOrder: ordersService.deliverOrder,

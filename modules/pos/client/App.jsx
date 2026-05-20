@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import ProductGrid from './components/ProductGrid.jsx';
 import Cart from './components/Cart.jsx';
@@ -24,6 +24,70 @@ function useClock() {
     return () => clearInterval(id);
   }, []);
   return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ─── Auto-bundle helper ───────────────────────────────────── */
+/**
+ * Given the raw cart and active CustomBoxConfigs, automatically bundle
+ * the most expensive regular items using a greedy multi-tier pass:
+ * apply the largest bundle as many times as it fits, then move to the
+ * next largest for the remainder, and so on. Box items (already
+ * discounted via the custom-box flow) are excluded.
+ * Returns a new cart array; rawCart is never mutated.
+ */
+function applyAutoBundles(rawCart, boxConfigs) {
+  const boxItems = rawCart.filter((i) => i.isBox);
+  const regularItems = rawCart.filter((i) => !i.isBox);
+
+  // Sort configs largest-first; skip inactive or zero-discount entries
+  const activeConfigs = (boxConfigs || []).filter((c) => c.isActive && c.discountPct > 0).sort((a, b) => b.size - a.size);
+
+  if (!activeConfigs.length) return rawCart;
+
+  // Expand every regular item into individual units, sorted by price desc
+  const units = [];
+  for (const item of regularItems) {
+    for (let i = 0; i < item.quantity; i++) {
+      units.push({ refId: item.refId, name: item.nameSnapshot, price: item.priceSnapshot, config: null });
+    }
+  }
+  units.sort((a, b) => b.price - a.price);
+
+  // Greedy pass: assign each config to as many complete bundles as remain
+  let offset = 0;
+  let remaining = units.length;
+  for (const config of activeConfigs) {
+    if (remaining < config.size) continue;
+    const numBundles = Math.floor(remaining / config.size);
+    const bundledCount = numBundles * config.size;
+    for (let i = offset; i < offset + bundledCount; i++) {
+      units[i].config = config;
+    }
+    offset += bundledCount;
+    remaining -= bundledCount;
+    if (remaining === 0) break;
+  }
+
+  // Re-aggregate by (refId, configId) — one row per product per bundle tier
+  const groups = new Map();
+  for (const u of units) {
+    const key = `${u.refId}|${u.config ? u.config._id : 'none'}`;
+    if (!groups.has(key)) {
+      const discountFactor = u.config ? 1 - u.config.discountPct / 100 : 1;
+      groups.set(key, { refId: u.refId, name: u.name, price: u.price, config: u.config, discountFactor, quantity: 0 });
+    }
+    groups.get(key).quantity++;
+  }
+
+  const newRegularItems = Array.from(groups.values()).map((g) => ({
+    kind: 'product',
+    refId: g.refId,
+    nameSnapshot: g.config ? `${g.name} (${g.config.name})` : g.name,
+    priceSnapshot: g.config ? Math.round(g.price * g.discountFactor * 100) / 100 : g.price,
+    quantity: g.quantity,
+  }));
+
+  return [...boxItems, ...newRegularItems];
 }
 
 /* ─── App ──────────────────────────────────────────────────── */
@@ -102,12 +166,12 @@ function App() {
       api(`/api/display/${displayId}/cart`, {
         method: 'POST',
         headers: { 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ cart, subtotal, tax, total }),
+        body: JSON.stringify({ cart: bundledCart, subtotal, tax, total }),
       }).catch(() => {}); // silent — display sync is best-effort
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart, csrfToken, displayId]); // subtotal/tax/total derived, but captured at call time via closure
+  }, [cart, csrfToken, displayId]); // bundledCart/subtotal/tax/total derived, captured at call time via closure
 
   /* ── Stock lookup helper ── */
   const stockFor = useCallback(
@@ -177,7 +241,7 @@ function App() {
             const merged = next[idx].quantity + item.quantity;
             next[idx] = { ...next[idx], quantity: Math.min(merged, maxQty) };
           } else {
-            next = [...next, { ...item, quantity: Math.min(item.quantity, maxQty) }];
+            next = [...next, { ...item, isBox: true, quantity: Math.min(item.quantity, maxQty) }];
           }
         }
         return next;
@@ -186,8 +250,11 @@ function App() {
     [products],
   );
 
-  /* ── Totals ── */
-  const subtotal = cart.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
+  /* ── Auto-bundle: derive display/submission cart from raw cart ── */
+  const bundledCart = useMemo(() => applyAutoBundles(cart, boxConfigs), [cart, boxConfigs]);
+
+  /* ── Totals (computed from bundledCart so bundle discounts are reflected) ── */
+  const subtotal = bundledCart.reduce((s, i) => s + i.priceSnapshot * i.quantity, 0);
   const tax = Math.round(subtotal * taxRate * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
 
@@ -195,7 +262,7 @@ function App() {
   const submitOrder = useCallback(
     async (paymentMethod) => {
       const body = {
-        items: cart.map(({ kind, refId, nameSnapshot, quantity, priceSnapshot }) => ({
+        items: bundledCart.map(({ kind, refId, nameSnapshot, quantity, priceSnapshot }) => ({
           kind,
           refId,
           nameSnapshot,
@@ -214,7 +281,7 @@ function App() {
       });
       return res;
     },
-    [cart, subtotal, tax, total, csrfToken],
+    [bundledCart, subtotal, tax, total, csrfToken],
   );
 
   const completeOrder = useCallback(
@@ -267,7 +334,7 @@ function App() {
       method: 'POST',
       headers: { 'x-csrf-token': csrfToken },
       body: JSON.stringify({
-        items: cart.map(({ kind, refId, nameSnapshot, quantity, priceSnapshot }) => ({
+        items: bundledCart.map(({ kind, refId, nameSnapshot, quantity, priceSnapshot }) => ({
           kind,
           refId,
           nameSnapshot,
@@ -311,7 +378,7 @@ function App() {
         /* ignore transient errors */
       }
     }, 2000);
-  }, [cart, subtotal, tax, total, csrfToken, displayId, fetchCatalog]);
+  }, [bundledCart, subtotal, tax, total, csrfToken, displayId, fetchCatalog]);
 
   /* ── Cancel a pending card checkout ── */
   const cancelCardPayment = useCallback(async () => {
@@ -399,7 +466,7 @@ function App() {
       </section>
 
       {/* ── Cart ── */}
-      <Cart items={cart} products={products} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={handleCardPayment} onPayDonate={handleDonate} onOverridePrice={overridePrice} />
+      <Cart items={bundledCart} products={products} subtotal={subtotal} tax={tax} total={total} taxRate={taxRate} onUpdateQty={updateQty} onClear={clearCart} onPayCash={() => setModal('cash')} onPayCard={handleCardPayment} onPayDonate={handleDonate} onOverridePrice={overridePrice} />
 
       {/* ── Modals ── */}
       {modal === 'cash' && <CashModal total={total} onConfirm={handleCashConfirm} onCancel={() => setModal(null)} />}
