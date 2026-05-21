@@ -126,7 +126,7 @@
     if order.cancellationReason
       p.mt-2.text-danger
         strong Cancellation reason:
-        |#{ order.cancellationReason }
+        | #{ order.cancellationReason }
 
     if order.status !== 'cancelled' && order.status !== 'delivered'
       .mt-3.d-flex.gap-2
