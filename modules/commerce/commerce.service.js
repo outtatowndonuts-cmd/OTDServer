@@ -200,7 +200,7 @@ async function getOrderForConfirmation(orderId) {
   return orderService.getOrderById(orderId);
 }
 
-// ─── Custom Box Builder ───────────────────────────────────────────────────────
+// ─── Bundle Builder ───────────────────────────────────────────────────────
 
 /**
  * Return active box configurations for the storefront.

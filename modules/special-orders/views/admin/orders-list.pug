@@ -1,0 +1,75 @@
+-
+  const STATUS_LABELS = {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    filling: 'Being Prepared',
+    'out-for-delivery': 'Out for Delivery',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
+  };
+  const FULFILLMENT_LABELS = {
+    'store-early': 'Store 5:30–7:30 AM',
+    'store-mid': 'Store 9–10 AM',
+    'in-city': 'In-City Delivery',
+    'outside-city': 'Outside City',
+    'outside-county': 'Outside County',
+  };
+  function fmtDate(d) {
+    return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  }
+  function fmtCurrency(n) {
+    if (n == null || isNaN(n)) return '$0.00';
+    return '$' + Number(n).toFixed(2);
+  }
+
+.so-admin-filter-bar.mb-3
+  form.row.g-2(method='get', action='/special-orders/admin')
+    .col-auto
+      select.form-select.form-select-sm(name='status', onchange='soAdmin.load("orders", null, this.closest("form"))')
+        option(value='') All Statuses
+        each s in ['pending', 'confirmed', 'filling', 'out-for-delivery', 'delivered', 'cancelled']
+          option(value=s)= STATUS_LABELS[s]
+    .col-auto
+      input.form-control.form-control-sm(type='date', name='dateFrom', placeholder='From')
+    .col-auto
+      input.form-control.form-control-sm(type='date', name='dateTo', placeholder='To')
+    .col-auto
+      button.btn.btn-sm.btn-outline-secondary(type='button', onclick='soAdmin.load("orders")') Refresh
+
+if !orders || !orders.length
+  p.text-muted No orders found.
+else
+  table.table.table-sm.table-hover
+    thead
+      tr
+        th Conf #
+        th Customer
+        th Date
+        th Fulfillment
+        th Qty
+        th Total
+        th Status
+        th Payment
+        th
+    tbody
+      each order in orders
+        tr(style='cursor: pointer', onclick=`soAdmin.load('orders','${order._id}')`)
+          td
+            small= order.confirmationNumber || '—'
+          td= order.customerName
+          td= fmtDate(order.scheduledDate)
+          td= FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType
+          td.text-center= order.totalQuantity
+          td= fmtCurrency(order.total)
+          td
+            - const statusClass = order.status === 'delivered' ? 'success' : order.status === 'cancelled' ? 'danger' : order.status === 'confirmed' ? 'primary' : 'secondary';
+            span(class=`badge bg-${statusClass}`)= STATUS_LABELS[order.status] || order.status
+          td
+            if order.paymentStatus === 'paid'
+              span.badge.bg-success Paid
+            else if order.paymentStatus === 'refunded'
+              span.badge.bg-warning Refunded
+            else
+              span.badge.bg-secondary Pending
+          td
+            button.btn.btn-sm.btn-outline-primary(type='button', onclick=`event.stopPropagation(); soAdmin.load('orders','${order._id}')`) Detail

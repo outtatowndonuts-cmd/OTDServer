@@ -12,7 +12,7 @@ function getPage(pathname) {
   const p = pathname.replace(/\/$/, '');
   if (p === '/shop' || p === '') return StorefrontPage;
   if (p === '/shop/pickup') return PickupPage;
-  if (p === '/shop/custom-boxes') return CustomBoxesPage;
+  if (p === '/shop/bundles') return CustomBoxesPage;
   if (p === '/shop/about') return AboutPage;
   if (p === '/shop/contact') return ContactPage;
   if (p === '/shop/confirmation') return ConfirmationPage;

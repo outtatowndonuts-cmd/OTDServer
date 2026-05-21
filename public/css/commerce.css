@@ -837,7 +837,7 @@
   }
 }
 
-/* ── Custom Box Flyout ────────────────────────────────────────────── */
+/* ── Bundle Flyout ────────────────────────────────────────────────── */
 .otd-box-option {
   cursor: pointer;
   transition: border-color 0.15s;

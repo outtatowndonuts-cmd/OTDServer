@@ -174,7 +174,7 @@ async function getSuppliesForAdmin() {
   return Supply.find({}).select('name costPerUnit unit').sort({ name: 1 });
 }
 
-// ─── Custom Box Config ────────────────────────────────────────────────────────
+// ─── Bundle Config ────────────────────────────────────────────────────────
 
 async function getCustomBoxConfigs() {
   return CustomBoxConfig.find({}).populate('packagingSupply', 'name costPerUnit unit').sort({ createdAt: -1 });

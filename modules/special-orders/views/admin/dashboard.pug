@@ -1,0 +1,234 @@
+extends ../../../../views/layout.pug
+
+block head
+  style.
+    .so-admin-app {
+      display: flex;
+      gap: 0;
+      margin-top: 0.5rem;
+    }
+    .so-admin-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      border-right: 1px solid #3a3228;
+      padding: 1.25rem 0.75rem;
+      position: sticky;
+      top: 60px;
+      align-self: flex-start;
+    }
+    .so-admin-sidebar .nav-link {
+      color: #a89a88;
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .so-admin-sidebar .nav-link:hover {
+      background: #1a1a1a;
+      color: #f4e9d8;
+    }
+    .so-admin-sidebar .nav-link.active {
+      background: #2a2318;
+      color: #c24a1a;
+      font-weight: 600;
+    }
+    .so-admin-sidebar .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b4f3a;
+      font-weight: 600;
+      padding: 0.5rem 0.75rem 0.25rem;
+    }
+    #so-admin-content {
+      min-height: 60vh;
+      padding: 1.5rem 0 1.5rem 2rem;
+      flex: 1;
+    }
+    .so-loading-msg {
+      color: #a89a88;
+      font-style: italic;
+      padding: 2rem 0;
+    }
+
+block content
+  .so-admin-app
+    nav.so-admin-sidebar
+      .section-label Special Orders
+      a#nav-config.nav-link(onclick='soAdmin.load(\'config\')')
+        | ⚙ Configuration
+      a#nav-orders.nav-link(onclick='soAdmin.load(\'orders\')')
+        | 📋 Orders
+      hr
+      a.nav-link(href='/special-orders/driver')
+        | 🚚 Driver Dashboard
+    #so-admin-content
+      .so-loading-msg Loading…
+
+block scripts
+  script.
+    const soAdmin = (() => {
+      const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      let activeTab = null;
+
+      function setActive(tab) {
+        document.querySelectorAll('.so-admin-sidebar .nav-link').forEach((el) => el.classList.remove('active'));
+        const el = document.getElementById('nav-' + tab);
+        if (el) el.classList.add('active');
+        activeTab = tab;
+      }
+
+      async function load(tab, id, formEl) {
+        setActive(tab);
+        const content = document.getElementById('so-admin-content');
+        content.innerHTML = '<div class="so-loading-msg">Loading…</div>';
+        let url = '/special-orders/admin/fragments/' + tab;
+        if (id) url += '/' + id;
+        if (formEl) {
+          const params = new URLSearchParams(new FormData(formEl)).toString();
+          if (params) url += '?' + params;
+        }
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('Server error ' + res.status);
+          content.innerHTML = await res.text();
+        } catch (err) {
+          content.innerHTML = '<div class="alert alert-danger">Failed to load: ' + err.message + '</div>';
+        }
+      }
+
+      async function post(url, body) {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+          body: JSON.stringify(body),
+        });
+        return res.json();
+      }
+
+      async function del(url) {
+        const res = await fetch(url, {
+          method: 'DELETE',
+          headers: { 'x-csrf-token': csrf },
+        });
+        return res.json();
+      }
+
+      // Called by config fragment
+      async function saveConfig(form) {
+        const data = {};
+        new FormData(form).forEach((v, k) => {
+          data[k] = v;
+        });
+        const result = await post('/special-orders/admin/config', data);
+        if (result.ok) {
+          showToast('Settings saved');
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+
+      async function addOption(type, refId, name, price, isFilled) {
+        const result = await post('/special-orders/admin/options', { type, refId, name, price: parseFloat(price), isFilled: Boolean(isFilled) });
+        if (result.ok) {
+          load('config');
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+
+      async function removeOption(type, optionId) {
+        if (!confirm('Remove this option?')) return;
+        const result = await del('/special-orders/admin/options/' + type + '/' + optionId);
+        if (result.ok) {
+          load('config');
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+
+      async function confirmOrder(id) {
+        const result = await post('/special-orders/admin/orders/' + id + '/confirm', {});
+        if (result.ok) {
+          load('orders');
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+
+      async function cancelOrder(id) {
+        const reason = prompt('Reason for cancellation (optional):');
+        if (reason === null) return;
+        const result = await post('/special-orders/admin/orders/' + id + '/cancel', { reason });
+        if (result.ok) {
+          load('orders');
+        } else {
+          alert('Error: ' + result.error);
+        }
+      }
+
+      function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'alert alert-success position-fixed bottom-0 end-0 m-3';
+        t.style.zIndex = 9999;
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2500);
+      }
+
+      // Auto-load orders tab
+      load('config');
+
+      function _addHelper(type, selectId, nameId, priceId, isFilled) {
+        const sel = document.getElementById(selectId);
+        if (!sel) return alert('Form not ready — please reload the config tab');
+        const refId = sel.value;
+        const selName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].dataset.name || sel.options[sel.selectedIndex].textContent : '';
+        const name = (document.getElementById(nameId)?.value || '').trim() || selName;
+        const price = document.getElementById(priceId)?.value || '0';
+        if (!name) return alert('Please select an item or enter a display name');
+        soAdmin.addOption(type, refId, name, price, isFilled);
+      }
+
+      return {
+        load,
+        saveConfig,
+        addOption,
+        removeOption,
+        confirmOrder,
+        cancelOrder,
+        showToast,
+        saveStoreHours: async function () {
+          const hours = [0, 1, 2, 3, 4, 5, 6].map(function (d) {
+            return {
+              day: d,
+              isOpen: document.getElementById('sh-' + d + '-open')?.checked || false,
+              openTime: document.getElementById('sh-' + d + '-open-time')?.value || '05:30',
+              closeTime: document.getElementById('sh-' + d + '-close-time')?.value || '11:00',
+            };
+          });
+          const result = await post('/special-orders/admin/config', { storeHours: hours });
+          if (result.ok) {
+            showToast('Store hours saved');
+          } else {
+            alert('Error: ' + result.error);
+          }
+        },
+        addBaseRecipe: () => _addHelper('baseRecipe', 'base-recipe-select', 'base-recipe-name', 'base-recipe-price', document.getElementById('base-recipe-isfilled')?.checked || false),
+        addFrosting: () => _addHelper('frosting', 'frosting-recipe-select', 'frosting-name', 'frosting-price'),
+        addTopping: () => _addHelper('topping', 'topping-ingredient-select', 'topping-name', 'topping-price'),
+        addFilling: () => _addHelper('filling', 'filling-ingredient-select', 'filling-name', 'filling-price'),
+        toggleFilled: async function (type, optionId, isFilled) {
+          const result = await post('/special-orders/admin/option-toggle-filled', { type, optionId, isFilled });
+          if (result.ok) {
+            showToast('Updated');
+            load();
+          } else {
+            alert('Error: ' + result.error);
+          }
+        },
+      };
+    })();

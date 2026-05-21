@@ -287,7 +287,7 @@
     if (boxLoadingEl) boxLoadingEl.style.display = 'block';
 
     try {
-      var res = await fetch('/shop/api/custom-box-order', {
+      var res = await fetch('/shop/api/bundle-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
         body: JSON.stringify({ boxConfigId: activeBox.id, selections, pickupName }),

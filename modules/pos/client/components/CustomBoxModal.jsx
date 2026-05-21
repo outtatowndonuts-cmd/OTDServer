@@ -10,7 +10,7 @@ function BoxTypePicker({ configs, onSelect, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal-box" style={{ maxWidth: 600, width: '94vw', maxHeight: '80vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ marginBottom: 6 }}>📦 Custom Box</h2>
+        <h2 style={{ marginBottom: 6 }}>📦 Bundle</h2>
         <p style={{ color: '#a89a88', marginBottom: 20, fontSize: '0.9rem' }}>Choose a box type to build.</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>

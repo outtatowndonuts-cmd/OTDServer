@@ -16,7 +16,7 @@ router.use((req, res, next) => {
 // ─── Public Pages → serve React shell ─────────────────────────────────────────
 router.get('/', controller.serveShell);
 router.get('/pickup', controller.serveShell);
-router.get('/custom-boxes', controller.serveShell);
+router.get('/bundles', controller.serveShell);
 router.get('/about', controller.serveShell);
 router.get('/contact', controller.serveShell);
 router.get('/confirmation', controller.serveShell);
@@ -25,12 +25,12 @@ router.get('/order-lookup', controller.serveShell);
 // ─── Data API (CSRF-protected, no auth) ───────────────────────────────────────
 router.get('/api/storefront', controller.apiStorefront);
 router.get('/api/pickup', controller.apiPickup);
-router.get('/api/custom-boxes', controller.apiCustomBoxes);
+router.get('/api/bundles', controller.apiCustomBoxes);
 router.get('/api/order-status', controller.apiOrderStatus);
 router.get('/api/order-lookup', controller.apiOrderLookup);
 router.post('/api/contact', controller.apiContact);
 router.post('/api/order', controller.createOrder);
-router.post('/api/custom-box-order', controller.createCustomBoxOrder);
+router.post('/api/bundle-order', controller.createCustomBoxOrder);
 
 // ─── Stripe Webhook (no CSRF, no auth, raw body) ─────────────────────────────
 // CSRF is explicitly skipped for this route in app.js.

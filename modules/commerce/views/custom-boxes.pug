@@ -1,7 +1,7 @@
 extends layout
 
 block head
-  meta(property='og:title', content='Custom Boxes — Outta Town Donuts')
+  meta(property='og:title', content='Bundles — Outta Town Donuts')
   meta(property='og:description', content='Build your own custom donut box. Pick your flavors, we\'ll have it ready.')
   style.
     #box-flyout {
@@ -105,7 +105,7 @@ block content
   .otd-section
     .container
       .otd-section-header
-        h1 Custom Boxes
+        h1 Bundles
         p.otd-text-muted Pick your flavors, fill your box, and we&rsquo;ll have it ready for you.
         hr.otd-divider
 
@@ -115,7 +115,7 @@ block content
 
       else if !boxConfigs || !boxConfigs.length
         .otd-text-center.otd-py-5
-          h3.otd-text-muted No custom boxes available right now.
+          h3.otd-text-muted No bundles available right now.
           p.otd-text-muted Check back soon.
 
       else

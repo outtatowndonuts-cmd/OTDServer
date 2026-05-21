@@ -1,0 +1,775 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Outta Town Donuts — Special Orders Stylesheet
+   Extends commerce.css brand tokens.
+   Off Black #0E0E0E · Warm Cream #F4E9D8 · Burnt Orange #C24A1A · Dust Brown #6B4F3A
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Page wrapper ────────────────────────────────────────────────── */
+.so-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.so-loading,
+.so-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 30vh;
+  gap: 1rem;
+  color: var(--otd-text-muted);
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+/* ── Progress stepper ────────────────────────────────────────────── */
+.so-stepper {
+  display: flex;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--otd-border);
+  padding-bottom: 1.25rem;
+  gap: 0;
+}
+
+.so-stepper-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.so-stepper-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--otd-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--otd-text-muted);
+  background: var(--otd-black);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+
+.so-stepper-step.active .so-stepper-dot {
+  border-color: var(--otd-orange);
+  color: var(--otd-orange);
+}
+
+.so-stepper-step.done .so-stepper-dot {
+  border-color: var(--otd-brown);
+  background: var(--otd-brown);
+  color: var(--otd-cream);
+}
+
+.so-stepper-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--otd-text-muted);
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+  text-align: center;
+}
+
+.so-stepper-step.active .so-stepper-label {
+  color: var(--otd-cream-dark);
+}
+
+/* ── Step content ────────────────────────────────────────────────── */
+.so-step {
+  padding: 0.25rem 0;
+}
+
+.so-step-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--otd-cream);
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--otd-border);
+  padding-bottom: 0.5rem;
+}
+
+.so-step-hint {
+  color: var(--otd-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Form fields ─────────────────────────────────────────────────── */
+.so-field {
+  margin-bottom: 1rem;
+}
+
+.so-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--otd-text-muted);
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+}
+
+/* ── Fulfillment options — functional radio list ─────────────────── */
+.so-fulfillment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.so-fulfillment-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--otd-border);
+  border-left: 3px solid transparent;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  background: var(--otd-surface);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.so-fulfillment-card:hover {
+  background: #1e1510;
+  border-color: var(--otd-brown);
+}
+
+.so-fulfillment-card.selected {
+  border-color: var(--otd-border);
+  border-left-color: var(--otd-orange);
+  background: #1a100a;
+}
+
+.so-fulfillment-card input[type='radio'] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  accent-color: var(--otd-orange);
+}
+
+.so-fulfillment-card-body {
+  flex: 1;
+}
+
+.so-fulfillment-card-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--otd-cream);
+}
+
+.so-fulfillment-card-desc {
+  font-size: 0.8rem;
+  color: var(--otd-text-muted);
+  margin-top: 0.1rem;
+}
+
+/* ── Quantity control ────────────────────────────────────────────── */
+.so-qty-control {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 180px;
+}
+
+.so-qty-control-sm {
+  max-width: 140px;
+}
+
+.so-qty-btn {
+  background: var(--otd-surface-light);
+  border: 1px solid var(--otd-border);
+  color: var(--otd-cream);
+  width: 38px;
+  height: 38px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+
+.so-qty-control-sm .so-qty-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
+}
+
+.so-qty-btn:first-child {
+  border-radius: 0.2rem 0 0 0.2rem;
+}
+
+.so-qty-btn:last-child {
+  border-radius: 0 0.2rem 0.2rem 0;
+}
+
+.so-qty-btn:hover:not(:disabled) {
+  background: var(--otd-brown);
+}
+
+.so-qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.so-qty-input {
+  text-align: center;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  background: var(--otd-surface) !important;
+  color: var(--otd-cream) !important;
+  border-color: var(--otd-border) !important;
+  font-size: 1rem;
+  height: 38px;
+}
+
+.so-qty-control-sm .so-qty-input {
+  height: 30px;
+  font-size: 0.875rem;
+}
+
+.so-qty-label {
+  color: var(--otd-text-muted);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Quantity tracker bar ────────────────────────────────────────── */
+.so-qty-tracker {
+  position: relative;
+  height: 28px;
+  background: var(--otd-surface);
+  border: 1px solid var(--otd-border);
+  border-radius: 0.2rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.so-qty-tracker-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--otd-brown);
+  transition: width 0.2s ease;
+}
+
+.so-qty-tracker.complete .so-qty-tracker-bar {
+  background: #2a6e3a;
+}
+
+.so-qty-tracker.over .so-qty-tracker-bar {
+  background: #7a1a1a;
+}
+
+.so-qty-tracker-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--otd-cream);
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+}
+
+/* ── Variation rows ──────────────────────────────────────────────── */
+.so-variation-row {
+  border: 1px solid var(--otd-border);
+  border-radius: 0.2rem;
+  margin-bottom: 0.75rem;
+  background: var(--otd-surface);
+}
+
+.so-variation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--otd-border);
+  background: #1c1008;
+}
+
+.so-variation-num {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--otd-text-muted);
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+}
+
+.so-remove-btn {
+  background: none;
+  border: none;
+  color: var(--otd-text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.15rem;
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+
+.so-remove-btn:hover {
+  color: #e05050;
+  background: #2a1010;
+}
+
+.so-variation-fields {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Topping chips ───────────────────────────────────────────────── */
+.so-toppings-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.so-topping-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--otd-border);
+  border-radius: 0.2rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  background: var(--otd-surface-light);
+  color: var(--otd-text-muted);
+  user-select: none;
+  transition:
+    background 0.1s,
+    border-color 0.1s,
+    color 0.1s;
+}
+
+.so-topping-chip input[type='checkbox'] {
+  display: none;
+}
+
+.so-topping-chip.selected {
+  background: #2a1608;
+  border-color: var(--otd-orange);
+  color: var(--otd-cream);
+}
+
+.so-add-variation-btn {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* ── Navigation buttons ──────────────────────────────────────────── */
+.so-nav-btns {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--otd-border);
+}
+
+/* ── Address section ─────────────────────────────────────────────── */
+.so-address-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--otd-border);
+}
+
+.so-address-title {
+  font-size: 0.95rem;
+  color: var(--otd-cream);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* ── Address autocomplete ────────────────────────────────────────── */
+.so-addr-search-wrap {
+  position: relative;
+}
+
+.so-addr-search-input-wrap {
+  position: relative;
+}
+
+.so-addr-search-spinner {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--otd-border);
+  border-top-color: var(--otd-orange);
+  border-radius: 50%;
+  animation: so-spin 0.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes so-spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+.so-addr-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  background: var(--otd-surface-light, #2a2a2a);
+  border: 1px solid var(--otd-border);
+  border-radius: 0.375rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.so-addr-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--otd-border);
+  transition: background 0.12s;
+}
+
+.so-addr-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.so-addr-dropdown-item:hover,
+.so-addr-dropdown-item:focus {
+  background: var(--otd-surface, #1a1a1a);
+  outline: none;
+}
+
+.so-addr-dropdown-street {
+  font-size: 0.9rem;
+  color: var(--otd-cream);
+  font-weight: 500;
+}
+
+.so-addr-dropdown-meta {
+  font-size: 0.78rem;
+  color: var(--otd-text-muted);
+  margin-top: 1px;
+}
+
+/* ── Order review ────────────────────────────────────────────────── */
+.so-review-section {
+  margin-bottom: 1.5rem;
+}
+
+.so-review-heading {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--otd-text-muted);
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+  border-bottom: 1px solid var(--otd-border);
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.so-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.so-review-table td,
+.so-review-table th {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--otd-border);
+  color: var(--otd-cream);
+  vertical-align: top;
+}
+
+.so-review-table td:first-child {
+  color: var(--otd-text-muted);
+  width: 38%;
+}
+
+.so-items-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--otd-text-muted);
+  border-bottom-width: 2px;
+}
+
+/* ── Variation assorted toggle ───────────────────────────────────── */
+.so-assorted-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--otd-text-muted);
+  cursor: pointer;
+  border-bottom: 1px solid var(--otd-border);
+  user-select: none;
+}
+
+.so-assorted-check:checked ~ span {
+  color: var(--otd-orange);
+}
+
+.so-assorted-note {
+  font-size: 0.82rem;
+  color: var(--otd-text-muted);
+  font-style: italic;
+  padding: 0 0.75rem 0.5rem;
+  margin: 0;
+}
+
+.so-variation-total {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--otd-text-muted);
+  border-top: 1px solid var(--otd-border);
+  text-align: right;
+}
+
+.so-variation-total strong {
+  color: var(--otd-cream);
+}
+
+.so-unit-price {
+  color: var(--otd-text-muted);
+  font-size: 0.78rem;
+  margin-left: 0.25rem;
+}
+
+/* ── Price quote in review ───────────────────────────────────────── */
+.so-total-row td {
+  border-top: 2px solid var(--otd-border);
+  padding-top: 0.5rem;
+}
+
+.so-quote-loading {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.so-quote-error {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.82rem;
+}
+
+.so-distance-note {
+  font-size: 0.78rem;
+  color: var(--otd-text-muted);
+  margin-left: 0.3rem;
+}
+
+.so-checkout-note {
+  font-size: 0.82rem;
+  color: var(--otd-text-muted);
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Confirmation page ───────────────────────────────────────────── */
+.so-confirmation {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+  text-align: center;
+}
+
+.so-confirmation-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin: 0 auto 1rem;
+}
+
+.so-confirmation-badge.success {
+  background: #1a3a1a;
+  color: #5dcc80;
+  border: 2px solid #2a6e3a;
+}
+
+.so-confirmation-badge.pending {
+  background: var(--otd-surface);
+  color: var(--otd-text-muted);
+  border: 2px solid var(--otd-border);
+}
+
+.so-confirmation-title {
+  font-size: 1.5rem;
+  color: var(--otd-cream);
+  margin-bottom: 0.5rem;
+}
+
+.so-confirmation-number {
+  font-family: 'Courier New', monospace;
+  font-size: 1.25rem;
+  color: var(--otd-orange);
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+}
+
+.so-confirmation-hint {
+  color: var(--otd-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.so-confirmation-details {
+  background: var(--otd-surface);
+  border: 1px solid var(--otd-border);
+  border-radius: 0.2rem;
+  margin: 1.25rem 0;
+  text-align: left;
+}
+
+.so-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--otd-border);
+  font-size: 0.9rem;
+}
+
+.so-detail-row:last-child {
+  border-bottom: none;
+}
+
+.so-detail-row span:first-child {
+  color: var(--otd-text-muted);
+}
+
+.so-detail-row span:last-child {
+  color: var(--otd-cream);
+}
+
+.so-confirmation-email-note {
+  font-size: 0.85rem;
+  color: var(--otd-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.so-confirmation-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+/* ── Order lookup page ───────────────────────────────────────────── */
+.so-lookup {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+}
+
+/* ── Bootstrap overrides for dark theme forms ────────────────────── */
+.otd-commerce .form-control,
+.otd-commerce .form-select {
+  background-color: var(--otd-surface);
+  border-color: var(--otd-border);
+  color: var(--otd-cream);
+}
+
+.otd-commerce .form-control::placeholder {
+  color: var(--otd-text-muted);
+  opacity: 0.7;
+}
+
+.otd-commerce .form-control:focus,
+.otd-commerce .form-select:focus {
+  background-color: var(--otd-surface);
+  border-color: var(--otd-orange);
+  color: var(--otd-cream);
+  box-shadow: 0 0 0 0.2rem rgba(194, 74, 26, 0.2);
+}
+
+.otd-commerce .form-select option {
+  background: #1a1a1a;
+  color: var(--otd-cream);
+}
+
+.otd-commerce .btn-primary {
+  background-color: var(--otd-orange);
+  border-color: var(--otd-orange);
+  color: var(--otd-cream);
+}
+
+.otd-commerce .btn-primary:hover {
+  background-color: #a83d14;
+  border-color: #a83d14;
+}
+
+.otd-commerce .btn-outline-secondary {
+  border-color: var(--otd-border);
+  color: var(--otd-text-muted);
+}
+
+.otd-commerce .btn-outline-secondary:hover {
+  background-color: var(--otd-surface-light);
+  color: var(--otd-cream);
+}
+
+.otd-commerce .alert-warning {
+  background: #2a2000;
+  border-color: #5a4800;
+  color: #d4b850;
+}
+
+.otd-commerce .alert-danger {
+  background: #2a0808;
+  border-color: #5a1a1a;
+  color: #e05050;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 576px) {
+  .so-stepper-label {
+    display: none;
+  }
+
+  .so-fulfillment-card-desc {
+    display: none;
+  }
+
+  .so-confirmation-actions {
+    flex-direction: column;
+  }
+
+  .so-nav-btns .btn {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.75rem;
+  }
+}

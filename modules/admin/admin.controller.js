@@ -220,10 +220,10 @@ exports.getSupplies = async (req, res) => {
   }
 };
 
-// ─── Custom Box Config ────────────────────────────────────────────────────────
+// ─── Bundle Config ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * GET /admin/api/custom-boxes
+ * GET /admin/api/bundles
  */
 exports.getCustomBoxConfigs = async (req, res) => {
   try {
@@ -235,7 +235,7 @@ exports.getCustomBoxConfigs = async (req, res) => {
 };
 
 /**
- * POST /admin/api/custom-boxes
+ * POST /admin/api/bundles
  */
 exports.createCustomBoxConfig = async (req, res) => {
   try {
@@ -247,7 +247,7 @@ exports.createCustomBoxConfig = async (req, res) => {
 };
 
 /**
- * POST /admin/api/custom-boxes/:id
+ * POST /admin/api/bundles/:id
  */
 exports.updateCustomBoxConfig = async (req, res) => {
   try {
@@ -260,7 +260,7 @@ exports.updateCustomBoxConfig = async (req, res) => {
 };
 
 /**
- * DELETE /admin/api/custom-boxes/:id
+ * DELETE /admin/api/bundles/:id
  */
 exports.deleteCustomBoxConfig = async (req, res) => {
   try {

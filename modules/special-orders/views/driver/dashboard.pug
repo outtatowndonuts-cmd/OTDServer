@@ -1,0 +1,116 @@
+extends ../../../../views/layout.pug
+
+block head
+  style.
+    .driver-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #3a3228;
+    }
+    .driver-main {
+      padding: 1.5rem;
+    }
+    .driver-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .delivery-card {
+      background: #1a1a1a;
+      border: 1px solid #3a3228;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .delivery-card-header {
+      background: #221a10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+    }
+    .delivery-card-body {
+      padding: 1rem;
+    }
+    .delivery-card-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #2a2318;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-confirmed {
+      background: #1e4d2b;
+      color: #5dcc80;
+    }
+    .status-filling {
+      background: #4d3a10;
+      color: #e0a020;
+    }
+    .status-out-for-delivery {
+      background: #103a4d;
+      color: #30b8d8;
+    }
+    .status-delivered {
+      background: #1a2e1a;
+      color: #5a9c5a;
+    }
+
+    .variation-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.875rem;
+      color: #a89a88;
+    }
+    .variation-list li {
+      padding: 0.125rem 0;
+    }
+    .variation-list li span.qty-badge {
+      display: inline-block;
+      background: #2a2318;
+      border-radius: 0.25rem;
+      padding: 0.1rem 0.4rem;
+      margin-right: 0.3rem;
+      font-size: 0.75rem;
+    }
+
+    .no-deliveries {
+      text-align: center;
+      color: #a89a88;
+      padding: 3rem;
+      font-style: italic;
+    }
+    .loading-msg {
+      text-align: center;
+      color: #a89a88;
+      padding: 2rem;
+    }
+
+block content
+  .driver-header
+    h4.mb-0 🚚 Driver Dashboard
+    div
+      button#refresh-btn.btn.btn-sm.btn-outline-secondary(onclick='driver.loadDeliveries()') Refresh
+      a.btn.btn-sm.btn-outline-light.ms-2(href='/special-orders/admin') Admin
+
+  .driver-main
+    #driver-cards.driver-cards
+      .loading-msg Loading deliveries…
+
+block scripts
+  script(src='/special-orders/js/special-orders-driver.js')

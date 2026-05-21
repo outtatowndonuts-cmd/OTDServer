@@ -1,0 +1,278 @@
+-
+  function fmtCurrency(n) {
+    if (n == null || isNaN(n)) return '$0.00';
+    return '$' + Number(n).toFixed(2);
+  }
+
+h2.mb-4 Special Orders Configuration
+
+//- ── Delivery Fee Settings ────────────────────────────────────────────────────
+.card.mb-4
+  .card-header.fw-semibold ⚙ Delivery &amp; Cutoff Settings
+  .card-body
+    form#so-config-form
+      .row.g-3
+        .col-md-4
+          label.form-label Store Address
+          input.form-control(name='storeAddress', type='text', value=config.storeAddress || '', placeholder='123 Main St, Woodbury, TN 37190')
+          .form-text Used as origin for mileage calculations
+        .col-md-2
+          label.form-label In-City Fee
+          .input-group
+            span.input-group-text $
+            input.form-control(name='inCityDeliveryFee', type='number', min='0', step='0.01', value=config.inCityDeliveryFee || 0)
+        .col-md-2
+          label.form-label Outside-City Fee
+          .input-group
+            span.input-group-text $
+            input.form-control(name='outsideCityFlatFee', type='number', min='0', step='0.01', value=config.outsideCityFlatFee || 0)
+        .col-md-2
+          label.form-label Per-Mile Rate
+          .input-group
+            span.input-group-text $
+            input.form-control(name='perMileRate', type='number', min='0', step='0.01', value=config.perMileRate || 0)
+          .form-text Outside-county only
+        .col-md-2
+          label.form-label Order Cutoff (24h)
+          input.form-control(name='orderCutoffHour', type='number', min='0', max='23', value=config.orderCutoffHour != null ? config.orderCutoffHour : 17)
+          .form-text Hour of day (0–23)
+      .mt-3
+        button.btn.btn-primary(type='button', onclick='soAdmin.saveConfig(document.getElementById("so-config-form"))') Save Settings
+
+//- ── Store Hours ──────────────────────────────────────────────────────────────
+-
+  var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var defaultHours = [
+    { day: 0, isOpen: false, openTime: '05:30', closeTime: '11:00' },
+    { day: 1, isOpen: true,  openTime: '05:30', closeTime: '11:00' },
+    { day: 2, isOpen: true,  openTime: '05:30', closeTime: '11:00' },
+    { day: 3, isOpen: true,  openTime: '05:30', closeTime: '11:00' },
+    { day: 4, isOpen: true,  openTime: '05:30', closeTime: '11:00' },
+    { day: 5, isOpen: true,  openTime: '05:30', closeTime: '11:00' },
+    { day: 6, isOpen: false, openTime: '05:30', closeTime: '11:00' },
+  ];
+  var hoursMap = {};
+  (config.storeHours || defaultHours).forEach(function(h){ hoursMap[h.day] = h; });
+
+.card.mb-4
+  .card-header.fw-semibold 🕐 Store Hours
+  .card-body
+    p.text-muted.mb-3 These determine which days customers can schedule orders. Closed days are skipped when suggesting the next available date.
+    table.table.table-sm.align-middle
+      thead
+        tr
+          th Day
+          th Open
+          th Open Time
+          th Close Time
+      tbody
+        each dayNum in [0, 1, 2, 3, 4, 5, 6]
+          -
+            var h = hoursMap[dayNum] || defaultHours[dayNum];
+          tr
+            td.fw-semibold= DAY_NAMES[dayNum]
+            td
+              input.form-check-input(type='checkbox', id=`sh-${dayNum}-open`, checked=h.isOpen)
+            td
+              input.form-control.form-control-sm(type='time', id=`sh-${dayNum}-open-time`, value=h.openTime || '05:30', style='width: 120px')
+            td
+              input.form-control.form-control-sm(type='time', id=`sh-${dayNum}-close-time`, value=h.closeTime || '11:00', style='width: 120px')
+    .mt-3
+      button.btn.btn-primary(type='button', onclick='soAdmin.saveStoreHours()') Save Store Hours
+
+//- ── Base Recipes ─────────────────────────────────────────────────────────────
+.card.mb-4
+  .card-header.fw-semibold 🍩 Available Base Recipes
+  .card-body
+    table.table.table-sm.mb-3
+      thead
+        tr
+          th Name
+          th Price
+          th.text-center Filled?
+          th Active
+          th
+      tbody
+        if !config.availableBaseRecipes || !config.availableBaseRecipes.length
+          tr
+            td.text-muted(colspan='5') No base recipes configured yet.
+        each opt in config.availableBaseRecipes || []
+          tr
+            td= opt.name
+            td= fmtCurrency(opt.price)
+            td.text-center
+              input.form-check-input(type='checkbox', checked=opt.isFilled, onchange=`soAdmin.toggleFilled('baseRecipe','${opt._id}',this.checked)`, title='Check if this recipe can be filled (e.g. jelly-filled)')
+            td
+              if opt.isActive
+                span.badge.bg-success Active
+              else
+                span.badge.bg-secondary Inactive
+            td
+              button.btn.btn-sm.btn-outline-danger(type='button', onclick=`soAdmin.removeOption('baseRecipe','${opt._id}')`) Remove
+
+    //- Add form — options rendered server-side from recipes
+    #add-base-form.so-add-option-form
+      h6.mb-2 Add Base Recipe
+      .row.g-2
+        .col-md-5
+          label.form-label.form-label-sm Recipe (from production recipes)
+          select#base-recipe-select.form-select.form-select-sm
+            option(value='') -- Select recipe --
+            each r in recipes || []
+              option(value=r._id, data-name=r.name)= r.name
+        .col-md-3
+          label.form-label.form-label-sm Display Name
+          input#base-recipe-name.form-control.form-control-sm(type='text', placeholder='e.g. Classic Glazed')
+        .col-md-2
+          label.form-label.form-label-sm Price
+          .input-group.input-group-sm
+            span.input-group-text $
+            input#base-recipe-price.form-control(type='number', min='0', step='0.01', value='0')
+        .col-auto.d-flex.align-items-end
+          .form-check.me-2.mb-0
+            input#base-recipe-isfilled.form-check-input(type='checkbox')
+            label.form-check-label(for='base-recipe-isfilled') Filled recipe
+        .col-md-2.d-flex.align-items-end
+          button.btn.btn-success.btn-sm.w-100(type='button', onclick='soAdmin.addBaseRecipe()') Add
+
+//- ── Frostings ────────────────────────────────────────────────────────────────
+.card.mb-4
+  .card-header.fw-semibold 🍦 Available Frostings &amp; Finishes
+  .card-body
+    table.table.table-sm.mb-3
+      thead
+        tr
+          th Name
+          th Price
+          th Active
+          th
+      tbody
+        if !config.availableFrostings || !config.availableFrostings.length
+          tr
+            td.text-muted(colspan='4') No frostings configured yet.
+        each opt in config.availableFrostings || []
+          tr
+            td= opt.name
+            td= fmtCurrency(opt.price)
+            td
+              if opt.isActive
+                span.badge.bg-success Active
+              else
+                span.badge.bg-secondary Inactive
+            td
+              button.btn.btn-sm.btn-outline-danger(type='button', onclick=`soAdmin.removeOption('frosting','${opt._id}')`) Remove
+
+    .so-add-option-form
+      h6.mb-2 Add Frosting / Finish
+      .row.g-2
+        .col-md-5
+          label.form-label.form-label-sm Recipe (frosting/finish recipes)
+          select#frosting-recipe-select.form-select.form-select-sm
+            option(value='') -- Select recipe --
+            each r in recipes || []
+              option(value=r._id, data-name=r.name)= r.name
+        .col-md-3
+          label.form-label.form-label-sm Display Name
+          input#frosting-name.form-control.form-control-sm(type='text', placeholder='e.g. Chocolate Frosted')
+        .col-md-2
+          label.form-label.form-label-sm Price
+          .input-group.input-group-sm
+            span.input-group-text $
+            input#frosting-price.form-control(type='number', min='0', step='0.01', value='0')
+        .col-md-2.d-flex.align-items-end
+          button.btn.btn-success.btn-sm.w-100(type='button', onclick='soAdmin.addFrosting()') Add
+
+//- ── Toppings ─────────────────────────────────────────────────────────────────
+.card.mb-4
+  .card-header.fw-semibold 🍓 Available Toppings
+  .card-body
+    table.table.table-sm.mb-3
+      thead
+        tr
+          th Name
+          th Price
+          th Active
+          th
+      tbody
+        if !config.availableToppings || !config.availableToppings.length
+          tr
+            td.text-muted(colspan='4') No toppings configured yet.
+        each opt in config.availableToppings || []
+          tr
+            td= opt.name
+            td= fmtCurrency(opt.price)
+            td
+              if opt.isActive
+                span.badge.bg-success Active
+              else
+                span.badge.bg-secondary Inactive
+            td
+              button.btn.btn-sm.btn-outline-danger(type='button', onclick=`soAdmin.removeOption('topping','${opt._id}')`) Remove
+
+    .so-add-option-form
+      h6.mb-2 Add Topping
+      .row.g-2
+        .col-md-5
+          label.form-label.form-label-sm Ingredient
+          select#topping-ingredient-select.form-select.form-select-sm
+            option(value='') -- Select ingredient --
+            each i in ingredients || []
+              option(value=i._id, data-name=i.name)= i.name
+        .col-md-3
+          label.form-label.form-label-sm Display Name
+          input#topping-name.form-control.form-control-sm(type='text', placeholder='e.g. Rainbow Sprinkles')
+        .col-md-2
+          label.form-label.form-label-sm Price
+          .input-group.input-group-sm
+            span.input-group-text $
+            input#topping-price.form-control(type='number', min='0', step='0.01', value='0')
+        .col-md-2.d-flex.align-items-end
+          button.btn.btn-success.btn-sm.w-100(type='button', onclick='soAdmin.addTopping()') Add
+
+//- ── Fillings ─────────────────────────────────────────────────────────────────
+.card.mb-4
+  .card-header.fw-semibold 🍯 Available Fillings
+  .card-body
+    p.text-muted.small Fillings appear as options when a customer selects a base recipe marked as &ldquo;Filled?&rdquo;.
+    table.table.table-sm.mb-3
+      thead
+        tr
+          th Name
+          th Price
+          th Active
+          th
+      tbody
+        if !config.availableFillings || !config.availableFillings.length
+          tr
+            td.text-muted(colspan='4') No fillings configured yet.
+        each opt in config.availableFillings || []
+          tr
+            td= opt.name
+            td= fmtCurrency(opt.price)
+            td
+              if opt.isActive
+                span.badge.bg-success Active
+              else
+                span.badge.bg-secondary Inactive
+            td
+              button.btn.btn-sm.btn-outline-danger(type='button', onclick=`soAdmin.removeOption('filling','${opt._id}')`) Remove
+
+    .so-add-option-form
+      h6.mb-2 Add Filling
+      .row.g-2
+        .col-md-5
+          label.form-label.form-label-sm Ingredient
+          select#filling-ingredient-select.form-select.form-select-sm
+            option(value='') -- Select ingredient --
+            each i in ingredients || []
+              option(value=i._id, data-name=i.name)= i.name
+        .col-md-3
+          label.form-label.form-label-sm Display Name
+          input#filling-name.form-control.form-control-sm(type='text', placeholder='e.g. Strawberry Jelly')
+        .col-md-2
+          label.form-label.form-label-sm Price
+          .input-group.input-group-sm
+            span.input-group-text $
+            input#filling-price.form-control(type='number', min='0', step='0.01', value='0')
+        .col-md-2.d-flex.align-items-end
+          button.btn.btn-success.btn-sm.w-100(type='button', onclick='soAdmin.addFilling()') Add

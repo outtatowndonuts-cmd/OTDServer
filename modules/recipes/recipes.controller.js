@@ -206,6 +206,25 @@ exports.updateSettings = async function (req, res) {
   }
 };
 
+// --- JSON Data APIs -----------------------------------------------------------
+exports.apiGetRecipes = async function (req, res) {
+  try {
+    const recipes = await service.getRecipes();
+    res.json({ ok: true, recipes: recipes.map((r) => ({ _id: r._id, name: r.name, yield: r.yield, yieldUnit: r.yieldUnit })) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+exports.apiGetIngredients = async function (req, res) {
+  try {
+    const ingredients = await service.getIngredients();
+    res.json({ ok: true, ingredients: ingredients.map((i) => ({ _id: i._id, name: i.name, purchaseUnit: i.purchaseUnit })) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
 // --- Ingredient CRUD ----------------------------------------------------------
 exports.createIngredient = async function (req, res) {
   try {

@@ -1,0 +1,135 @@
+-
+  const STATUS_LABELS = {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    filling: 'Being Prepared',
+    'out-for-delivery': 'Out for Delivery',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
+  };
+  const FULFILLMENT_LABELS = {
+    'store-early': 'Store Pickup 5:30–7:30 AM',
+    'store-mid': 'Store Pickup 9:00–10:00 AM',
+    'in-city': 'Home Delivery — In City',
+    'outside-city': 'Home Delivery — Outside City',
+    'outside-county': 'Home Delivery — Outside County',
+  };
+  function fmtDate(d) {
+    return d ? new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+  }
+  function fmtCurrency(n) {
+    if (n == null || isNaN(n)) return '$0.00';
+    return '$' + Number(n).toFixed(2);
+  }
+  const isDelivery = ['in-city', 'outside-city', 'outside-county'].includes(order.fulfillmentType);
+
+.d-flex.justify-content-between.align-items-center.mb-3
+  h4.mb-0
+    | Order Detail —&nbsp;
+    code= order.confirmationNumber || order._id
+  a.btn.btn-sm.btn-outline-secondary(href='#', onclick='soAdmin.load("orders"); return false;') ← Back to List
+
+.row.g-3.mb-4
+  .col-md-6
+    .card.h-100
+      .card-header.fw-semibold Customer
+      .card-body
+        dl.mb-0
+          dt Name
+          dd= order.customerName
+          if order.customerEmail
+            dt Email
+            dd: a(href=`mailto:${order.customerEmail}`)= order.customerEmail
+          if order.customerPhone
+            dt Phone
+            dd: a(href=`tel:${order.customerPhone}`)= order.customerPhone
+
+  .col-md-6
+    .card.h-100
+      .card-header.fw-semibold Fulfillment
+      .card-body
+        dl.mb-0
+          dt Type
+          dd= FULFILLMENT_LABELS[order.fulfillmentType] || order.fulfillmentType
+          dt Scheduled Date
+          dd= fmtDate(order.scheduledDate)
+          if isDelivery && order.deliveryAddress
+            dt Delivery Address
+            dd
+              | #{ order.deliveryAddress.street },
+              | #{ order.deliveryAddress.city },
+              | #{ order.deliveryAddress.state } #{ order.deliveryAddress.zip }
+              if order.distanceMiles
+                br
+                small.text-muted= `${order.distanceMiles} miles`
+              br
+              a(href=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([order.deliveryAddress.street, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.zip].filter(Boolean).join(', '))}`, target='_blank', rel='noopener noreferrer') Open in Maps
+
+.card.mb-4
+  .card-header.fw-semibold Order Items (#{ order.totalQuantity } donuts)
+  .card-body
+    table.table.table-sm.mb-0
+      thead
+        tr
+          th Composition
+          th.text-center Qty
+          th.text-end Each
+          th.text-end Line Total
+      tbody
+        each v in order.variations
+          -
+            const base = v.baseRecipe && v.baseRecipe.name;
+            const frosting = v.frosting && v.frosting.name;
+            const toppings = (v.toppings || []).map(t => t.name).join(', ');
+            const label = [base, frosting, toppings].filter(Boolean).join(' + ');
+            const unitPrice = (v.baseRecipe && v.baseRecipe.price || 0) + (v.frosting && v.frosting.price || 0) + (v.toppings || []).reduce((s, t) => s + (t.price || 0), 0);
+          tr
+            td= label
+            td.text-center= v.quantity
+            td.text-end= fmtCurrency(unitPrice)
+            td.text-end= fmtCurrency(v.lineTotal)
+      tfoot
+        tr
+          td.text-end(colspan='3') Subtotal
+          td.text-end= fmtCurrency(order.subtotal)
+        if order.deliveryFee > 0
+          tr
+            td.text-end(colspan='3') Delivery Fee
+              if order.distanceMiles
+                small.text-muted.ms-1 (#{ order.distanceMiles } mi)
+            td.text-end= fmtCurrency(order.deliveryFee)
+        if order.tax > 0
+          tr
+            td.text-end(colspan='3') Tax
+            td.text-end= fmtCurrency(order.tax)
+        tr.fw-bold
+          td.text-end(colspan='3') Total
+          td.text-end= fmtCurrency(order.total)
+
+.card.mb-4
+  .card-header.fw-semibold Status
+  .card-body
+    .d-flex.align-items-center.gap-3
+      div
+        strong Status:&nbsp;
+        - const statusClass = order.status === 'delivered' ? 'success' : order.status === 'cancelled' ? 'danger' : order.status === 'confirmed' ? 'primary' : 'secondary';
+        span(class=`badge bg-${statusClass}`)= STATUS_LABELS[order.status] || order.status
+      div
+        strong Payment:&nbsp;
+        if order.paymentStatus === 'paid'
+          span.badge.bg-success Paid
+        else if order.paymentStatus === 'refunded'
+          span.badge.bg-warning Refunded
+        else
+          span.badge.bg-secondary Pending
+
+    if order.cancellationReason
+      p.mt-2.text-danger
+        strong Cancellation reason:
+        |#{ order.cancellationReason }
+
+    if order.status !== 'cancelled' && order.status !== 'delivered'
+      .mt-3.d-flex.gap-2
+        if order.status === 'pending'
+          button.btn.btn-success(type='button', onclick=`soAdmin.confirmOrder('${order._id}')`) Confirm Order
+        button.btn.btn-outline-danger(type='button', onclick=`soAdmin.cancelOrder('${order._id}')`) Cancel Order

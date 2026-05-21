@@ -75,7 +75,7 @@ async function apiPickup(req, res, next) {
 }
 
 /**
- * GET /shop/api/custom-boxes — Box configs + products for the custom boxes page.
+ * GET /shop/api/bundles — Box configs + products for the bundles page.
  */
 async function apiCustomBoxes(req, res, next) {
   try {
@@ -240,7 +240,7 @@ async function stripeWebhook(req, res) {
 }
 
 /**
- * POST /shop/api/custom-box-order — Create a pending custom box order.
+ * POST /shop/api/bundle-order — Create a pending bundle order.
  * Expects JSON: { boxConfigId, selections: [{ refId, quantity }], pickupName, idempotencyKey? }
  */
 async function createCustomBoxOrder(req, res, next) {

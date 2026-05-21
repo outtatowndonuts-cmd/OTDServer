@@ -22,8 +22,8 @@ function CustomBoxesPage() {
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
   useEffect(() => {
-    document.title = 'Custom Boxes — Outta Town Donuts';
-    fetch('/shop/api/custom-boxes')
+    document.title = 'Bundles — Outta Town Donuts';
+    fetch('/shop/api/bundles')
       .then((r) => r.json())
       .then((d) => {
         setData(d);
@@ -115,7 +115,7 @@ function CustomBoxesPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/shop/api/custom-box-order', {
+      const res = await fetch('/shop/api/bundle-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ function CustomBoxesPage() {
     <div className="otd-section">
       <div className="container">
         <div className="otd-section-header">
-          <h1>Custom Boxes</h1>
+          <h1>Bundles</h1>
           <p className="otd-text-muted">Pick your flavors, fill your box, and we&rsquo;ll have it ready for you.</p>
           <hr className="otd-divider" />
         </div>
@@ -161,7 +161,7 @@ function CustomBoxesPage() {
           <div className="otd-alert otd-alert-warning">Sorry &mdash; online ordering is currently turned off. Please visit the flea market to place your order.</div>
         ) : !data.boxConfigs.length ? (
           <div className="otd-text-center otd-py-5">
-            <h3 className="otd-text-muted">No custom boxes available right now.</h3>
+            <h3 className="otd-text-muted">No bundles available right now.</h3>
             <p className="otd-text-muted">Check back soon.</p>
           </div>
         ) : (

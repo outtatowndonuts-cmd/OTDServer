@@ -72,7 +72,7 @@ export default function CustomBoxes({ api }) {
     setLoading(true);
     setError('');
     try {
-      const res = await api('/admin/api/custom-boxes');
+      const res = await api('/admin/api/bundles');
       if (!res.ok) throw new Error(res.error || 'Failed to load');
       setConfigs(res.configs);
     } catch (e) {
@@ -138,7 +138,7 @@ export default function CustomBoxes({ api }) {
 
     setSaving(true);
     try {
-      const url = _id ? `/admin/api/custom-boxes/${_id}` : '/admin/api/custom-boxes';
+      const url = _id ? `/admin/api/bundles/${_id}` : '/admin/api/bundles';
       const res = await api(url, {
         method: 'POST',
         body: JSON.stringify({
@@ -163,7 +163,7 @@ export default function CustomBoxes({ api }) {
   async function handleDelete(id, name) {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
-      const res = await api(`/admin/api/custom-boxes/${id}`, { method: 'DELETE' });
+      const res = await api(`/admin/api/bundles/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(res.error || 'Delete failed');
       flash('Box config deleted.');
       await loadConfigs();
@@ -174,7 +174,7 @@ export default function CustomBoxes({ api }) {
 
   async function handleToggleActive(config) {
     try {
-      const res = await api(`/admin/api/custom-boxes/${config._id}`, {
+      const res = await api(`/admin/api/bundles/${config._id}`, {
         method: 'POST',
         body: JSON.stringify({ isActive: !config.isActive }),
       });
@@ -189,7 +189,7 @@ export default function CustomBoxes({ api }) {
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h2 className="section-title" style={{ margin: 0 }}>
-          Custom Box Builder
+          Bundle Builder
         </h2>
         {formData === null && (
           <button style={btnPrimary} onClick={openNew}>
@@ -260,7 +260,7 @@ export default function CustomBoxes({ api }) {
       {loading ? (
         <div className="loading">Loading…</div>
       ) : configs.length === 0 ? (
-        <div style={{ color: '#9ca3af', padding: '40px 0', textAlign: 'center' }}>No box configs yet. Create one to enable the custom box builder on the shop.</div>
+        <div style={{ color: '#9ca3af', padding: '40px 0', textAlign: 'center' }}>No bundle configs yet. Create one to enable the bundle builder on the shop.</div>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>

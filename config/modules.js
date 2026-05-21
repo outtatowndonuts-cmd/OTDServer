@@ -5,4 +5,5 @@ const ordersRoutes = require('../modules/orders/orders.routes');
 const inventoryRoutes = require('../modules/inventory/inventory.routes');
 const adminRoutes = require('../modules/admin/admin.routes');
 const commerceRoutes = require('../modules/commerce/commerce.routes');
-module.exports = [posRoutes, recipesRoutes, ordersRoutes, inventoryRoutes, adminRoutes, commerceRoutes];
+const specialOrdersRoutes = require('../modules/special-orders/special-orders.routes');
+module.exports = [posRoutes, recipesRoutes, ordersRoutes, inventoryRoutes, adminRoutes, commerceRoutes, specialOrdersRoutes];

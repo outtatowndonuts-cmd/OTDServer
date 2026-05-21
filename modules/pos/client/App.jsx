@@ -115,7 +115,7 @@ function App() {
     const metaCsrf = document.querySelector('meta[name="csrf-token"]');
     if (metaCsrf) setCsrfToken(metaCsrf.content);
 
-    Promise.all([api('/api/catalog'), api('/api/settings'), api('/api/custom-boxes')]).then(([catRes, setRes, boxRes]) => {
+    Promise.all([api('/api/catalog'), api('/api/settings'), api('/api/bundles')]).then(([catRes, setRes, boxRes]) => {
       if (catRes.ok) setProducts(catRes.products);
       if (setRes.ok) setTaxRate(setRes.settings.taxRate || 0);
       if (boxRes.ok) setBoxConfigs(boxRes.configs || []);
@@ -458,7 +458,7 @@ function App() {
                 marginBottom: 8,
               }}
             >
-              📦 Build Custom Box
+              📦 Build Bundle
             </button>
           </div>
         )}

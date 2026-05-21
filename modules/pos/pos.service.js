@@ -203,7 +203,7 @@ module.exports = {
 };
 
 /**
- * Return active custom box configurations for the POS box builder.
+ * Return active bundle configurations for the POS box builder.
  */
 async function getCustomBoxConfigs() {
   return CustomBoxConfig.find({ isActive: true }).sort({ size: 1 }).lean();

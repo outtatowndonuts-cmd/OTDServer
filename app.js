@@ -134,7 +134,7 @@ app.use(
   express.json({
     verify: (req, res, buf) => {
       // Preserve raw body for Stripe webhook signature verification
-      if (req.originalUrl === '/shop/webhook/stripe') {
+      if (req.originalUrl === '/shop/webhook/stripe' || req.originalUrl === '/special-orders/webhook/stripe') {
         req.rawBody = buf;
       }
     },
@@ -160,7 +160,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash);
 app.use((req, res, next) => {
-  if (req.originalUrl === '/shop/webhook/stripe') {
+  if (req.originalUrl === '/shop/webhook/stripe' || req.originalUrl === '/special-orders/webhook/stripe') {
     // Stripe webhooks are verified via signature, not CSRF
     next();
   } else {
@@ -201,7 +201,7 @@ modules.forEach((moduleRoute) => {
 // Redirect unauthenticated GET requests to /shop for all non-public routes.
 // Public paths: /shop and sub-routes, /apply, /pending-approval, auth/login/signup
 // flows, and anything containing a dot (static assets).
-const PUBLIC_PREFIXES = ['/shop', '/access', '/apply', '/pending-approval', '/login', '/logout', '/forgot', '/reset', '/signup', '/auth', '/contact'];
+const PUBLIC_PREFIXES = ['/shop', '/special-orders', '/access', '/apply', '/pending-approval', '/login', '/logout', '/forgot', '/reset', '/signup', '/auth', '/contact'];
 app.use((req, res, next) => {
   if (req.user || req.method !== 'GET') return next();
   const isPublic = PUBLIC_PREFIXES.some((p) => req.path === p || req.path.startsWith(`${p}/`)) || req.path.includes('.');

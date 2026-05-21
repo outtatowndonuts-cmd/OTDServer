@@ -32,7 +32,7 @@ const managerAuth = [passportConfig.isAuthenticated, requireRole('admin', 'manag
 router.get('/api/csrf', passportConfig.isAuthenticated, posController.getCsrf);
 router.get('/api/catalog', ...staffAuth, posController.getCatalog);
 router.get('/api/settings', ...staffAuth, posController.getSettings);
-router.get('/api/custom-boxes', ...staffAuth, posController.getCustomBoxConfigs);
+router.get('/api/bundles', ...staffAuth, posController.getCustomBoxConfigs);
 router.post('/api/orders', ...staffAuth, posController.createOrder);
 router.post('/api/orders/:id/complete', ...staffAuth, posController.completeOrder);
 router.get('/api/orders/pending', ...staffAuth, posController.getPendingQueue);

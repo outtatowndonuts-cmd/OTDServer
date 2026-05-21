@@ -40,11 +40,13 @@ const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/orders', label: 'Orders', icon: '📦' },
   { path: '/inventory', label: 'Inventory', icon: '🏷️' },
-  { path: '/custom-boxes', label: 'Custom Boxes', icon: '📦' },
+  { path: '/bundles', label: 'Bundles', icon: '📦' },
   { path: '/employees', label: 'Employees', icon: '👥' },
   { path: '/applications', label: 'Applications', icon: '📋' },
   { path: '/contacts', label: 'Messages', icon: '✉️' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
+  { path: null, label: 'Special Orders', icon: '🍩', href: '/special-orders/admin' },
+  { path: null, label: 'Driver Dashboard', icon: '🚚', href: '/special-orders/driver' },
 ];
 
 /* ── App ──────────────────────────────────────────────────────────── */
@@ -70,7 +72,7 @@ export default function App() {
         return <Employees api={api} />;
       case '/applications':
         return <Applications api={api} />;
-      case '/custom-boxes':
+      case '/bundles':
         return <CustomBoxes api={api} />;
       case '/contacts':
         return <ContactMessages api={api} />;
@@ -91,19 +93,25 @@ export default function App() {
           </a>
         </header>
         <nav className="admin-sidebar">
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.path}
-              href={`#${item.path}`}
-              className={route === item.path ? 'active' : ''}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(item.path);
-              }}
-            >
-              {item.icon} {item.label}
-            </a>
-          ))}
+          {NAV_ITEMS.map((item) =>
+            item.href ? (
+              <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer">
+                {item.icon} {item.label}
+              </a>
+            ) : (
+              <a
+                key={item.path}
+                href={`#${item.path}`}
+                className={route === item.path ? 'active' : ''}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(item.path);
+                }}
+              >
+                {item.icon} {item.label}
+              </a>
+            ),
+          )}
         </nav>
         <main className="admin-content">{renderPage()}</main>
       </div>

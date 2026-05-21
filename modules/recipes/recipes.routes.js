@@ -52,4 +52,8 @@ router.post('/supplies/:id/delete', isAuthenticated, controller.deleteSupply);
 router.get('/fragments/settings', isAuthenticated, controller.fragmentSettings);
 router.post('/settings', isAuthenticated, controller.updateSettings);
 
+// ─── JSON Data APIs (used by other modules) ───────────────────────────────────
+router.get('/api/recipes', isAuthenticated, controller.apiGetRecipes);
+router.get('/api/ingredients', isAuthenticated, controller.apiGetIngredients);
+
 module.exports = { basePath: '/recipes', router };

@@ -48,8 +48,11 @@ function Layout({ children }) {
               <a className={`otd-nav-link${currentPage === 'pickup' ? ' active' : ''}`} href="/shop/pickup">
                 Pickup Orders
               </a>
-              <a className={`otd-nav-link${currentPage === 'custom-boxes' ? ' active' : ''}`} href="/shop/custom-boxes">
-                Custom Boxes
+              <a className={`otd-nav-link${currentPage === 'bundles' ? ' active' : ''}`} href="/shop/bundles">
+                Bundles
+              </a>
+              <a className="otd-nav-link" href="/special-orders">
+                Special Orders
               </a>
               <a className={`otd-nav-link${currentPage === 'about' ? ' active' : ''}`} href="/shop/about">
                 About Us
@@ -83,7 +86,7 @@ function Layout({ children }) {
                     <a href="/shop/pickup">Pickup Orders</a>
                   </li>
                   <li>
-                    <a href="/shop/custom-boxes">Custom Boxes</a>
+                    <a href="/shop/bundles">Bundles</a>
                   </li>
                 </ul>
               </div>

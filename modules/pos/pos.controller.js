@@ -496,8 +496,8 @@ exports.deliverOrder = async (req, res) => {
 };
 
 /**
- * GET /pos/api/custom-boxes
- * Return active custom box configurations for the POS box builder.
+ * GET /pos/api/bundles
+ * Return active bundle configurations for the POS box builder.
  */
 exports.getCustomBoxConfigs = async (req, res) => {
   try {
