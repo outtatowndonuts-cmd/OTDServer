@@ -11,7 +11,9 @@ export default function OrderReview({ form, variations, config, onSubmit, submit
   // Build line items for display
   const lineItems = variations.map((v) => {
     if (v.isAssorted) {
-      return { label: "Assorted \u2014 baker's choice", quantity: v.quantity || 1, unitPrice: null, lineTotal: null };
+      const unitPrice = config.assortedDonutBasePrice > 0 ? config.assortedDonutBasePrice : null;
+      const lineTotal = unitPrice ? unitPrice * (v.quantity || 1) : null;
+      return { label: "Assorted \u2014 baker's choice", quantity: v.quantity || 1, unitPrice, lineTotal };
     }
     const baseOpt = (config.availableBaseRecipes || []).find((o) => o._id === v.baseRecipeOptionId);
     const frostingOpt = (config.availableFrostings || []).find((o) => o._id === v.frostingOptionId);
@@ -130,6 +132,12 @@ export default function OrderReview({ form, variations, config, onSubmit, submit
                   <td colSpan={3}>Subtotal</td>
                   <td className="text-end">{fmtCurrency(quote.subtotal)}</td>
                 </tr>
+                {quote.bundleDiscountAmount > 0 && (
+                  <tr className="text-success">
+                    <td colSpan={3}>Bundle Discount</td>
+                    <td className="text-end">&minus;{fmtCurrency(quote.bundleDiscountAmount)}</td>
+                  </tr>
+                )}
                 {quote.deliveryFee > 0 && (
                   <tr>
                     <td colSpan={3}>
@@ -166,7 +174,7 @@ export default function OrderReview({ form, variations, config, onSubmit, submit
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {hasAssorted && <div className="so-checkout-note">Assorted variations are priced at our discretion. Final total may differ.</div>}
+      {hasAssorted && !config.assortedDonutBasePrice && <div className="so-checkout-note">Assorted variations are priced at our discretion. Final total may differ.</div>}
 
       <div className="so-checkout-note">Final totals will be confirmed at checkout. You will be redirected to a secure payment page.</div>
 

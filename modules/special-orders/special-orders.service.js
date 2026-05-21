@@ -2,6 +2,7 @@ const https = require('node:https');
 const nodemailer = require('nodemailer');
 const stripe = process.env.STRIPE_SKEY ? require('stripe')(process.env.STRIPE_SKEY) : null;
 const { SpecialOrder, SpecialOrderConfig } = require('./special-orders.model');
+const { CustomBoxConfig } = require('../commerce/custom-box.model');
 const orderService = require('../../shared/order.service');
 
 // In-memory cache for store geocode result (cleared when storeAddress changes)
@@ -18,7 +19,7 @@ async function getConfig() {
 }
 
 async function updateConfig(data) {
-  const allowed = ['inCityDeliveryFee', 'outsideCityFlatFee', 'perMileRate', 'storeAddress', 'orderCutoffHour'];
+  const allowed = ['inCityDeliveryFee', 'outsideCityFlatFee', 'perMileRate', 'storeAddress', 'orderCutoffHour', 'assortedDonutBasePrice'];
   const update = {};
   for (const key of allowed) {
     if (data[key] !== undefined) update[key] = data[key];
@@ -138,7 +139,49 @@ async function getPublicConfig() {
     perMileRate: config.perMileRate,
     orderCutoffHour: config.orderCutoffHour,
     storeHours: config.storeHours || [],
+    assortedDonutBasePrice: config.assortedDonutBasePrice || 0,
   };
+}
+
+// ─── Bundle Discount (mirrors POS applyAutoBundles) ───────────────────────────
+// Returns the total dollar discount for a set of variations given active box
+// configs.  Higher-quantity bundles are applied greedily first (largest-tier
+// first), then smaller tiers absorb any remainder — identical to the POS logic.
+function _computeBundleDiscount(variations, boxConfigs) {
+  const activeConfigs = (boxConfigs || []).filter((c) => c.isActive && c.discountPct > 0).sort((a, b) => b.size - a.size);
+
+  if (!activeConfigs.length) return 0;
+
+  // Expand every variation into individual units sorted by unit price desc
+  const units = [];
+  for (const v of variations) {
+    const unitPrice = (v.baseRecipe?.price || 0) + (v.frosting?.price || 0) + (v.filling?.price || 0) + (v.toppings || []).reduce((s, t) => s + (t.price || 0), 0);
+    for (let i = 0; i < v.quantity; i += 1) {
+      units.push({ price: unitPrice, discountPct: 0 });
+    }
+  }
+  units.sort((a, b) => b.price - a.price);
+
+  // Greedy multi-tier pass
+  let offset = 0;
+  let remaining = units.length;
+  for (const cfg of activeConfigs) {
+    if (remaining < cfg.size) continue;
+    const numBundles = Math.floor(remaining / cfg.size);
+    const bundledCount = numBundles * cfg.size;
+    for (let i = offset; i < offset + bundledCount; i += 1) {
+      units[i].discountPct = cfg.discountPct;
+    }
+    offset += bundledCount;
+    remaining -= bundledCount;
+    if (remaining === 0) break;
+  }
+
+  let discount = 0;
+  for (const u of units) {
+    if (u.discountPct > 0) discount += u.price * (u.discountPct / 100);
+  }
+  return Math.round(discount * 100) / 100;
 }
 
 // ─── Customer: Order Window Validation ───────────────────────────────────────
@@ -214,7 +257,7 @@ async function calculateDeliveryFee(fulfillmentType, address, config) {
     const destLoc = _extractLocality(destResult);
 
     // Get driving distance via OSRM (public, no key required, OpenStreetMap data)
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/` + `${_storeGeoCache.lng},${_storeGeoCache.lat};${destLoc.lng},${destLoc.lat}` + `?overview=false`;
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${_storeGeoCache.lng},${_storeGeoCache.lat};${destLoc.lng},${destLoc.lat}?overview=false`;
 
     const osrmData = await _nominatimFetch(osrmUrl);
     const routeMeters = osrmData?.routes?.[0]?.distance;
@@ -261,7 +304,7 @@ async function estimateOrderPrice({ fulfillmentType, deliveryAddress, variations
 
   // Build lightweight variation price objects (no DB lookup strictness needed for estimate)
   const priceVariations = (variations || []).map((v) => {
-    if (v.isAssorted) return { baseRecipe: { price: 0 }, frosting: { price: 0 }, filling: null, toppings: [], quantity: Number(v.quantity) || 1, lineTotal: 0 };
+    if (v.isAssorted) return { isAssorted: true, baseRecipe: { price: config.assortedDonutBasePrice || 0 }, frosting: { price: 0 }, filling: null, toppings: [], quantity: Number(v.quantity) || 1, lineTotal: 0 };
     const base = config.availableBaseRecipes.find((o) => o._id.toString() === String(v.baseRecipeOptionId));
     const frosting = config.availableFrostings.find((o) => o._id.toString() === String(v.frostingOptionId));
     const filling = v.fillingOptionId ? config.availableFillings.find((o) => o._id.toString() === String(v.fillingOptionId)) : null;
@@ -281,7 +324,23 @@ async function estimateOrderPrice({ fulfillmentType, deliveryAddress, variations
 
   const { fee: deliveryFee, distanceMiles } = await calculateDeliveryFee(fulfillmentType, deliveryAddress || {}, config);
   const totals = computeTotals(priceVariations, deliveryFee, settings.taxRate);
-  return { ...totals, distanceMiles, perMileRate: config.perMileRate };
+
+  // Apply bundle discount (same greedy algorithm as the POS auto-bundle)
+  const boxConfigs = await CustomBoxConfig.find({ isActive: true }).lean();
+  const bundleDiscountAmount = _computeBundleDiscount(priceVariations, boxConfigs);
+  const discountedSubtotal = Math.round((totals.subtotal - bundleDiscountAmount) * 100) / 100;
+  const adjustedTax = Math.round(discountedSubtotal * (settings.taxRate || 0) * 100) / 100;
+  const adjustedTotal = Math.round((discountedSubtotal + deliveryFee + adjustedTax) * 100) / 100;
+
+  return {
+    subtotal: totals.subtotal,
+    bundleDiscountAmount,
+    deliveryFee,
+    distanceMiles,
+    tax: adjustedTax,
+    total: adjustedTotal,
+    perMileRate: config.perMileRate,
+  };
 }
 
 // ─── Customer: Create Order ───────────────────────────────────────────────────
@@ -313,7 +372,7 @@ async function createSpecialOrder({ customerName, customerEmail, customerPhone, 
     if (v.isAssorted) {
       validatedVariations.push({
         isAssorted: true,
-        baseRecipe: { name: 'Assorted', price: 0, recipeId: null },
+        baseRecipe: { name: 'Assorted', price: config.assortedDonutBasePrice || 0, recipeId: null },
         frosting: { name: 'Assorted', price: 0, recipeId: null },
         filling: null,
         toppings: [],
@@ -391,8 +450,15 @@ async function createSpecialOrder({ customerName, customerEmail, customerPhone, 
   // Calculate delivery fee (may call Google Maps API)
   const { fee: deliveryFee, distanceMiles } = await calculateDeliveryFee(fulfillmentType, deliveryAddress || {}, config);
 
-  // Server-authoritative totals
-  const { subtotal, tax, total } = computeTotals(validatedVariations, deliveryFee, settings.taxRate);
+  // Server-authoritative totals (pre-discount)
+  const { subtotal } = computeTotals(validatedVariations, deliveryFee, settings.taxRate);
+
+  // Apply bundle discount (same greedy algorithm as the POS auto-bundle)
+  const boxConfigs = await CustomBoxConfig.find({ isActive: true }).lean();
+  const bundleDiscountAmount = _computeBundleDiscount(validatedVariations, boxConfigs);
+  const discountedSubtotal = Math.round((subtotal - bundleDiscountAmount) * 100) / 100;
+  const tax = Math.round(discountedSubtotal * (settings.taxRate || 0) * 100) / 100;
+  const total = Math.round((discountedSubtotal + deliveryFee + tax) * 100) / 100;
 
   // Persist the order
   const order = await SpecialOrder.create({
@@ -405,6 +471,7 @@ async function createSpecialOrder({ customerName, customerEmail, customerPhone, 
     totalQuantity: Number(totalQuantity),
     variations: validatedVariations,
     subtotal,
+    bundleDiscountAmount,
     deliveryFee,
     distanceMiles,
     tax,
@@ -454,7 +521,20 @@ async function createSpecialOrder({ customerName, customerEmail, customerPhone, 
     });
   }
 
-  const session = await stripe.checkout.sessions.create({
+  // Apply bundle discount as a Stripe coupon so the checkout total matches the order total
+  let stripeCouponId;
+  if (bundleDiscountAmount > 0) {
+    const coupon = await stripe.coupons.create({
+      amount_off: Math.round(bundleDiscountAmount * 100),
+      currency: 'usd',
+      duration: 'once',
+      name: 'Bundle Discount',
+      id: `so-bundle-${order._id}`,
+    });
+    stripeCouponId = coupon.id;
+  }
+
+  const sessionParams = {
     payment_method_types: ['card'],
     line_items: lineItems,
     mode: 'payment',
@@ -462,7 +542,10 @@ async function createSpecialOrder({ customerName, customerEmail, customerPhone, 
     cancel_url: `${process.env.BASE_URL}/special-orders?cancelled=true`,
     customer_email: order.customerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.customerEmail) ? order.customerEmail : undefined,
     metadata: { specialOrderId: order._id.toString() },
-  });
+  };
+  if (stripeCouponId) sessionParams.discounts = [{ coupon: stripeCouponId }];
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
 
   order.stripeSessionId = session.id;
   await order.save();
@@ -789,7 +872,7 @@ const US_STATE_ABBR = {
 
 async function addressAutocomplete(q) {
   if (!q || q.trim().length < 4) return [];
-  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=7` + `&countrycodes=us&q=${encodeURIComponent(q.trim())}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=7&countrycodes=us&q=${encodeURIComponent(q.trim())}`;
   const results = await _nominatimFetch(url);
   return (results || [])
     .map((r) => {

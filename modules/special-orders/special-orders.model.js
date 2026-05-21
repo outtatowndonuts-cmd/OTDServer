@@ -58,6 +58,7 @@ const specialOrderConfigSchema = new mongoose.Schema(
     storeAddress: { type: String, trim: true, default: '' },
     orderCutoffHour: { type: Number, default: 17, min: 0, max: 23 },
     storeHours: { type: [storeHoursDaySchema], default: () => DEFAULT_STORE_HOURS },
+    assortedDonutBasePrice: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true },
 );
@@ -137,6 +138,7 @@ const specialOrderSchema = new mongoose.Schema(
       validate: [(v) => v.length > 0, 'Order must have at least one variation'],
     },
     subtotal: { type: Number, required: true, min: 0 },
+    bundleDiscountAmount: { type: Number, default: 0, min: 0 },
     deliveryFee: { type: Number, default: 0, min: 0 },
     distanceMiles: { type: Number, default: null },
     tax: { type: Number, default: 0, min: 0 },

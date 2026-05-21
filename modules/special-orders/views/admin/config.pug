@@ -36,6 +36,12 @@ h2.mb-4 Special Orders Configuration
           label.form-label Order Cutoff (24h)
           input.form-control(name='orderCutoffHour', type='number', min='0', max='23', value=config.orderCutoffHour != null ? config.orderCutoffHour : 17)
           .form-text Hour of day (0–23)
+        .col-md-2
+          label.form-label Assorted Donut Price
+          .input-group
+            span.input-group-text $
+            input.form-control(name='assortedDonutBasePrice', type='number', min='0', step='0.01', value=(config.assortedDonutBasePrice || 0).toFixed(2))
+          .form-text Per-donut base cost for assorted orders
       .mt-3
         button.btn.btn-primary(type='button', onclick='soAdmin.saveConfig(document.getElementById("so-config-form"))') Save Settings
 
