@@ -191,3 +191,117 @@ exports.updateSettings = async function (req, res) {
     res.status(400).json({ ok: false, error: err.message });
   }
 };
+
+// --- API: KPI Report ----------------------------------------------------------
+exports.getKPIReport = async function (req, res) {
+  try {
+    const { Order } = require('./orders.model');
+    
+    // 1. Total Revenue & Sales Volume
+    const revenueData = await Order.aggregate([
+      { $match: { type: 'sale' } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$total' },
+          avgOrderValue: { $avg: '$total' },
+          minOrder: { $min: '$total' },
+          maxOrder: { $max: '$total' },
+          totalOrders: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 2. Order Count by Status
+    const statusData = await Order.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 3. Top Products
+    const topProducts = await Order.aggregate([
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.name',
+          quantity: { $sum: '$items.quantity' },
+          revenue: { $sum: { $multiply: ['$items.quantity', '$items.priceSnapshot'] } }
+        }
+      },
+      { $sort: { quantity: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // 4. Customer Metrics
+    const customerData = await Order.aggregate([
+      { $match: { type: 'sale' } },
+      { $group: { _id: '$customerId', orderCount: { $sum: 1 }, totalSpent: { $sum: '$total' } } },
+      {
+        $group: {
+          _id: null,
+          totalCustomers: { $sum: 1 },
+          repeatCustomers: { $sum: { $cond: [{ $gt: ['$orderCount', 1] }, 1, 0] } },
+          avgOrdersPerCustomer: { $avg: '$orderCount' }
+        }
+      }
+    ]);
+
+    // 5. Payment Method Breakdown
+    const paymentData = await Order.aggregate([
+      { $match: { type: 'sale' } },
+      { $group: { _id: '$paymentMethod', count: { $sum: 1 }, revenue: { $sum: '$total' } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 6. Monthly Trends
+    const timeData = await Order.aggregate([
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m', date: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          revenue: { $sum: '$total' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // 7. Geographic Breakdown
+    const geoData = await Order.aggregate([
+      { $match: { 'shippingAddress.state': { $exists: true } } },
+      { $group: { _id: '$shippingAddress.state', count: { $sum: 1 }, revenue: { $sum: '$total' } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // 8. Fulfillment Status
+    const fulfillmentData = await Order.aggregate([
+      { $group: { _id: '$fulfillmentStatus', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // 9. Order Type Breakdown
+    const typeData = await Order.aggregate([
+      { $group: { _id: '$type', count: { $sum: 1 }, revenue: { $sum: '$total' } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.json({
+      ok: true,
+      kpi: {
+        revenue: revenueData[0] || { totalRevenue: 0, avgOrderValue: 0, minOrder: 0, maxOrder: 0, totalOrders: 0 },
+        statusBreakdown: statusData,
+        topProducts,
+        customers: customerData[0] || { totalCustomers: 0, repeatCustomers: 0, avgOrdersPerCustomer: 0 },
+        paymentMethods: paymentData,
+        monthlyTrends: timeData,
+        geography: geoData,
+        fulfillment: fulfillmentData,
+        orderTypes: typeData
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};

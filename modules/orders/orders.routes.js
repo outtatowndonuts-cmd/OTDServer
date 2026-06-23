@@ -16,10 +16,11 @@ router.get('/fragments/new', isAuthenticated, controller.fragmentNewOrder);
 router.get('/fragments/:id/detail', isAuthenticated, controller.fragmentOrderDetail);
 router.get('/fragments/settings', isAuthenticated, controller.fragmentSettings);
 
-// ─── API Routes (return JSON) ─────────────────────────────────────────────────
+// ─── API Routes (return JSON) ────────────────────────────────────────────────
 router.post('/', isAuthenticated, controller.createOrder);
 router.post('/settings', isAuthenticated, requireRole('admin', 'manager'), controller.updateSettings);
 router.get('/api', isAuthenticated, controller.listOrders);
+router.get('/api/kpi/report', isAuthenticated, requireRole('admin', 'manager'), controller.getKPIReport);
 router.get('/api/:id', isAuthenticated, controller.getOrder);
 router.post('/:id/complete', isAuthenticated, controller.completeOrder);
 router.post('/:id/force-complete', isAuthenticated, requireRole('admin', 'manager'), controller.forceCompleteOrder);
